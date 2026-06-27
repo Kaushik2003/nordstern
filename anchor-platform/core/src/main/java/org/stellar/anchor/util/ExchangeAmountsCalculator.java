@@ -1,0 +1,128 @@
+package org.stellar.anchor.util;
+
+import static org.stellar.anchor.util.SepHelper.amountEquals;
+
+import java.time.Clock;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import org.stellar.anchor.api.asset.AssetInfo;
+import org.stellar.anchor.api.exception.AnchorException;
+import org.stellar.anchor.api.exception.BadRequestException;
+import org.stellar.anchor.api.exception.SepException;
+import org.stellar.anchor.api.exception.SepValidationException;
+import org.stellar.anchor.api.shared.FeeDetails;
+import org.stellar.anchor.sep38.Sep38Quote;
+import org.stellar.anchor.sep38.Sep38QuoteStore;
+
+/** Calculates the amounts for an exchange request. */
+@RequiredArgsConstructor
+public class ExchangeAmountsCalculator {
+  @NonNull private final Sep38QuoteStore sep38QuoteStore;
+  @NonNull private final Clock clock;
+
+  /**
+   * Calculates the amounts from a saved quote.
+   *
+   * @param quoteId The quote ID
+   * @param sellAsset The asset the user is selling
+   * @param sellAmount The amount the user is selling
+   * @return The amounts
+   * @throws AnchorException if the quote is invalid
+   */
+  public Amounts calculateFromQuote(String quoteId, AssetInfo sellAsset, String sellAmount)
+      throws AnchorException {
+    Sep38Quote quote = validateQuoteAgainstRequestInfo(quoteId, sellAsset, null, sellAmount);
+    return Amounts.builder()
+        .amountIn(quote.getSellAmount())
+        .amountInAsset(quote.getSellAsset())
+        .amountOut(quote.getBuyAmount())
+        .amountOutAsset(quote.getBuyAsset())
+        .feeDetails(quote.getFee())
+        .build();
+  }
+
+  /**
+   * validate the quote info against Sep6 or Sep24 or request info.
+   *
+   * @param quoteId The quote ID
+   * @param sellAsset The asset the user is selling. It can be null for sep24 deposit request
+   * @param buyAsset The amount the user is buying. It can be null for sep24 withdraw request
+   * @param sellAmount The amount the user is selling. It can be null for sep24 deposit and withdraw
+   *     requests
+   * @return The quote
+   * @throws AnchorException if the quote is invalid
+   */
+  public Sep38Quote validateQuoteAgainstRequestInfo(
+      String quoteId, AssetInfo sellAsset, AssetInfo buyAsset, String sellAmount)
+      throws AnchorException {
+    Sep38Quote quote = sep38QuoteStore.findByQuoteId(quoteId);
+    if (quote == null) {
+      throw new BadRequestException("Quote not found");
+    }
+
+    if (quote.getTransactionId() != null) {
+      throw new BadRequestException(String.format("quote(id=%s) has already been used", quoteId));
+    }
+
+    if (quote.getExpiresAt() != null && !quote.getExpiresAt().isAfter(clock.instant())) {
+      throw new BadRequestException(
+          String.format("quote(id=%s) has expired at %s", quoteId, quote.getExpiresAt()));
+    }
+
+    if (sellAsset != null && !sellAsset.getId().equals(quote.getSellAsset())) {
+      throw new BadRequestException(
+          String.format(
+              "source asset(%s) does not match quote sell asset(%s)",
+              sellAsset.getId(), quote.getSellAsset()));
+    }
+
+    if (buyAsset != null && !buyAsset.getId().equals(quote.getBuyAsset())) {
+      throw new BadRequestException(
+          String.format(
+              "destination asset(%s) does not match quote buy asset(%s)",
+              buyAsset.getId(), quote.getBuyAsset()));
+    }
+
+    if (sellAmount != null && !amountEquals(sellAmount, quote.getSellAmount())) {
+      throw new BadRequestException(
+          String.format(
+              "amount(%s) does not match quote sell amount(%s)",
+              sellAmount, quote.getSellAmount()));
+    }
+
+    FeeDetails fee = quote.getFee();
+    if (fee == null) {
+      throw new SepValidationException("Quote is missing the 'fee' field");
+    }
+
+    return quote;
+  }
+
+  /**
+   * Bind a quote to a transaction. Delegates to {@link Sep38QuoteStore#bindToTransaction}.
+   *
+   * @param quoteId The quote ID
+   * @param transactionId The transaction ID to bind
+   * @throws BadRequestException if the quote has already been bound to a transaction
+   * @throws SepException if a storage error occurs
+   */
+  public void bindQuoteToTransaction(String quoteId, String transactionId)
+      throws BadRequestException, SepException {
+    if (!sep38QuoteStore.bindToTransaction(quoteId, transactionId)) {
+      throw new BadRequestException(String.format("quote(id=%s) has already been used", quoteId));
+    }
+  }
+
+  /** Amounts calculated for an exchange request. */
+  @Builder
+  @Data
+  public static class Amounts {
+    String amountIn;
+    String amountInAsset;
+    String amountOut;
+    String amountOutAsset;
+    FeeDetails feeDetails;
+  }
+}

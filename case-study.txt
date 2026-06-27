@@ -1,0 +1,47 @@
+https://stellar.org/blog/ecosystem/cowries-cross-border-payment-services-for-nigeria-powered-by-stellar
+
+
+Earlier this month, we premiered a new webinar series focused on sharing how companies are using Stellar for different use cases around the world.
+
+For our inaugural event, we heard from Cowrie Integrated Systems, a fintech company which has developed payment rails that enable low-cost and instant payments into and out of Nigerian bank accounts.
+
+We’re excited to share the full session with you today!
+
+The event was led by SDF’s Senior Strategist Lisa Nestor, who shared a brief overview on how Stellar helps companies facilitate cross-border payments. Lisa was joined by Gbubemi Agbeyegbe, Cowrie’s Technical Director, who gave a deep-dive into their technology and product. At the end of the session, the floor was opened to questions from the audience.
+
+Below, Gbubemi has provided answers to some additional questions that we didn't have time to address during the session.
+
+‍
+
+How long did it take to develop Cowrie and what was your budget like?
+
+The Cowrie team took about 8 weeks to launch their initial Stellar integration, which they continue to enhance and maintain. They used a team of three developers, one senior and two junior, to execute their Anchor integration and issue their NGNT asset.
+
+‍
+
+How do you handle KYC validation? Is it through the customer BVN via customer banks? For Nigerian account deposits - does Cowrie conduct any type of validations?
+
+Cowrie processes local KYC using approved national identity documents, including BVN when it is available. Cowrie validates the beneficiary details including account number and account name on every withdrawal and present to the user for confirmation.
+
+‍
+
+Are orders always cleared on the Stellar Decentralized Exchange and are there any market makers currently in use?
+
+Yes, orders on the Stellar DEX are always cleared, even when using path payments. This is because transactions on Stellar are atomic, meaning they either succeed or fail. Read more about path payments and atomic transactions here. And yes, there are institutional and retail market makers of NGNT active on the Stellar DEX. There are currently NGNT pairs for USD, EUR, CNY, XLM, BTC
+
+‍
+
+How do you ensure stability of the value while converting from Euro to your fiat currency in Nigeria (for example)?
+
+Cowrie relies on global exchange rates between fiat currencies and market forces to determine conversion prices. Therefore, redemption of NGNT will be at the price or exchange rate for Naira at the time the exchange or transaction is requested.
+
+‍
+
+Can you describe a bit more how I as a foreigner with a Stellar wallet can transfer funds directly to a Nigerian bank account? Or do your users also have a Stellar wallet from where they need to withdraw funds?
+
+To deposit NGNT into a Nigerian bank account, you have to first acquire XLM or any other Stellar token. You can then use the Stellar decentralized exchange (through an interface such as Interstellar.Exchange or StellarX) to convert the XLM or Stellar tokens into NGNT. Afterwards you go to the NGNT withdrawal page, which will ask you to select a Nigerian bank from a list and enter your recipient’s bank account number. Finally you confirm the transfer of NGNT and the NGN funds are sent to the recipient’s bank account.
+
+
+Can I issue Nairas without going through other fiat currencies with payment instructions?
+
+Yes, NGNT can be deposited by sending a deposit to the Cowrie corporate bank account in Nigeria. Deposit instructions are typically available in all wallets that support NGNT such as Solar, Interstellar.Exchange, Lobstr and StellarX. You will receive NGNT in your Stellar account (or wallet) within about a minute.

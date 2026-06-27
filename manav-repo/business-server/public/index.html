@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ANCH — Stellar Anchor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#f1f5f9; --surface:#fff; --border:#e2e8f0; --muted:#94a3b8;
+      --text:#0f172a; --sub:#475569; --primary:#6366f1; --ph:#4f46e5;
+      --green:#10b981; --gh:#059669; --red:#ef4444; --amber:#f59e0b;
+    }
+    body { font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+    header {
+      background:#0f172a; height:56px; padding:0 1.5rem;
+      display:flex; align-items:center; gap:0.75rem;
+      position:sticky; top:0; z-index:100;
+    }
+    .logo { color:#fff; font-weight:700; font-size:1rem; }
+    .netbadge { font-size:.62rem; font-weight:700; letter-spacing:.06em; padding:2px 7px; border-radius:4px; background:#1e3a5f; color:#7dd3fc; }
+    header .sp { flex:1; }
+    .hbtn {
+      display:flex; align-items:center; gap:.5rem;
+      padding:.38rem .9rem; border-radius:7px; font-size:.8rem; font-weight:600;
+      cursor:pointer; border:none; transition:opacity .15s;
+    }
+    .hbtn:hover { opacity:.85; }
+    .hbtn.connect { background:var(--primary); color:#fff; }
+    .hbtn.done    { background:#1e293b; color:#e2e8f0; }
+    .dot { width:7px; height:7px; border-radius:50%; background:var(--green); }
+
+    main { max-width:480px; margin:0 auto; padding:1.75rem 1rem 4rem; }
+
+    /* landing */
+    #landing { text-align:center; padding:3.5rem 1rem; }
+    #landing h2 { font-size:1.6rem; font-weight:700; margin-bottom:.4rem; }
+    #landing p  { color:var(--sub); margin-bottom:1.75rem; }
+    .cta { display:inline-flex; align-items:center; gap:.5rem; padding:.7rem 1.8rem;
+           background:var(--primary); color:#fff; border:none; border-radius:10px;
+           font-size:.95rem; font-weight:600; cursor:pointer; transition:background .15s; }
+    .cta:hover { background:var(--ph); }
+    .cta:disabled { opacity:.5; cursor:not-allowed; }
+    #cst { min-height:2.2rem; margin:.75rem 0; font-size:.85rem; }
+    .hint { font-size:.78rem; color:var(--muted); margin-top:.5rem; line-height:1.6; }
+    .hint a { color:var(--primary); }
+
+    details.dev { margin-top:2rem; text-align:left; border:1px solid var(--border); border-radius:8px; padding:.75rem 1rem; }
+    details.dev summary { font-size:.78rem; color:var(--muted); cursor:pointer; user-select:none; }
+    details.dev .inn { margin-top:.65rem; display:flex; gap:.4rem; flex-wrap:wrap; }
+
+    /* cards */
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1.2rem 1.4rem; margin-bottom:.85rem; }
+    .clabel { font-size:.65rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); margin-bottom:.85rem; }
+    .divider { border:none; border-top:1px solid var(--border); margin:.85rem 0; }
+
+    /* balances */
+    .brow { display:flex; gap:2rem; margin-bottom:.9rem; }
+    .bc { font-size:.7rem; color:var(--muted); margin-bottom:2px; }
+    .ba { font-size:1.6rem; font-weight:700; letter-spacing:-.02em; }
+    .ba.dim { color:var(--muted); font-size:1.1rem; }
+
+    /* tabs */
+    .tabs { display:flex; gap:.3rem; background:var(--bg); padding:4px; border-radius:9px; margin-bottom:1rem; }
+    .tab { flex:1; padding:.43rem; text-align:center; border-radius:7px; font-size:.85rem; font-weight:500;
+           cursor:pointer; border:none; background:transparent; color:var(--sub); transition:all .15s; }
+    .tab.on { background:var(--surface); color:var(--text); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+
+    /* amount input */
+    .amtrow { display:flex; align-items:center; gap:.5rem; background:var(--bg); border:1.5px solid var(--border);
+              border-radius:10px; padding:.6rem .9rem; margin-bottom:.75rem; transition:border-color .15s; }
+    .amtrow:focus-within { border-color:var(--primary); }
+    .amtrow .cur { font-size:.78rem; color:var(--muted); white-space:nowrap; }
+    .amtrow input { flex:1; border:none; background:transparent; font-size:1.15rem; font-weight:600;
+                    color:var(--text); outline:none; min-width:0; text-align:right; }
+
+    /* buttons */
+    .abtn { display:block; width:100%; padding:.72rem; border:none; border-radius:10px;
+            font-size:.93rem; font-weight:600; cursor:pointer; transition:background .15s, opacity .15s; }
+    .abtn.dep  { background:var(--primary); color:#fff; }
+    .abtn.dep:hover  { background:var(--ph); }
+    .abtn.with { background:#7c3aed; color:#fff; }
+    .abtn.with:hover { background:#6d28d9; }
+    .abtn.send { background:var(--green); color:#fff; }
+    .abtn.send:hover { background:var(--gh); }
+    .abtn:disabled { opacity:.4; cursor:not-allowed; }
+
+    .smbtn { padding:.35rem .8rem; border:1px solid var(--border); border-radius:7px; font-size:.78rem;
+             background:var(--surface); color:var(--sub); cursor:pointer; }
+    .smbtn:hover:not(:disabled) { background:var(--bg); }
+    .smbtn:disabled { opacity:.4; cursor:not-allowed; }
+    .sminp { flex:1; border:1px solid var(--border); border-radius:7px; padding:.35rem .65rem;
+             font-size:.82rem; font-family:monospace; outline:none; min-width:0; }
+    .sminp:focus { border-color:var(--primary); }
+
+    /* pills */
+    .pill { display:inline-block; font-size:.68rem; font-weight:600; padding:2px 9px; border-radius:12px; }
+    .pg { background:#d1fae5; color:#065f46; }
+    .py { background:#fef3c7; color:#92400e; }
+    .pb { background:#dbeafe; color:#1e40af; }
+    .pv { background:#ede9fe; color:#5b21b6; }
+    .pr { background:#fee2e2; color:#991b1b; }
+    .pm { background:#f1f5f9; color:#475569; }
+
+    /* fields */
+    .field { margin-bottom:.55rem; }
+    .field:last-child { margin-bottom:0; }
+    .fl { font-size:.7rem; color:var(--muted); margin-bottom:2px; }
+    .fv { font-family:monospace; font-size:.82rem; word-break:break-all; color:var(--sub); }
+    .fv.b { font-weight:700; font-size:1rem; color:var(--text); }
+
+    /* log */
+    .log { font-size:.75rem; color:var(--muted); margin-top:.55rem; line-height:1.75; }
+    .ok   { color:var(--green); }
+    .fail { color:var(--red); }
+    .info { color:var(--primary); }
+
+    /* misc */
+    .row { display:flex; gap:.45rem; align-items:center; }
+    .ibox { background:var(--bg); border:1px solid var(--border); border-radius:9px; padding:.8rem 1rem; margin-bottom:.8rem; }
+    #anchor-iframe { display:block; width:100%; height:440px; border:1px solid var(--border); border-radius:10px; margin-top:.5rem; }
+    .srow { display:flex; gap:1.2rem; flex-wrap:wrap; margin-bottom:.55rem; }
+    .ssub { font-size:.68rem; color:var(--muted); margin-bottom:2px; }
+    a.xl { font-size:.78rem; color:var(--primary); text-decoration:none; }
+    a.xl:hover { text-decoration:underline; }
+    .hidden { display:none !important; }
+    .mono { font-family:monospace; font-size:.82rem; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">ANCH</span>
+  <span class="netbadge">TESTNET</span>
+  <span class="sp"></span>
+  <button class="hbtn connect" id="hbtn">Connect Wallet</button>
+  <div class="hbtn done hidden" id="hconn">
+    <span class="dot"></span>
+    <span id="haddr"></span>
+  </div>
+</header>
+
+<main>
+
+<!-- landing -->
+<div id="landing">
+  <h2>Stellar Anchor Testnet</h2>
+  <p>Deposit and withdraw ANCH tokens using SEP-10 + SEP-24.</p>
+
+  <button class="cta" id="cta">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+      <path d="M21 12V7H5a2 2 0 010-4h14v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/>
+      <path d="M18 12a2 2 0 000 4h4v-4h-4z"/>
+    </svg>
+    Connect Freighter
+  </button>
+
+  <div id="cst"></div>
+
+  <p class="hint">
+    Make sure <strong>Freighter is set to Testnet</strong> and unlocked.<br>
+    No Freighter? <a href="https://www.freighter.app/" target="_blank">Download it here →</a>
+  </p>
+
+  <details class="dev">
+    <summary>Use secret key instead (no extension needed)</summary>
+    <div class="inn">
+      <input class="sminp" id="sk" type="password" placeholder="S… secret key" autocomplete="off">
+      <button class="smbtn" id="skload">Load</button>
+      <button class="smbtn" id="skrnd">Random</button>
+    </div>
+    <div class="log" id="sklog"></div>
+  </details>
+</div>
+
+<!-- app -->
+<div id="app" class="hidden">
+
+  <div class="card">
+    <div class="clabel">Wallet</div>
+    <div class="field">
+      <div class="fl">Public key</div>
+      <div class="fv mono" id="pubkey"></div>
+    </div>
+    <hr class="divider">
+    <div class="brow">
+      <div><div class="bc">XLM</div><div class="ba" id="xlm">—</div></div>
+      <div><div class="bc">ANCH</div><div class="ba" id="anch">—</div></div>
+    </div>
+    <div class="row">
+      <button class="smbtn" id="bref">↻ Refresh</button>
+      <button class="smbtn" id="bfb">Fund (Friendbot)</button>
+      <button class="smbtn" id="btr">Create ANCH trustline</button>
+    </div>
+    <div class="log" id="wlog"></div>
+  </div>
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab on" data-k="deposit">Deposit</button>
+      <button class="tab" data-k="withdrawal">Withdraw</button>
+    </div>
+    <div class="amtrow">
+      <span class="cur">ANCH</span>
+      <input id="amt" type="number" value="10" min="1" max="1000000">
+    </div>
+    <button class="abtn dep" id="bact">Deposit ANCH</button>
+    <div class="log" id="alog"></div>
+  </div>
+
+  <div class="card hidden" id="icard">
+    <div class="clabel">Interactive flow <span style="font-weight:400;color:var(--muted)">(anchor UI)</span></div>
+    <iframe id="anchor-iframe" src="about:blank"></iframe>
+  </div>
+
+  <div class="card hidden" id="scard">
+    <div class="clabel">Send ANCH on Stellar</div>
+    <p style="font-size:.83rem;color:var(--sub);margin-bottom:.75rem">Sign and send your withdrawal payment.</p>
+    <div class="ibox">
+      <div class="field"><div class="fl">To</div><div class="fv" id="sdest"></div></div>
+      <div class="field"><div class="fl">Amount</div><div class="fv b" id="samt"></div></div>
+      <div class="field"><div class="fl">Memo (text) — must match exactly</div>
+        <div class="fv b" id="smemo" style="color:#5b21b6;font-size:1.1rem"></div></div>
+    </div>
+    <button class="abtn send" id="bsend">Sign &amp; Send</button>
+    <div class="log" id="slog"></div>
+  </div>
+
+  <div class="card hidden" id="stcard">
+    <div class="clabel">Transaction</div>
+    <div id="txd"></div>
+  </div>
+
+</div>
+</main>
+
+<script>
+// ── No CDN imports. Freighter via raw window.postMessage. All Stellar ops via backend. ──
+
+const ASSET = 'ANCH';
+const NET_PASS = 'Test SDF Network ; September 2015';
+
+// ── DOM ──────────────────────────────────────────────────────────────────────
+const $  = id => document.getElementById(id);
+const sh = id => $(id).classList.remove('hidden');
+const hd = id => $(id).classList.add('hidden');
+
+function lg(id, msg, cls='') {
+  const d = document.createElement('div');
+  if (cls) d.className = cls;
+  d.textContent = msg;
+  $(id).appendChild(d);
+}
+function clr(id) { $(id).innerHTML = ''; }
+
+function pill(s) {
+  const m = { completed:'pg', pending_anchor:'py', pending_user_transfer_start:'pb',
+               pending_external:'pv', incomplete:'pm', error:'pr' };
+  return `<span class="pill ${m[s]??'pm'}">${s??'…'}</span>`;
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let pubKey = '';
+let skKeypair = null; // set when using secret-key fallback
+let jwt    = null;
+let kind   = 'deposit';
+let poller = null;
+let pend   = null; // { txId, memo, amount, destination }
+
+// ── Freighter via direct window.postMessage ───────────────────────────────────
+// We implement the protocol directly so no CDN import is needed.
+
+function freighterSend(type, payload = {}, timeoutMs = 90_000) {
+  return new Promise((resolve, reject) => {
+    const msgId = Date.now() + Math.random();
+    let timer;
+
+    function handler(e) {
+      if (e.source !== window) return;
+      const d = e.data;
+      if (d?.source !== 'FREIGHTER_EXTERNAL_MSG_RESPONSE') return;
+      if (d?.messagedId !== msgId) return; // note: Freighter spells it messagedId
+      clearTimeout(timer);
+      window.removeEventListener('message', handler);
+      resolve(d);
+    }
+
+    if (timeoutMs) {
+      timer = setTimeout(() => {
+        window.removeEventListener('message', handler);
+        reject(new Error(
+          'Freighter did not respond. Click the Freighter icon 🚀 in your browser toolbar to approve the request.'
+        ));
+      }, timeoutMs);
+    }
+
+    window.addEventListener('message', handler);
+    window.postMessage({
+      source: 'FREIGHTER_EXTERNAL_MSG_REQUEST',
+      messageId: msgId,
+      type,
+      ...payload,
+    }, window.location.origin);
+  });
+}
+
+async function freighterCheck() {
+  // REQUEST_PUBLIC_KEY resolves in 2 s if Freighter is not installed
+  try {
+    const r = await freighterSend('REQUEST_PUBLIC_KEY', {}, 2500);
+    return { installed: true, address: r.publicKey || '' };
+  } catch {
+    return { installed: false, address: '' };
+  }
+}
+
+async function freighterConnect() {
+  const r = await freighterSend('REQUEST_ACCESS', {}, 90_000);
+  if (r.apiError) throw new Error(r.apiError);
+  if (!r.publicKey) throw new Error('Connection cancelled or Freighter is locked.');
+  return r.publicKey;
+}
+
+async function freighterSign(xdr) {
+  const r = await freighterSend('SUBMIT_TRANSACTION', {
+    transactionXdr: xdr,
+    networkPassphrase: NET_PASS,
+  }, 90_000);
+  if (r.apiError) throw new Error(r.apiError);
+  return r.signedTransaction;
+}
+
+// Secret-key signing (fallback — uses /api/submit with pre-signed XDR)
+// Since we have no SDK in the browser for secret-key mode, we ask the backend to sign+submit.
+// This is dev-only and the secret never leaves the browser over the network (we use a local approach).
+// Actually for secret key we'll use a different API endpoint that accepts secret + unsigned xdr.
+// For simplicity, secret-key users sign via a backend endpoint.
+
+// ── Sign helper ───────────────────────────────────────────────────────────────
+async function signXdr(xdr) {
+  if (skKeypair) {
+    // Ask backend to sign with stored secret
+    const r = await fetch('/api/sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ xdr, secret: skKeypair }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const d = await r.json();
+    return d.signed;
+  }
+  return freighterSign(xdr);
+}
+
+// ── Balances ─────────────────────────────────────────────────────────────────
+async function refreshBalances() {
+  $('xlm').textContent = '…';
+  $('anch').textContent = '…';
+  const r = await fetch(`/api/account/${pubKey}`);
+  const d = await r.json();
+  $('xlm').textContent = d.xlm ? parseFloat(d.xlm).toFixed(2) : '—';
+  $('anch').className = 'ba' + (d.anch ? '' : ' dim');
+  $('anch').textContent = d.anch ? parseFloat(d.anch).toFixed(2) : 'no trustline';
+}
+
+// ── Activate wallet ───────────────────────────────────────────────────────────
+function activate(pk) {
+  pubKey = pk;
+  $('pubkey').textContent = pk;
+  $('haddr').textContent = pk.slice(0,6)+'…'+pk.slice(-4);
+  hd('landing'); hd('hbtn'); sh('hconn'); sh('app');
+  refreshBalances();
+}
+
+// ── SEP-10 auth ───────────────────────────────────────────────────────────────
+async function ensureAuth() {
+  if (jwt) return;
+  lg('alog', 'Authenticating with SEP-10…', 'info');
+  const r1 = await fetch(`/sep/auth?account=${pubKey}`);
+  if (!r1.ok) throw new Error(`Challenge failed: ${await r1.text()}`);
+  const { transaction: xdr } = await r1.json();
+
+  lg('alog', 'Sign the SEP-10 challenge in Freighter…', 'info');
+  const signed = await signXdr(xdr);
+
+  const r2 = await fetch('/sep/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ transaction: signed }),
+  });
+  if (!r2.ok) throw new Error(`Auth submit failed: ${await r2.text()}`);
+  const { token } = await r2.json();
+  jwt = token;
+  lg('alog', '✓ Authenticated.', 'ok');
+}
+
+// ── Status polling ────────────────────────────────────────────────────────────
+function startPoll(txId) {
+  if (poller) clearInterval(poller);
+  sh('stcard');
+  renderTx({ id: txId, status: null });
+
+  poller = setInterval(async () => {
+    try {
+      const r = await fetch(`/sep/tx/${txId}`, { headers: { Authorization: `Bearer ${jwt}` } });
+      if (!r.ok) return;
+      const { transaction: tx } = await r.json();
+      renderTx(tx);
+      if (tx.status === 'completed' || tx.status === 'error') {
+        clearInterval(poller); poller = null;
+        refreshBalances();
+      }
+    } catch {}
+  }, 4000);
+}
+
+function renderTx(tx) {
+  const i  = tx.amount_in?.amount  ? `${parseFloat(tx.amount_in.amount).toFixed(2)} ANCH` : '—';
+  const o  = tx.amount_out?.amount ? `${parseFloat(tx.amount_out.amount).toFixed(2)} ANCH` : '—';
+  const hs = (tx.stellar_transactions||[]).map(s =>
+    `<a class="xl" href="https://stellar.expert/explorer/testnet/tx/${s.id}" target="_blank">View on Stellar Expert ↗</a>`
+  ).join(' ');
+  $('txd').innerHTML = `
+    <div class="field"><div class="fl">ID</div><div class="fv mono">${tx.id||'—'}</div></div>
+    <div class="srow">
+      <div><div class="ssub">Status</div>${pill(tx.status)}</div>
+      <div><div class="ssub">Kind</div>${pill(tx.kind||kind)}</div>
+      <div><div class="ssub">In</div><span style="font-size:.85rem">${i}</span></div>
+      <div><div class="ssub">Out</div><span style="font-size:.85rem">${o}</span></div>
+    </div>
+    ${hs}
+    ${tx.message?`<div class="field"><div class="fl">Error</div><div class="fv" style="color:var(--red)">${tx.message}</div></div>`:''}
+  `;
+}
+
+// ── Connect button ────────────────────────────────────────────────────────────
+function setCst(msg, color='') {
+  $('cst').innerHTML = msg ? `<span style="color:${color||'var(--sub)'}">${msg}</span>` : '';
+}
+
+async function handleConnect() {
+  const btn  = $('cta');
+  const hbtn = $('hbtn');
+  btn.disabled = hbtn.disabled = true;
+  btn.textContent = 'Connecting…';
+  hbtn.textContent = 'Connecting…';
+  setCst('⏳ Check <strong>Freighter</strong> — a permission popup has been sent. Click the Freighter icon 🚀 in your toolbar if nothing appears.');
+
+  try {
+    const pk = await freighterConnect();
+    setCst('');
+    activate(pk);
+  } catch (err) {
+    setCst('❌ ' + err.message, 'var(--red)');
+  } finally {
+    btn.disabled = hbtn.disabled = false;
+    btn.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21 12V7H5a2 2 0 010-4h14v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/><path d="M18 12a2 2 0 000 4h4v-4h-4z"/></svg> Connect Freighter';
+    hbtn.textContent = 'Connect Wallet';
+  }
+}
+
+$('cta').addEventListener('click', handleConnect);
+$('hbtn').addEventListener('click', handleConnect);
+
+// ── Auto-reconnect if already allowed ─────────────────────────────────────────
+(async () => {
+  const { installed, address } = await freighterCheck();
+  if (address) { activate(address); return; }
+  if (!installed) {
+    setCst('⚠ Freighter not detected. Install it or use the secret key option below.');
+  }
+})();
+
+// ── Wallet buttons ────────────────────────────────────────────────────────────
+$('bref').addEventListener('click', () => refreshBalances());
+
+$('bfb').addEventListener('click', async () => {
+  clr('wlog'); lg('wlog', 'Requesting Friendbot…');
+  try {
+    const r = await fetch(`https://friendbot.stellar.org?addr=${pubKey}`);
+    if (!r.ok) throw new Error('Already funded or Friendbot error');
+    lg('wlog', '✓ Funded with 10,000 XLM. Refreshing in 5 s…', 'ok');
+    setTimeout(refreshBalances, 5000);
+  } catch (e) { lg('wlog', '✗ ' + e.message, 'fail'); }
+});
+
+$('btr').addEventListener('click', async () => {
+  clr('wlog'); lg('wlog', 'Building trustline transaction…', 'info');
+  try {
+    const r = await fetch('/api/xdr/trustline', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ account: pubKey }),
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+
+    lg('wlog', 'Sign in Freighter…', 'info');
+    const signed = await signXdr(d.xdr);
+    const s = await fetch('/api/submit', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ xdr: signed }),
+    });
+    const sd = await s.json();
+    if (sd.error) throw new Error(sd.error);
+    lg('wlog', '✓ ANCH trustline created. Hash: ' + sd.hash, 'ok');
+    refreshBalances();
+  } catch (e) { lg('wlog', '✗ ' + e.message, 'fail'); }
+});
+
+// ── Tabs ───────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
+    t.classList.add('on');
+    kind = t.dataset.k;
+    $('bact').textContent = kind === 'deposit' ? 'Deposit ANCH' : 'Withdraw ANCH';
+    $('bact').className   = 'abtn ' + (kind === 'deposit' ? 'dep' : 'with');
+    clr('alog'); jwt = null;
+  });
+});
+
+// ── Main action ───────────────────────────────────────────────────────────────
+$('bact').addEventListener('click', async () => {
+  const amount = String($('amt').value);
+  clr('alog'); hd('icard'); hd('scard');
+  $('anchor-iframe').src = 'about:blank';
+  $('bact').disabled = true;
+
+  try {
+    await ensureAuth();
+    lg('alog', `Initiating ${kind} of ${amount} ANCH…`, 'info');
+    const ep = kind === 'deposit' ? '/sep/deposit' : '/sep/withdraw';
+    const r  = await fetch(ep, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ asset_code: ASSET, amount }),
+    });
+    const d = await r.json();
+    if (!r.ok) { lg('alog', '✗ ' + (d.error || JSON.stringify(d)), 'fail'); return; }
+
+    lg('alog', '✓ Transaction: ' + d.id, 'ok');
+    pend = { txId: d.id, amount };
+    sh('icard');
+    $('anchor-iframe').src = d.url;
+    $('icard').scrollIntoView({ behavior: 'smooth' });
+    startPoll(d.id);
+  } catch (e) {
+    lg('alog', '✗ ' + e.message, 'fail');
+  } finally {
+    $('bact').disabled = false;
+  }
+});
+
+// ── postMessage from iframe ───────────────────────────────────────────────────
+window.addEventListener('message', e => {
+  const { type, txId, hash, memo, amount, destination } = e.data || {};
+
+  if (type === 'sep24_deposit_complete') {
+    hd('icard'); $('anchor-iframe').src = 'about:blank';
+    lg('alog', '✓ Deposit done.' + (hash ? ' Stellar: ' + hash.slice(0,10) + '…' : ''), 'ok');
+    if (txId) startPoll(txId);
+  }
+
+  if (type === 'sep24_withdrawal_pending') {
+    hd('icard'); $('anchor-iframe').src = 'about:blank';
+    $('sdest').textContent  = destination;
+    $('samt').textContent   = amount + ' ' + ASSET;
+    $('smemo').textContent  = memo;
+    pend = { txId, memo, amount, destination };
+    sh('scard'); $('scard').scrollIntoView({ behavior: 'smooth' });
+    if (txId) startPoll(txId);
+  }
+});
+
+// ── Send ANCH (withdrawal) ────────────────────────────────────────────────────
+$('bsend').addEventListener('click', async () => {
+  if (!pend) return;
+  const { txId, memo, amount, destination } = pend;
+  clr('slog'); $('bsend').disabled = true;
+  lg('slog', 'Building payment transaction…', 'info');
+  try {
+    const xr = await fetch('/api/xdr/payment', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: pubKey, to: destination, amount, memo }),
+    });
+    const xd = await xr.json();
+    if (xd.error) throw new Error(xd.error);
+
+    lg('slog', 'Sign in Freighter…', 'info');
+    const signed = await signXdr(xd.xdr);
+
+    lg('slog', 'Submitting to Stellar…', 'info');
+    const sr = await fetch('/api/submit', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ xdr: signed }),
+    });
+    const sd = await sr.json();
+    if (sd.error) throw new Error(sd.error);
+    lg('slog', '✓ Sent. Hash: ' + sd.hash, 'ok');
+    lg('slog', 'Polling for completion…', 'info');
+    refreshBalances();
+  } catch (e) {
+    lg('slog', '✗ ' + e.message, 'fail');
+    $('bsend').disabled = false;
+  }
+});
+
+// ── Secret key fallback ───────────────────────────────────────────────────────
+// For secret-key mode, signing happens server-side via /api/sign
+// (we store only in memory for the session — never sent to server in plain text...
+// actually for a local dev tool it is, which is fine)
+
+$('skload').addEventListener('click', () => {
+  clr('sklog');
+  const s = $('sk').value.trim();
+  if (!s || s.length < 50) { lg('sklog', '✗ Invalid secret key', 'fail'); return; }
+  skKeypair = s;
+  // derive public key via backend
+  fetch('/api/pubkey', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ secret: s }),
+  }).then(r => r.json()).then(d => {
+    if (d.error) { lg('sklog', '✗ ' + d.error, 'fail'); return; }
+    lg('sklog', '✓ Loaded.', 'ok');
+    activate(d.publicKey);
+  }).catch(e => lg('sklog', '✗ ' + e.message, 'fail'));
+});
+
+$('skrnd').addEventListener('click', () => {
+  $('sk').type = 'text';
+  fetch('/api/pubkey/random').then(r => r.json()).then(d => {
+    $('sk').value = d.secret;
+    skKeypair = d.secret;
+    clr('sklog');
+    lg('sklog', '✓ Fresh keypair. Fund it with Friendbot after connecting.', 'ok');
+    activate(d.publicKey);
+  });
+});
+</script>
+</body>
+</html>

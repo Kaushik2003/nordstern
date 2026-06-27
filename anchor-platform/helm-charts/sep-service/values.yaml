@@ -1,0 +1,341 @@
+fullName: anchor-platform
+namespace: default
+
+secretStoreRefName: fake-secret-store
+
+container:
+  image: anchor-platform:local
+  imagePullPolicy: Never
+
+services:
+  sep:
+    containerPort: 8080
+    servicePort: 8080
+    type: ClusterIP
+    name: sep
+    deployment:
+      replicas: 1
+      resources:
+        requests:
+          memory: 512Mi
+          cpu: 500m
+        limits:
+          memory: 1Gi
+          cpu: 1
+  
+  platform:
+    containerPort: 8085
+    servicePort: 8085
+    type: ClusterIP
+    name: platform
+    deployment:
+      replicas: 1
+      resources:
+        requests:
+          memory: 512Mi
+          cpu: 500m
+        limits:
+          memory: 1Gi
+          cpu: 1
+  
+  eventProcessor:
+    containerPort: 8088
+    servicePort: 8088
+    type: ClusterIP
+    name: event-processor
+    deployment:
+      replicas: 1
+      resources:
+        requests:
+          memory: 512Mi
+          cpu: 500m
+        limits:
+          memory: 1Gi
+          cpu: 1
+
+  observer:
+    containerPort: 8083
+    servicePort: 8083
+    type: ClusterIP
+    name: observer
+    deployment:
+      replicas: 1
+      resources:
+        requests:
+          memory: 512Mi
+          cpu: 500m
+        limits:
+          memory: 1Gi
+          cpu: 1
+
+config:
+  app_logging:
+    stellar_level: DEBUG
+    request_logger_enabled: true
+
+  stellar_network:
+    network: TESTNET
+    type: rpc
+    rpc_url: https://soroban-testnet.stellar.org
+    rpc_auth:
+      type: none
+
+  data:
+    type: postgres
+    server: postgresql:5432
+    database: postgres
+    flyway_enabled: true
+    ddl_auto: update
+
+  callback_api:
+    base_url: http://reference-server-svc-reference-server:8091
+
+  platform_api:
+    base_url: http://anchor-platform-svc-platform:8085
+
+  event_processor:
+    callback_api_request:
+      enabled: true
+
+  events:
+    enabled: true
+    queue:
+      type: kafka
+      kafka:
+        bootstrap_server: kafka:9092
+        security_protocol: SASL_PLAINTEXT
+        sasl_mechanism: PLAIN
+
+  sep1:
+    enabled: true
+    toml:
+      type: file
+      value: /config/sep1.toml
+
+  sep6:
+    enabled: true
+
+  sep10:
+    enabled: true
+    web_auth_domain: localhost:8080
+    home_domains: localhost:8080
+
+  sep12:
+    enabled: true
+
+  sep31:
+    enabled: true
+
+  sep38:
+    enabled: true
+
+  sep24:
+    enabled: true
+    interactive_url:
+      base_url: http://localhost:3000
+    more_info_url:
+      base_url: http://localhost:3000/txn
+
+ingress:
+  enabled: true
+  name: ingress-anchor-platform
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+
+httpRoute:
+  enabled: false
+  parentRefs:
+    - name: sep-gateway
+      namespace: ""      # defaults to release namespace
+      sectionName: ""
+  hostnames: []
+  annotations: {}
+  labels: {}
+  responseHeaders: {}
+  gateway:
+    enabled: false
+    gatewayClassName: ""
+    name: ""
+    listeners:
+      - name: http
+        protocol: HTTP
+        port: 80
+      # - name: https
+      #   protocol: HTTPS
+      #   port: 443
+      #   hostname: sep.example.com
+      #   tls:
+      #     mode: Terminate
+      #     certificateRefs:
+      #       - name: sep-tls-cert
+      #   allowedRoutes:
+      #     namespaces:
+      #       from: Same
+    annotations: {}
+    labels: {}
+
+sep1_toml: |
+  ACCOUNTS = ["GCSGSR6KQQ5BP2FXVPWRL6SWPUSFWLVONLIBJZUKTVQB5FYJFVL6XOXE"]
+  VERSION = "0.1.0"
+  SIGNING_KEY = "GCHLHDBOKG2JWMJQBTLSL5XG6NO7ESXI2TAQKZXCXWXB5WI2X6W233PR"
+  NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
+
+  WEB_AUTH_ENDPOINT = "http://localhost:8080/auth"
+  KYC_SERVER = "http://localhost:8080/sep12"
+  TRANSFER_SERVER = "http://localhost:8080/sep6"
+  TRANSFER_SERVER_SEP0024 = "http://localhost:8080/sep24"
+  DIRECT_PAYMENT_SERVER = "http://localhost:8080/sep31"
+  ANCHOR_QUOTE_SERVER = "http://localhost:8080/sep38"
+
+  [[CURRENCIES]]
+  code = "USDC"
+  issuer = "GDQOE23CFSUMSVQK4Y5JHPPYK73VYCNHZHA7ENKCV37P6SUEO6XQBKPP"
+  status = "test"
+  is_asset_anchored = false
+  desc = "Anchor Issued USDC"
+  anchor_asset_type = "crypto"
+
+  [[CURRENCIES]]
+  code = "USDC"
+  issuer = "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
+  status = "test"
+  is_asset_anchored = false
+  desc = "Circle USDC Token"
+  anchor_asset_type = "crypto"
+
+  [[CURRENCIES]]
+  code = "native"
+  status = "test"
+  is_asset_anchored = false
+  anchor_asset_type = "crypto"
+  desc = "XLM, the native token of the Stellar network."
+
+  [DOCUMENTATION]
+  ORG_NAME = "Stellar Development Foundation"
+  ORG_URL = "https://stellar.org"
+  ORG_DESCRIPTION = "The Stellar Development Foundation (SDF) is a non-profit organization whose mission is to create equitable access to the global financial system."
+  ORG_KEYBASE = "stellar.public"
+  ORG_TWITTER = "StellarOrg"
+  ORG_GITHUB = "stellar"
+
+assets_config: |
+  items:
+    # Stellar assets
+    - id: stellar:USDC:GDQOE23CFSUMSVQK4Y5JHPPYK73VYCNHZHA7ENKCV37P6SUEO6XQBKPP
+      distribution_account: GBN4NNCDGJO4XW4KQU3CBIESUJWFVBUZPOKUZHT7W7WRB7CWOA7BXVQF
+      significant_decimals: 7
+      sep6:
+        enabled: true
+        deposit:
+          enabled: true
+          min_amount: 1
+          max_amount: 10
+          methods:
+            - SEPA
+            - SWIFT
+        withdraw:
+          enabled: true
+          min_amount: 1
+          max_amount: 10
+          methods:
+            - bank_account
+            - cash
+      sep24:
+        enabled: true
+        deposit:
+          enabled: true
+          min_amount: 1
+          max_amount: 10
+          methods:
+            - SEPA
+            - SWIFT
+        withdraw:
+          enabled: true
+          min_amount: 1
+          max_amount: 10
+          methods:
+            - bank_account
+            - cash
+      sep31:
+        enabled: true
+        receive:
+          min_amount: 1
+          max_amount: 1000000
+          methods:
+            - SEPA
+            - SWIFT
+        quotes_supported: true
+        quotes_required: false
+      sep38:
+        enabled: true
+        exchangeable_assets:
+          - iso4217:USD
+          - iso4217:CAD
+
+    # Native asset
+    - id: stellar:native
+      distribution_account: GBN4NNCDGJO4XW4KQU3CBIESUJWFVBUZPOKUZHT7W7WRB7CWOA7BXVQF
+      significant_decimals: 7
+      sep6:
+        enabled: false
+      sep24:
+        enabled: true
+        deposit:
+          enabled: true
+          min_amount: 1
+          max_amount: 10
+          methods:
+            - SEPA
+            - SWIFT
+        withdraw:
+          enabled: true
+          min_amount: 1
+          max_amount: 10
+          methods:
+            - bank_account
+            - cash
+      sep31:
+        enabled: false
+      sep38:
+        enabled: false
+
+    # Fiat
+    - id: iso4217:USD
+      significant_decimals: 4
+      sep31:
+        enabled: false
+        receive:
+          min_amount: 0
+          max_amount: 1000000
+      sep38:
+        enabled: true
+        exchangeable_assets:
+          - stellar:USDC:GDQOE23CFSUMSVQK4Y5JHPPYK73VYCNHZHA7ENKCV37P6SUEO6XQBKPP
+        country_codes:
+          - US
+        sell_delivery_methods:
+          - name: WIRE
+            description: Send USD directly to the Anchor's bank account.
+        buy_delivery_methods:
+          - name: WIRE
+            description: Have USD sent directly to your bank account.
+    - id: iso4217:CAD
+      significant_decimals: 4
+      sep31:
+        enabled: false
+        receive:
+          min_amount: 0
+          max_amount: 1000000
+      sep38:
+        enabled: true
+        exchangeable_assets:
+          - stellar:USDC:GDQOE23CFSUMSVQK4Y5JHPPYK73VYCNHZHA7ENKCV37P6SUEO6XQBKPP
+        country_codes:
+          - CA
+        sell_delivery_methods:
+          - name: WIRE
+            description: Send CAD directly to the Anchor's bank account.
+        buy_delivery_methods:
+          - name: WIRE
+            description: Have CAD sent directly to your bank account.

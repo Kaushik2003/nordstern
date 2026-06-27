@@ -1,0 +1,26 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Light theme" subtitle="data-theme=light surfaces & tints" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--color-bg-canvas); padding: 24px; font-family: var(--font-body); }
+  .swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .sw { border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--color-border); }
+  .chip { height: 56px; }
+  .meta { padding: 8px 10px; background: var(--color-bg-surface); }
+  .name { font-family: var(--font-display); font-weight: 600; font-size: 12px; color: var(--color-text-primary); }
+  .hex { font-family: var(--font-mono); font-size: 10px; color: var(--color-text-secondary); margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="swatches">
+  <div class="sw"><div class="chip" style="background:#FFFFFF"></div><div class="meta"><div class="name">canvas</div><div class="hex">#FFFFFF</div></div></div>
+  <div class="sw"><div class="chip" style="background:#F5F2FF"></div><div class="meta"><div class="name">surface</div><div class="hex">#F5F2FF</div></div></div>
+  <div class="sw"><div class="chip" style="background:#E2DFFE"></div><div class="meta"><div class="name">surface-2</div><div class="hex">#E2DFFE</div></div></div>
+  <div class="sw"><div class="chip" style="background:#8B7EE0"></div><div class="meta"><div class="name">brand text</div><div class="hex">#8B7EE0</div></div></div>
+  <div class="sw"><div class="chip" style="background:#1A1A1A"></div><div class="meta"><div class="name">text</div><div class="hex">#1A1A1A</div></div></div>
+</div>
+</body>
+</html>

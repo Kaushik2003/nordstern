@@ -1,0 +1,21 @@
+services:
+  kafka:
+    hostname: kafka
+    extends:
+      file: common/docker-compose.yaml
+      service: kafka
+  db:
+    hostname: db
+    extends:
+      file: common/docker-compose.yaml
+      service: db
+  sep24-reference-ui:
+    hostname: sep24-reference-ui
+    extends:
+      file: common/docker-compose.yaml
+      service: sep24-reference-ui
+  reference-db:
+    hostname: reference-db
+    extends:
+      file: common/docker-compose.yaml
+      service: reference-db

@@ -1,0 +1,60 @@
+{
+  "items": [
+    {
+      "id": "stellar:USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
+      "distribution_account": "GA7FYRB5VREZKOBIIKHG5AVTPFGWUBPOBF7LTYG4GTMFVIOOD2DWAL7I",
+      "significant_decimals": 2,
+      "sep6":{
+        "enabled": false,
+        "deposit" : {
+          "enabled": true,
+          "min_amount": 1,
+          "max_amount": 10000
+        },
+        "withdraw": {
+          "enabled": true,
+          "min_amount": 1,
+          "max_amount": 10000
+        }
+      },
+      "sep24":{
+        "enabled": false,
+        "deposit" : {
+          "enabled": true,
+          "min_amount": 1,
+          "max_amount": 10000
+        },
+        "withdraw": {
+          "enabled": true,
+          "min_amount": 1,
+          "max_amount": 10000
+        }
+      },
+      "sep31" : {
+        "enabled": true,
+        "receive": {
+          "min_amount": 1,
+          "max_amount": 1000000,
+          "methods": [
+            "SEPA",
+            "SWIFT"
+          ]
+        },
+        "quotes_supported": false,
+        "quotes_required": false,
+        "fields": {
+          "transaction": {
+            "type": {
+              "choices": [
+                "SWIFT"
+              ]
+            }
+          }
+        }
+      },
+      "sep38": {
+        "enabled": false
+      }
+    }
+  ]
+}

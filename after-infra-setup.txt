@@ -1,0 +1,5 @@
+When a Stellar anchor completes its technical setup and regulatory compliance, these three steps—arranging DEX liquidity, integrating with wallets, and building the business—are essential for actually launching and operating successfully.
+Why DEX Liquidity Matters
+
+Liquidity ensures that assets on Stellar are usable—meaning users can easily exchange one asset for another at fair rates without delays or high slippage. Without sufficient liquidity on the decentralized exchange (DEX), users face poor transaction experiences and inefficient markets. As an anchor, if you've issued a tokenized asset (like a USD stablecoin), users need to be able to trade it seamlessly for XLM or other assets. Deep, reliable currency markets aren't optional—they're foundational to making your anchor service practical and competitive.
+

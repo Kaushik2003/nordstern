@@ -1,0 +1,104 @@
+# Stellar Anchor Platform v4.4.0 — Configuration
+# Keys validated against: anchor-config-schema-v1.yaml (extracted from platform-4.4.0-plain.jar)
+# Secrets (signing seed, db credentials) are passed via environment variables, not this file.
+
+version: 1
+
+stellar_network:
+  network: TESTNET
+  horizon_url: https://horizon-testnet.stellar.org
+  # Switched from type: rpc — Soroban RPC has a narrow ledger history window
+  # which causes the Observer to fail when the stored start ledger falls out of range.
+  # Horizon uses cursor-based pagination and has no such restriction.
+  type: horizon
+
+# Where the platform calls YOUR business server for decisions
+callback_api:
+  base_url: http://business-server:3000
+  auth:
+    type: none
+
+# Authentication for business server → platform API calls
+platform_api:
+  auth:
+    type: none
+
+app_logging:
+  level: INFO
+  stellar_level: INFO
+
+sep1:
+  enabled: true
+  toml:
+    type: file
+    value: /config/stellar.toml
+
+sep10:
+  enabled: true
+  home_domains:
+    - localhost:8080
+
+sep12:
+  enabled: true
+
+sep24:
+  enabled: true
+  interactive_url:
+    base_url: http://localhost:3000/sep24/interactive
+    jwt_expiration: 3600
+  more_info_url:
+    base_url: http://localhost:3000/sep24/transaction
+    jwt_expiration: 3600
+
+# SEP-6, SEP-31, SEP-38 must all be enabled alongside SEP-24 for the
+# exchangeAmountsCalculator bean (@OnAllSepsEnabled seps = {6,24,31}).
+# We keep them minimal — our only active flow is SEP-24.
+sep6:
+  enabled: true
+  features:
+    account_creation: false
+    claimable_balances: false
+  more_info_url:
+    base_url: http://localhost:3000/sep6/transaction
+    jwt_expiration: 3600
+
+sep31:
+  enabled: true
+  payment_type: STRICT_SEND
+
+sep38:
+  enabled: true
+  sep10_enforced: false
+  auth_enforced: false
+
+data:
+  type: postgres
+  server: db:5432
+  database: anchordb
+  flyway_enabled: true
+  ddl_auto: update
+
+events:
+  enabled: false
+
+assets:
+  type: yaml
+  value: |
+    items:
+      - id: "stellar:ANCH:GCJOKNJTZKCNAEO57G67O3JAH7SSXQ5UWVJERTVTUCMUW46AYGKGCHH2"
+        distribution_account: "GALQZA7BEZ72X4LLQ4LVWZ4GIB4QD4LI4NGJW2SXP6EU5ECFWCSXCOPN"
+        significant_decimals: 2
+        sep24:
+          enabled: true
+          deposit:
+            enabled: true
+            min_amount: 1
+            max_amount: 1000000
+            methods:
+              - WIRE
+          withdraw:
+            enabled: true
+            min_amount: 1
+            max_amount: 1000000
+            methods:
+              - WIRE

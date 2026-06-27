@@ -1,0 +1,70 @@
+/* ============================================================
+   Phantom Design System — Color tokens
+   Core brand palette is ground-truth from Phantom brand assets;
+   the extended scale + semantic aliases are a fitted extension.
+   ============================================================ */
+
+:root {
+  /* ---- Brand scale (Perano purple family) ---- */
+  --color-brand-50:  #F5F2FF; /* Magnolia  — lightest tint / light page bg */
+  --color-brand-100: #E2DFFE; /* Fog       — tinted surfaces, badge fills  */
+  --color-brand-300: #C7BEF7;
+  --color-brand-500: #AB9FF2; /* Perano    — PRIMARY accent               */
+  --color-brand-700: #8B7EE0; /* hover/press, AA purple text on white     */
+  --color-brand-900: #3C315B; /* Martinique — deep violet fills           */
+
+  /* ---- Neutrals — dark theme (default product theme) ---- */
+  --color-bg-canvas:    #1A1A1A;
+  --color-bg-surface:   #211F29;
+  --color-bg-surface-2: #2A2733;
+  --color-border:       rgba(152, 151, 156, 0.24); /* secondary @ 24% */
+  --color-text-primary:   #FFFFFF;
+  --color-text-secondary: #98979C;
+  --color-text-tertiary:  rgba(152, 151, 156, 0.6);
+
+  /* ---- Semantic ---- */
+  --color-success:      #2EC08B; /* Shamrock */
+  --color-success-fill: rgba(46, 192, 139, 0.16);
+  --color-warning:      #F2B84B;
+  --color-warning-fill: rgba(242, 184, 75, 0.16);
+  --color-error:        #FF4444;
+  --color-error-fill:   rgba(255, 68, 68, 0.16);
+  --color-info:         #7DB8F2;
+  --color-info-fill:    rgba(125, 184, 242, 0.16);
+
+  /* ---- Overlay ---- */
+  --overlay: rgba(0, 0, 0, 0.8);
+
+  /* ---- Semantic aliases (theme-agnostic names UIs should prefer) ---- */
+  --brand:           var(--color-brand-500);
+  --brand-hover:     var(--color-brand-700);
+  --surface-page:    var(--color-bg-canvas);
+  --surface-card:    var(--color-bg-surface);
+  --surface-raised:  var(--color-bg-surface-2);
+  --text-body:       var(--color-text-primary);
+  --text-muted:      var(--color-text-secondary);
+  --text-faint:      var(--color-text-tertiary);
+  --border-default:  var(--color-border);
+}
+
+/* ---- Light theme — set [data-theme="light"] on <html> or <body> ---- */
+[data-theme="light"] {
+  --color-bg-canvas:    #FFFFFF;
+  --color-bg-surface:   #F5F2FF;
+  --color-bg-surface-2: #E2DFFE;
+  --color-border:       rgba(60, 49, 91, 0.12);
+  --color-text-primary:   #1A1A1A;
+  --color-text-secondary: #6B6770;
+  --color-text-tertiary:  rgba(60, 49, 91, 0.5);
+
+  --color-success: #1F9D74;
+  --color-warning: #B97A1B;
+  --color-error:   #D92D2D;
+  --color-info:    #3B6FD1;
+
+  /* On light backgrounds, brand text/links need the darker step for AA contrast */
+  --brand:       var(--color-brand-700);
+  --brand-hover: var(--color-brand-900);
+
+  --overlay: rgba(20, 17, 28, 0.5);
+}

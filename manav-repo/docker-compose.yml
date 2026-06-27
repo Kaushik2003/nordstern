@@ -1,0 +1,127 @@
+services:
+
+  # ─── PostgreSQL ─────────────────────────────────────────────────────────────
+  # Stores all transaction state, customer records, and event history.
+  # The Anchor Platform runs Flyway migrations on startup automatically.
+
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: anchor
+      POSTGRES_PASSWORD: anchor
+      POSTGRES_DB: anchordb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/pg-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U anchor -d anchordb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ─── Anchor Platform ────────────────────────────────────────────────────────
+  # Handles all SEP protocol work: SEP-1 discovery, SEP-10 auth, SEP-24 flows.
+  # Exposes two ports:
+  #   8080 — SEP server  (wallets and users talk here)
+  #   8085 — Platform API (your Business Server talks here)
+
+  anchor-platform:
+    image: stellar/anchor-platform:latest
+    restart: unless-stopped
+    # -s = SEP server (8080), -p = Platform API (8085), -o = Stellar Observer
+    command: ["-s", "-p", "-o"]
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+      - "8085:8085"
+    env_file:
+      - .env.testnet
+    environment:
+      # Tell the platform where its config file lives inside the container
+      STELLAR_ANCHOR_CONFIG: /config/anchor-platform.yaml
+
+      # SEP-10 secrets
+      SECRET_SEP10_SIGNING_SEED: ${SIGNING_SECRET}
+      SECRET_SEP10_JWT_SECRET: ${SEP10_JWT_SECRET}
+
+      # Database credentials — platform reads these as secret.data.username / secret.data.password
+      SECRET_DATA_USERNAME: anchor
+      SECRET_DATA_PASSWORD: anchor
+
+      # SEP-24 JWT secrets — used to sign tokens before redirecting to Business Server
+      SECRET_SEP24_INTERACTIVE_URL_JWT_SECRET: ${SEP24_INTERACTIVE_JWT_SECRET}
+      SECRET_SEP24_MORE_INFO_URL_JWT_SECRET: ${SEP24_MORE_INFO_JWT_SECRET}
+      SECRET_SEP6_MORE_INFO_URL_JWT_SECRET: ${SEP6_MORE_INFO_JWT_SECRET}
+    volumes:
+      - ./config:/config:ro
+
+  # ─── Business Server ────────────────────────────────────────────────────────
+  # YOUR code. Makes business decisions the Platform cannot:
+  #   - Generate deposit addresses (unique_address callback)
+  #   - Calculate fees (fee callback)
+  #   - Handle KYC (customer callbacks)
+  #   - Disburse fiat on withdrawal (coming in later stages)
+
+  business-server:
+    build: ./business-server
+    restart: unless-stopped
+    depends_on:
+      - anchor-platform
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.testnet
+    environment:
+      PORT: 3000
+      PLATFORM_API_URL: http://anchor-platform:8085
+      PLATFORM_API_SECRET: ${PLATFORM_API_SECRET}
+
+  # ─── Frontend (Next.js) ─────────────────────────────────────────────────────
+  # Browser wallet UI. Talks to the business server via /biz/* rewrites (same
+  # host, no CORS). Freighter wallet is bundled by Next.js — no CDN fetches.
+
+  # ─── Control Plane ──────────────────────────────────────────────────────────
+  # SaaS control layer: tenant auth, keypair provisioning, business rules.
+  # Talks to its own PostgreSQL database (controldb).
+
+  control-plane:
+    build: ./control-plane
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: controldb
+      DB_USER: anchor
+      DB_PASSWORD: anchor
+      JWT_SECRET: ${CP_JWT_SECRET:-change-me-in-production}
+      ASSET_CODE: ANCH
+
+  # ─── Frontend (Next.js) ─────────────────────────────────────────────────────
+  # Browser wallet UI + operator dashboard. Talks to the business server via
+  # /biz/* and the control plane via /cp/* rewrites (same host, no CORS).
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - business-server
+      - control-plane
+    ports:
+      - "3001:3001"
+    environment:
+      BIZ_URL: http://business-server:3000
+      CP_URL: http://control-plane:3002
+
+volumes:
+  pgdata:

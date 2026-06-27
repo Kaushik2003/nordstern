@@ -1,0 +1,19 @@
+NETWORK_PASSPHRASE="Test SDF Network ; September 2015"
+TRANSFER_SERVER_SEP0024="http://localhost:8080/sep24"
+WEB_AUTH_ENDPOINT="http://localhost:8080/auth"
+SIGNING_KEY="GCLZXZEL3UM72QW2RAZCE4EOGGJWNJ5MK2TXC7M2OD5TVMLO3YRXRQA6"
+
+[DOCUMENTATION]
+ORG_NAME="Stellar Anchor Learning"
+ORG_URL="http://localhost:8080"
+ORG_DESCRIPTION="Local testnet anchor for learning the Stellar Anchor Platform"
+
+[[CURRENCIES]]
+code="ANCH"
+issuer="GCJOKNJTZKCNAEO57G67O3JAH7SSXQ5UWVJERTVTUCMUW46AYGKGCHH2"
+status="test"
+name="Anchor Test Token"
+desc="Test token issued by the learning anchor"
+is_asset_anchored=false
+anchor_asset_type="fiat"
+display_decimals=2

@@ -1,0 +1,57 @@
+<!-- @dsCard group="Wallet App" viewport="900x640" name="Wallet app" subtitle="Interactive mobile wallet — unlock, portfolio, send" -->
+<!-- @startingPoint section="Wallet App" subtitle="Mobile wallet — unlock → portfolio → send flow" viewport="900x640" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<title>Phantom Wallet — UI Kit</title>
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  html, body { margin: 0; height: 100%; }
+  body { background: radial-gradient(140% 100% at 50% -10%, #241F33 0%, #141414 55%); font-family: var(--font-body); display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+  .phone { position: relative; width: 390px; height: 800px; background: #000; border-radius: 52px; padding: 12px; box-shadow: var(--shadow-lg), 0 0 0 2px rgba(255,255,255,0.04); }
+  .screen { position: relative; width: 100%; height: 100%; border-radius: 42px; overflow: hidden; background: var(--color-bg-canvas); }
+  .notch { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 120px; height: 26px; background: #000; border-radius: 999px; z-index: 50; }
+  .statusbar { position: absolute; top: 0; left: 0; right: 0; height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; font-family: var(--font-mono); font-size: 13px; color: #fff; z-index: 40; pointer-events: none; }
+  .content { position: absolute; top: 44px; left: 0; right: 0; bottom: 0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel" src="screens.jsx"></script>
+<script type="text/babel">
+  const { Alert } = window.PhantomDesignSystem_a666e0;
+  function App() {
+    const [locked, setLocked] = React.useState(true);
+    const [send, setSend] = React.useState(false);
+    const [token, setToken] = React.useState(null);
+    const [toast, setToast] = React.useState(false);
+
+    return (
+      <div className="phone">
+        <div className="screen">
+          <div className="notch"></div>
+          <div className="statusbar"><span>9:41</span><span>5G ▮▮▮</span></div>
+          <div className="content">
+            {locked
+              ? <LockScreen onUnlock={() => setLocked(false)} />
+              : <HomeScreen onSend={() => setSend(true)} onOpenToken={(t) => { setToken(t); setSend(true); }} />}
+            {send && <SendSheet token={token} onClose={() => setSend(false)} onConfirm={() => { setSend(false); setToast(true); setTimeout(() => setToast(false), 2600); }} />}
+            {toast && (
+              <div style={{ position: "absolute", left: 16, right: 16, bottom: 24, zIndex: 60 }}>
+                <Alert tone="success" title="Sent" onClose={() => setToast(false)}>Your transfer is on its way.</Alert>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

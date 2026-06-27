@@ -1,0 +1,726 @@
+####################################################################################################
+## Anchor Platform - Default Configuration
+##
+## Values not defined in the user config use the default values defined here.
+####################################################################################################
+
+version: 1
+
+##############################
+# Application Configuration
+##############################
+
+#
+# A list of languages supported by the anchor for localization content, such as the "moreInfoUrl" in a transaction response.
+# When constructing URLs or providing content, one of these languages may be selected based on user preference or availability.
+#
+# The supported languages defined by RFC4646 (https://datatracker.ietf.org/doc/html/rfc4646)
+#
+languages: en
+
+app_logging:
+  # The root logger's logging level, which will be inherited by all other loggers.
+  # The supported values are: TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+  level: ERROR
+  # Logging level for anchor-platform modules, specifically classes in the "org.stellar" package.
+  stellar_level: INFO
+  # Enable/disable the request logger that logs all request body
+  #   Setting the stellar_level to DEBUG will log the request URL
+  #   Setting the stellar_level to TRACE will log the request body
+  # Note: By enabling the logger, PII may be logged
+  request_logger_enabled: false
+
+##############################
+# Stellar Network Configuration
+##############################
+stellar_network:
+  # Use TESTNET or PUBLIC
+  network: TESTNET
+
+  # The type of the Stellar network connection and can be one of the following and default to `horizon` for backwards compatibility:
+  #   `horizon`: Use the Horizon API to connect to the Stellar network.
+  #   `rpc`: Use the Soroban RPC API to connect to the Stellar network.
+  type: horizon
+
+  # The rpc server endpoint.
+  # example:
+  #   rpc_url: https://soroban-testnet.stellar.org
+  rpc_url:
+  rpc_auth:
+    # The rpc_auth is used to authenticate with the Soroban RPC server.
+    # The `type` can be one of the following:
+    #   `none`: No authentication is used.
+    #   `header`: The authentication is done using a Bearer token added to the HTTP request header.
+    #                   The RFC 6750 defines the Bearer token authentication scheme.
+    # If the type is `header`, the secret `secret.stellar_network.rpc.auth.secret` must be set.
+    type: none
+    header:
+      # The HTTP header name of the Bearer token.
+      name: Authorization
+
+  # The horizon server endpoint.
+  horizon_url: https://horizon-testnet.stellar.org
+
+##############################
+# Callback API Configuration
+##############################
+callback_api:
+  # The base URL of the Anchor Backend server that implements the callback API endpoints described in the
+  # `Callbacks API.yml` file. The base URL must be accessible by the Anchor Platform server.
+  # For example, if the Anchor Platform server is running in a docker container while the business server is running
+  # at port 8081 of the host, the base_url should be http://host.docker.internal:8081
+  #
+  base_url: http://localhost:8081
+  # If the flag is set to false, all certificates from the business servers will be trusted.
+  check_certificate: false
+  # This defines the authentication method used by the Anchor Platform to authenticate with the business server.
+  auth:
+    #
+    # `type` can be one of: none, api_key, jwt
+    #     none: no authentication is used
+    #     api_key: The authentication is done using an API key added to the HTTP request header.
+    #     jwt: The authentication is done using a JWT token added to the `Authorization` header. This token is
+    #          generated from the secret key.
+    #
+    # If the type is `api_key` or `jwt`, the secret must be set by the environment variable `secret.callback_api.auth_secret`.
+    # If the type is api_key, the secret will be used as the api_key.
+    # If the type is jwt, the secret will be used as the jwt shared secret.
+    #
+    type: none
+    # The JWT authentication config when the type is set to `jwt`
+    jwt:
+      # The JWT expiration in milliseconds
+      expiration_milliseconds: 30000
+      # The HTTP header name of the JWT token
+      http_header: Authorization
+    # The API key config when if the type is set to `api_key`
+    api_key:
+      # The HTTP header name of the API key
+      http_header: X-Api-Key
+
+##############################
+# Platform API Configuration
+##############################
+platform_api:
+  # The base URL of the Anchor Platform server that implements the platform API endpoints described in
+  # the `Platform API.yml` spec.
+  #
+  base_url: http://localhost:8085
+  # This defines the authentication method that should be used by the business server to authenticate with the
+  # Platform API server.
+  auth:
+    #
+    # `type` can be one of: none, api_key, jwt
+    #     none: no authentication is used
+    #     api_key: The authentication is done using an API key added to the HTTP request header.
+    #     jwt: The authentication is done using a JWT token added to the `Authorization` header. This token is
+    #          generated from the secret key.
+    #
+    # If the type is `api_key` or `jwt`, the secret must be set by the environment variable `secret.callback_api.auth_secret`.
+    # If the type is api_key, the secret will be used as the api_key.
+    # If the type is jwt, the secret will be used as the jwt shared secret.
+    #
+    type: none
+    # The JWT authentication config when the type is set to `jwt`
+    jwt:
+      # The JWT expiration in milliseconds
+      expiration_milliseconds: 30000
+      # The HTTP header name of the JWT token
+      http_header: Authorization
+    # The API key config when the type is set to `api_key`
+    api_key:
+      # The HTTP header name of the API key
+      http_header: X-Api-Key
+
+##############################
+# Payment Observer Configuration
+##############################
+payment_observer:
+  # The context path of the Stellar observer server
+  context_path: /
+  # The listening port of the Stellar observer server
+  port: 8083
+  # The management_server_port is the port used by Spring actuator.
+  # https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html
+  management_server_port: 9083
+  #
+  # The type of the observer.
+  # Currently, only `stellar` is supported.
+  #
+  type: stellar
+  #
+  # The configuration of the stellar observer, if the type is set to `stellar`
+  #
+  stellar:
+    # The interval in seconds when the silence check will run.
+    silence_check_interval: 5
+    # The silence_timeout in seconds.
+    # If the observer had been silent for longer than the timeout value, the observer will try to reconnect to the stellar network.
+    silence_timeout: 90
+    # The maximum number of silence timeout retries before the observer will give up.
+    # Setting the silence_timeout_retires to -1 will result in indefinite retires.
+    silence_timeout_retries: 5
+    # The initial backoff (cool-down) time (in seconds) before reconnecting to the Stellar network 
+    initial_stream_backoff_time: 5
+    # The maximum backoff (cool-down) time (in seconds) before reconnecting to the Stellar network 
+    max_stream_backoff_time: 300
+    # The initial backoff (cool-down) time (in seconds) before reconnecting to the event publisher 
+    initial_event_backoff_time: 5
+    # The initial backoff (cool-down) time (in seconds) before reconnecting to the event publisher 
+    max_event_backoff_time: 300
+
+##############################
+# Event Processor Configuration
+##############################
+event_processor:
+  # The context path of the event processing server
+  context_path: /
+  # The listening port of the event processing server
+  port: 8088
+  # The management_server_port is the port used by Spring actuator.
+  # https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html
+  management_server_port: 9088
+  # The configuration of the status callback to the client domain
+  client_status_callback:
+    # Whether to enable the status callback to the client domain
+    enabled: true
+  # The configuration of the event delivery to the anchor business server
+  callback_api_request:
+    # Whether to enable the event delivery to the anchor business server
+    enabled: false
+
+######################
+## Platform Server Configuration
+######################
+platform_server:
+  # The context path of the Platform server
+  context_path: /
+  # The listening port of the Platform server
+  port: 8085
+  # The management_server_port is the port used by Spring actuator.
+  # https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html
+  management_server_port: 9085
+
+######################
+# SEP Server Configuration
+######################
+sep_server:
+  # The context path of the SEP server
+  context_path: /
+  # The listening port of the SEP server
+  port: 8080
+  # The management_server_port is the port used by Spring actuator.
+  # https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html
+  management_server_port: 9080
+
+######################
+# SEP-1 Configuration
+######################
+sep1:
+  # Whether to enable SEP-1
+  enabled: false
+  # The configuration of how to respond to the `.well-known/stellar.toml` request.
+  toml:
+    # The `type` must be one of the following:
+    #     `string`: the `value` contains the content of the stellar toml file
+    #     `file`: the `value` contains the path to the stellar toml file
+    #     `url`: the `value` contains the url to the stellar toml file
+    type: string
+    # The value of the stellar toml file depending on the `type` field.
+    value:
+
+######################
+# SEP-6 Configuration
+######################
+sep6:
+  # Whether to enable SEP-6
+  enabled: false
+  # Configures the more_info_url of the transaction response when calling GET /transaction and GET /transactions endpoints.
+  # For details, please refer to https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0006.md#transaction-history
+  #   base_url: is the base_url used to construct the more_info_url
+  #   jwt_expiration: the timeout in seconds of the JWT returned with the embedded interactive url of the SEP-6 process.
+  #       The jwt secret must be set by the environment variable: SECRET_SEP6_MORE_INFO_URL_JWT_SECRET
+  #   txn_fields: is an optional list of transaction fields that will be appended to the jwt of the more_info url. If empty, no fields from transaction will be appended.
+  #   In addition to the txn_fields, the following fields are also added to the query parameters.
+  #       `transaction_id`: the transaction ID
+  #       `token`: the JWT token
+  more_info_url:
+    base_url: http://localhost:8080/sep6/transaction/more_info
+    jwt_expiration: 600
+    txn_fields:
+  # Configures the features flag returned by the SEP-6 /info endpoint
+  # For details, please refer to https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0006.md#response-4
+  features:
+    account_creation: false
+    claimable_balances: false
+  ## @param: deposit_info_generator_type
+  ## @default: self
+  ## Used to choose how the SEP-6 deposit information will be generated, which includes the
+  ##     deposit address, memo and memo type.
+  ## @supported_values:
+  ##     self: the memo and memo type are generated in the local code, and the distribution account is used for the deposit address.
+  ##          When using 'self', make sure all the stellar assets has distribution account configured.
+  ##     none: deposit address, memo and memo type should be provided by the business in PATCH/RPC request.
+  #
+  deposit_info_generator_type: self
+  # Deadline set for the user on transaction creation.
+  # This value indicates to user that they have to take this amount of minutes before transaction will automatically
+  # be moved to the next status (e.g. expired). Business should handle status movement, and the Anchor Platform does
+  # NOT support automatic status movement.
+  # If value is zero, negative or null, no deadline is set (default behaviour)
+  initial_user_deadline_seconds: -1
+
+######################
+# SEP-10 Configuration
+######################
+sep10:
+  # Whether to enable SEP-10
+  # If `enabled` is set to True, the following two secrets must be set via the environment
+  # variables.
+  # `secret.sep10_signing_seed`: The private key for signing challenge transactions.
+  # `secret.sep10_jwt_secret`: The JWT encryption key.
+  #
+  enabled: false
+  #
+  # The `web_auth_domain` property of SEP-10. https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0010.md#response
+  # The `web_auth_domain` is optional and will be set to the value of the `home_domains` if "home_domains" can only be translated to one domain.
+  # 1) web_auth_domain is optional:
+  #    Ex: home_domains: ap.stellar.org
+  # 2) web_auth_domain is required:
+  #    Ex: home_domains: ap.stellar.org, sdp.stellar.org
+  #    Ex: home_domains: *.sdp.stellar.org
+  web_auth_domain:
+  # The `home_domains` property of SEP-10. This is a list of domains and/or wildcard patterns that the client can use to authenticate.
+  # https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0010.md#request
+  # Please also set web_auth_domain if you have more than one home domain in this list.
+  # The following lists are examples:
+  # Ex: home_domains: [ap.stellar.org, *.sdp.stellar.org]
+  # Ex: home_domains: ap.stellar.org, *.sdp.stellar.org
+  home_domains: localhost:8080
+  # Set if the client attribution is required. Client Attribution requires clients to verify their identity by passing
+  # a domain in the challenge transaction request and signing the challenge with the ``SIGNING_KEY`` on that domain's
+  # SEP-1 stellar.toml. See the SEP-10 section `Verifying Client Application Identity` for more information
+  # (https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0010.md#verifying-client-application-identity).
+  #
+  # If the client_attribution_required is set to true, the list of allowed clients must be configured in the `clients`
+  # section of this configuration file. The `domain` field of the client must be provided.
+  client_attribution_required: false
+  # The list of allowed clients for the SEP-10 authentication.
+  # Each item in the list must match the names of one of the client defined in the `clients` section.
+  # If the list is empty, all clients defined in the `clients` section are allowed.
+  # Ex: client_allow_list: [circle, lobstr]
+  # Ex: client_allow_list: circle,lobstr
+  client_allow_list:
+  # Set the authentication challenge transaction timeout in seconds. An expired signed transaction will be rejected.
+  # This is the timeout period the client must finish the authentication process. (ie: sign and respond the challenge
+  # transaction).
+  auth_timeout: 900
+  # Set the timeout in seconds of the authenticated JSON Web Token. An expired JWT will be rejected.
+  # This is the timeout period after the client has authenticated.
+  jwt_timeout: 86400
+
+######################
+# SEP-12 Configuration
+######################
+sep12:
+  # Whether to enable SEP-12
+  enabled: false
+
+######################
+# SEP-24 Configuration
+######################
+sep24:
+  # Whether to enable SEP-24.
+  enabled: false
+  # Configures the interactive URL where the platform server will redirect to start the SEP-24 interactive flow.
+  #   base_url: is the base_url used to construct the interactive url
+  #   txn_fields: is an optional list of transaction fields that will be appended to the jwt of the interactive url. If empty, no fields from transaction will be appended.
+  #   jwt_expiration: the timeout in seconds of the JWT returned with the embedded interactive url of the SEP-24 process.
+  #          The jwt secret must be set by the environment variable: SECRET_SEP24_INTERACTIVE_URL_JWT_SECRET
+  #
+  #   In addition to the txn_fields, the following fields are also added to the query parameters.
+  #       `transaction_id`: the transaction ID
+  #       `token`: the JWT token,
+  #       `data.asset`: asset requested byu the user
+  #       `data.amount`: the amount requested (optional),
+  #       `data.client_domain`: the client domain of the request (optional),
+  #       `data.lang`: the lang request parameter (optional),
+  interactive_url:
+    # The base URL of the SEP-24 interactive flow
+    base_url: http://localhost:8080/sep24/interactive
+    # The timeout in seconds of the JWT returned with the embedded interactive URL of the SEP-24 process.
+    jwt_expiration: 600
+    # The list of transaction fields that will be appended to the JWT of the interactive URL
+    txn_fields:
+  # Configures the more_info_url of the transaction response when calling GET /transaction and GET /transactions endpoints.
+  # For details, please refer to https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0024.md#shared-fields-for-both-deposits-and-withdrawals
+  #   base_url: is the base_url used to construct the more_info_url
+  #   txn_fields: is an optional list of transaction fields that will be appended to the jwt of the more_info url. If empty, no fields from transaction will be appended.
+  #   jwt_expiration: the timeout in seconds of the JWT returned with the embedded interactive url of the SEP-24 process.
+  #          The jwt secret must be set by the environment variable: SECRET_SEP24_MORE_INFO_URL_JWT_SECRET
+  #   In addition to the txn_fields, the following fields are also added to the query parameters.
+  #       `transaction_id`: the transaction ID
+  #       `token`: the JWT token
+  more_info_url:
+    # The base URL of the SEP-24 more_info_url
+    base_url: http://localhost:8080/sep24/transaction/more_info
+    # The timeout in seconds of the JWT returned with the embedded more_info_url of the SEP-24 process.
+    jwt_expiration: 600
+    # The list of transaction fields that will be appended to the JWT of the more_info_url
+    txn_fields:
+
+  # Configures the features flag returned by the SEP-24 /info endpoint
+  # For details, please refer to https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0024.md#response-2
+  features:
+    # Whether to enable the account creation feature.
+    account_creation: false
+    # Whether to enable the claimable balances feature.
+    claimable_balances: false
+
+  ## @param: deposit_info_generator_type
+  ## @default: self
+  ## Used to choose how the SEP-24 deposit information will be generated, which includes the
+  ##     deposit address, memo and memo type.
+  ## @supported_values:
+  ##     self: the memo and memo type are generated in the local code, and the distribution account is used for the deposit address.
+  ##     none: deposit address, memo and memo type should be provided by the business in PATCH/RPC request.
+  #
+  deposit_info_generator_type: self
+
+  # When the `POST /transactions/deposit/interactive` and `POST /transactions/withdraw/interactive` are called,
+  # the request may contain KYC fields. If `kyc_fields_forwarding` is enabled, the SEP server will call the
+  # `PUT /customer` endpoint of the business server to create or update the KYC fields.
+  kyc_fields_forwarding:
+    # Whether to enable the KYC fields forwarding.
+    enabled: true
+
+  # Deadline set for the user on transaction creation.
+  # This value indicates to user that they have to take this amount of minutes before transaction will automatically
+  # be moved to the next status (e.g. expired). Business should handle status movement, and the Anchor Platform does
+  # NOT support automatic status movement.
+  # If value is zero, negative or null, no deadline is set (default behaviour)
+  initial_user_deadline_seconds: -1
+
+
+######################
+# SEP-31 Configuration
+######################
+sep31:
+  ## Whether to enable SEP-31
+  #
+  enabled: false
+  # The `payment_type` must be one of the following:
+  #     STRICT_SEND: amount_in = amount
+  #     STRICT_RECEIVE: amount_in = amount + fee
+  payment_type: STRICT_SEND
+  # Used to choose how the SEP-31 deposit information will be generated, which includes the
+  #     deposit address, memo and memo type.
+  # The `deposit_info_generator_type` must be one of the following:
+  #     self: the memo and memo type are generated in the local code, and the distribution account is used for the deposit address.
+  #     none: deposit address, memo and memo type should be provided by the business in PATCH/RPC request.
+  #
+  deposit_info_generator_type: none
+
+######################
+# SEP-38 Configuration
+######################
+sep38:
+  # Whether to enable SEP-38
+  #
+  enabled: false
+  # (Deprecated) Whether to enforce SEP-10 authentication for SEP-38 /info, /price, /prices endpoints.
+  sep10_enforced: false
+  # Whether to enforce SEP-10/SEP-45 authentication for SEP-38 /info, /price, /prices endpoints.
+  auth_enforced: false
+
+######################
+# SEP-45 Configuration
+######################
+sep45:
+  # Whether to enable SEP-45
+  # If `enabled` is set to True, the following two secrets must be set via the environment
+  # variables and `stellar_network.rpc_url` must be set.
+  # `secret.sep45_jwt_secret`: The JWT encryption key.
+  #
+  enabled: false
+  # The `web_auth_domain` property of SEP-45. https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0045.md
+  # The `web_auth_domain` is optional and will be set to the value of the `home_domains` if "home_domains" can only be translated to one domain.
+  # 1) web_auth_domain is optional:
+  #    Ex: home_domains: ap.stellar.org
+  # 2) web_auth_domain is required:
+  #    Ex: home_domains: ap.stellar.org, sdp.stellar.org
+  #    Ex: home_domains: *.sdp.stellar.org
+  #
+  web_auth_domain:
+  # The contract address of a SEP-45 web auth contract. https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0045.md#web-authentication-contract
+  # This is the contract the server will use to authenticate the client and is required.
+  #
+  web_auth_contract_id:
+  # The `home_domains` property of SEP-45. This is a list of domains and/or wildcard patterns that the client can use to authenticate.
+  # https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0045.md
+  # Please also set web_auth_domain if you have more than one home domain in this list.
+  # The following lists are examples:
+  # Ex: home_domains: [ap.stellar.org, *.sdp.stellar.org]
+  # Ex: home_domains: ap.stellar.org, *.sdp.stellar.org
+  #
+  home_domains: localhost:8080
+  # Set the authentication challenge transaction timeout in seconds. An expired signed transaction will be rejected.
+  # This is the timeout period the client must finish the authentication process. (ie: sign and respond the challenge
+  # transaction).
+  #
+  auth_timeout: 900
+  # Set the timeout in seconds of the authenticated JSON Web Token. An expired JWT will be rejected.
+  # This is the timeout period after the client has authenticated.
+  #
+  jwt_timeout: 86400
+
+##########################
+# Metric Configuration
+##########################
+# The metrics are exposed at the port specified by each server's (eg: sep, platform, event processor and observer)
+# management_server_port
+metrics:
+  # If true, enable metrics will be enabled.
+  enabled: false
+  # If set, all metrics will be prefixed with the specified prefix.
+  prefix:
+
+##########################
+# Sentry Configuration (sentry.io)
+##########################
+sentry:
+  # The Sentry DSN (Data Source Name) for the Sentry project.
+  # Leave empty if you do not want to use Sentry.
+  dsn:
+  # The Sentry environment name for the project. ex: (your_project_name)
+  release:
+  # The environment name for the Sentry project.
+  environment:
+  # The flag to enable or disable the Sentry integration.
+  debug: false
+
+#########################
+# Events Configuration.
+#########################
+# The events being sent from the platform are the ones described in the `Events Schema.yml` file
+events:
+  # Whether to enable event delivery. If false, the events will not be sent to the event publisher.
+  enabled: false
+
+  # The configuration of the event queue.
+  queue:
+    # The type of the queue.
+    # `type` can be one of: kafka, sqs, msk
+    type: kafka
+    # If the value of `events.publisher.type` is `kafka`, the `events.publisher.kafka` field must be defined.
+    kafka:
+      # A comma-separated list of host:port pairs that are the addresses of one or more brokers in a Kafka cluster,
+      # e.g. localhost:9092 or localhost:9092,another.host:9092.
+      #
+      bootstrap_server: localhost:29092
+      # The client ID. If left empty, it is randomly generated.
+      client_id:
+      # Determines how many times the producer will attempt to send a message before marking it as failed.
+      retries: 1
+      # Determines the time to wait before sending messages out to Kafka.
+      linger_ms: 1000
+      # Determines the maximum amount of data to be collected before sending the batch.
+      batch_size: 10
+      # Determines the maximum amount of time to wait for the batch to be filled before returning from poll().
+      poll_timeout_seconds: 60
+      # The security protocol used to communicate with the brokers.
+      # `security_protocol` can be one of the following:
+      #   `PLAINTEXT`: no encryption
+      #   `SASL_PLAINTEXT`: SASL authentication with no encryption
+      #   `SASL_SSL`: SASL authentication with SSL encryption
+      #
+      # If SASL_PLAINTEXT or SASL_SSL is used, the following secrets must be set
+      #   - SECRET_EVENTS_QUEUE_KAFKA_USERNAME
+      #   - SECRET_EVENTS_QUEUE_KAFKA_PASSWORD
+      #
+      # If the SASL_SSL is used, the following values must be set
+      #   - ssl_keystore_location
+      #   - ssl_keystore_password
+      # the following secrets must be set:
+      #   - SECRET_SSL_KEYSTORE_PASSWORD
+      #   - SECRET_SSL_TRUSTSTORE_PASSWORD
+      #   - SECRET_SSL_KEY_PASSWORD
+      #
+      security_protocol: PLAINTEXT
+      # The SASL mechanism used for authentication and must match what is used on the broker.
+      # `sasl_mechanism` can be one of the following supported mechanisms:
+      #   `PLAIN`: PLAIN SASL mechanism
+      sasl_mechanism: PLAIN
+      # The configuration to enable SSL certificate verification. If true, the SSL certificate will be verified.
+      # For dev and test environments, it can be used to disable SSL certificate verification.
+      # For production environments, it is strongly recommended to set to true to avoid man-in-the-middle attacks.
+      ssl_verify_cert: true
+      # The SSL keystore location. The file path to the keystore file (jks).
+      ssl_keystore_location:
+      # The SSL truststore location. The file path to the truststore file (jks).
+      ssl_truststore_location:
+
+    # If the value of `publisher.type` is "sqs", the `events.publisher.sqs` field must be defined.
+    sqs:
+      # Use IAM authentication for AWS MSK or AWS SQS.
+      # SQS FIFO queues should be pre-created in AWS (Anchor Platform will not create them)
+      # If true, please follow the `Set up AWS Credentials and Region for Development`
+      # at https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-credentials.html
+      use_IAM: false
+      # AWS region for the queue. Can also be defined as environment variable: AWS_REGION
+      aws_region: us-east-1
+    # If the value of `publisher.type` is "msk", the `events.publisher.msk` field must be defined.
+    msk:
+      # Use IAM authentication for AWS MSK or AWS SQS.
+      # SQS FIFO queues should be pre-created in AWS (Anchor Platform will not create them)
+      #
+      # If true, please follow the `Set up AWS Credentials and Region for Development`
+      # at https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-credentials.html
+      use_IAM: false
+      # The Kafka server used to bootstrap setup in AWS
+      # AWS credentials.
+      # https://docs.aws.amazon.com/msk/latest/developerguide/port-info.html
+      bootstrap_server: # b-1-public.democluster1.w7j4hi.c25.kafka.us-east-1.amazonaws.com:9198
+      # The client ID. If left empty, it is randomly generated.
+      client_id:
+      # Determines how many times the producer will attempt to send a message before marking it as failed.
+      retries: 1
+      # Determines the time to wait before sending messages out to Kafka.
+      linger_ms: 1000
+      # Determines the maximum amount of data to be collected before sending the batch.
+      batch_size: 10
+
+#########################
+# Assets Configuration
+#########################
+# Assets are empty by default.
+# Accepts file reference (e.g. 'file:assets.yaml') or in-line definition.
+assets:
+  # Option 1: Use a file to provide the configuration.
+  # Specify the type as 'file' and provide the file path in the value field.
+  # The file can only be in .yaml or .json format.
+  # The file content should follow the format used in Option 2.
+  #
+  # type: file
+  # value: path/to/file.yaml
+  #
+  # Option 2: Define assets inline using a YAML string.
+  # Specify the type as 'yaml', and define your clients value in YAML string format.
+  #
+  # type: yaml
+  # value: "items:\n  - id: stellar:USDC:<Issuer>\n  - id: iso4217:USD"
+  #
+  # Option 3: Define assets inline using a JSON string.
+  # Specify the type as 'json', and define your clients value in JSON string format.
+  #
+  # type: json
+  # value: "{\n  \"items\": [\n    {\n      \"id\": \"stellar:<Issuer>\"\n    },\n    {\n      \"id\": \"iso4217:USD5\"\n    }\n]\n}"
+  type: json
+  # The value of the assets definition depending on the `type` field.
+  value:
+
+##############################
+# Anchor Platform Clients Configuration
+##############################
+# The list of clients for the Anchor server to safely communicate with the outside wallet servers or clients.
+# The list is empty if not defined.
+# You can either use a file to provide the configuration or define it inline. See anchor-client-default-values.yaml for examples.
+# Use only one of the following combinations:
+clients:
+  # Option 1: Use a file to provide the configuration.
+  # Specify the type as 'file' and provide the file path in the value field.
+  # The file can only be in .yaml or .json format.
+  # The file content should follow the format used in Option 2.
+  #
+  # type: file
+  # value: path/to/file.yaml
+  #
+  # Option 2: Define clients inline using a YAML string.
+  # Specify the type as 'yaml', and define your clients value in YAML string format.
+  #
+  # type: yaml
+  # value: "items:\n  - name: client1\n    type: custodial\n  - name: client2"
+  #
+  # Option 3: Define clients inline using a JSON string.
+  # Specify the type as 'json', and define your clients value in JSON string format.
+  #
+  # type: json
+  # value: "{\n  \"items\": [\n    {\n      \"name\": \"referenceCustodial\",\n      \"type\": \"custodial\"\n    }\n]\n}"
+  type: json
+  value:
+
+################################
+# Data Configuration
+################################
+data:
+  # DB credentials are specified in @environment_variables SECRET_DATA_USERNAME, SECRET_DATA_PASSWORD
+
+  ## @supported_values:
+  ##
+  ## Type of storage.
+  ## If this is set to `aurora`, please follow the `Set up AWS Credentials and Region for Development`
+  ## at https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-credentials.html
+  #
+  #
+  # The type of the database.
+  # `type` can be one of the following:
+  #     `h2`: (default) in-memory database
+  #     `sqlite`: sqlite database
+  #     `postgres`: postgres database
+  #     `aurora`: AWS Aurora database
+  type: h2
+
+  # The hostname and port of the database server.
+  server:
+
+  # The name of the database.
+  # For `sqlite`, this is the path to the database file.
+  # For `postgres` and `aurora`, this is the name of the database.
+  database:
+
+  # The schema of the database.
+  # For `postgres` and `aurora`, default is `public`
+  # For `sqlite`, this is ignored.
+  # Note： If the schema is specified other than the default value, the tables will be created in the new schema.
+  #        The previously created tables may need to be moved from the default to the new schema.
+  schema:
+
+  # Initial number of connections
+  # For `sqlite`, set this to 1 to avoid database file lock exception
+  initial_connection_pool_size: 1
+  # Maximum number of db active connections
+  # For `sqlite`, set this to 1 to avoid database file lock exception
+  max_active_connections: 10
+  # The `ddl_auto` can be one of the following:
+  #      `none`:	      (default) No database Schema initialization
+  #      `create`:	      Drops and creates the schema at the application startup. With this option, all your data will be gone on each startup.
+  #      `create-drop`:  Creates schema at the startup and destroys the schema on context closure. Useful for unit tests.
+  #      `validate`:	  Only checks if the Schema matches the Entities. If the schema doesn't match, then the application startup will fail. Makes no changes to the database.
+  #      `update`:	      Updates the schema only if necessary. For example, If a new field was added in an entity, then it will simply alter the table for a new column without destroying the data.
+  # This value will be used to configure `spring.jpa.hibernate.ddl-auto` in non-memory databases like SQLite, Postgres, etc.
+  # ATTENTION: it should not be used in production!
+  ddl_auto: none
+  # Whether to enable flyway.
+  # Should be disabled for `sqlite` because certain features that flyway uses
+  # (ex: addForeignKeyConstraint) are not supported.
+  flyway_enabled: false
+  # Location on disk where migrations are stored if flyway is enabled.
+  #
+  flyway_location: /db/migration
+  # @param: flyway_baseline_on_migrate
+  # @type: bool
+  # Whether to enable flyway baseline on migrate. This is useful when you want to run flyway on an existing database.
+  flyway_baseline_on_migrate: false
+
+################################
+## RPC Configuration
+################################
+rpc:
+  ## Custom messages for updating transaction via RPC calls
+  custom_messages:
+    ## Incoming payment received
+    incoming_payment_received: "Received an incoming payment"
+    ## Outgoing payment sent
+    outgoing_payment_sent: "Outgoing payment sent"
+  ## Batch size limit
+  batch_size_limit: 40

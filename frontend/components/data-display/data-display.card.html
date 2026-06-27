@@ -1,0 +1,54 @@
+<!-- @dsCard group="Components" viewport="700x230" name="Data display" subtitle="Card, badges, avatars" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  body { margin: 0; background: var(--color-bg-canvas); padding: 28px; font-family: var(--font-body); }
+  .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel">
+  const { Card, Badge, Avatar } = window.PhantomDesignSystem_a666e0;
+  ReactDOM.createRoot(document.getElementById("root")).render(
+    <div style={{ display: "flex", gap: 20, alignItems: "stretch" }}>
+      <Card interactive style={{ flex: 1 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <Avatar initials="SOL" size={40} />
+            <div>
+              <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, color: "var(--color-text-primary)" }}>Solana</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--color-text-secondary)" }}>12.4 SOL</div>
+            </div>
+          </div>
+          <Badge tone="success">+2.4%</Badge>
+        </div>
+        <div className="row">
+          <Badge tone="brand">New</Badge>
+          <Badge tone="warning">Pending</Badge>
+          <Badge tone="error">Failed</Badge>
+          <Badge tone="info">Info</Badge>
+          <Badge tone="neutral">Draft</Badge>
+        </div>
+      </Card>
+      <Card style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, justifyContent: "center" }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <Avatar initials="AK" size={48} />
+          <Avatar initials="JD" size={40} />
+          <Avatar initials="MR" size={32} />
+          <Avatar initials="ev" size={24} />
+        </div>
+        <div style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "var(--color-text-secondary)" }}>Avatars · 48 / 40 / 32 / 24</div>
+      </Card>
+    </div>
+  );
+</script>
+</body>
+</html>

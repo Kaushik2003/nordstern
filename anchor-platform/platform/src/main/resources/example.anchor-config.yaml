@@ -1,0 +1,233 @@
+version: 1
+
+host_url: http://localhost:8080
+
+stellar_network:
+  network: TESTNET
+  horizon_url: https://horizon-testnet.stellar.org
+
+callback_api:
+  base_url: http://localhost:8081
+  auth:
+    type: none
+
+platform_api:
+  auth:
+    type: none
+
+languages: en
+
+logging:
+  level: WARN
+  stellar_level: INFO
+
+data:
+  type: sqlite
+  database: anchor-platform
+  initial_connection_pool_size: 2
+  max_active_connections: 10
+  flyway_enabled: true
+  ddl_auto: update
+
+#data:
+#  type: postgres
+#  server: localhost:5432
+#  database: postgres
+#  username: anchorplatform
+#  password:
+#  initial_connection_pool_size: 3
+#  max_active_connections: 10
+#  flyway_enabled: true
+#  ddl_auto: update
+
+sep1:
+  enabled: true
+  toml:
+    type: string
+    value: |
+      ACCOUNTS = []
+      VERSION = "0.1.0"
+      NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
+      SIGNING_KEY = "GBDYDBJKQBJK4GY4V7FAONSFF2IBJSKNTBYJ65F5KCGBY2BIGPGGLJOH"
+      
+      WEB_AUTH_ENDPOINT = "http://localhost:8080/auth"
+      KYC_SERVER = "http://localhost:8080/sep12"
+      TRANSFER_SERVER_SEP0024 = "http://localhost:8080/sep24"
+      DIRECT_PAYMENT_SERVER = "http://localhost:8080/sep31"
+      ANCHOR_QUOTE_SERVER = "http://localhost:8080/sep38"
+      
+      [[CURRENCIES]]
+      code = "USDC"
+      issuer = "GDQOE23CFSUMSVQK4Y5JHPPYK73VYCNHZHA7ENKCV37P6SUEO6XQBKPP"
+      status = "test"
+      is_asset_anchored = true
+      anchor_asset_type = "fiat"
+      desc = "A test USDC issued by Stellar."
+      
+      [[CURRENCIES]]
+      code = "JPYC"
+      issuer = "GDQOE23CFSUMSVQK4Y5JHPPYK73VYCNHZHA7ENKCV37P6SUEO6XQBKPP"
+      status = "test"
+      is_asset_anchored = true
+      anchor_asset_type = "fiat"
+      desc = "A test JPYC issued by Stellar."
+
+sep10:
+  enabled: true
+  home_domains: localhost:8080
+
+sep12:
+  enabled: true
+
+sep24:
+  enabled: true
+  interactive_url:
+    base_url: http://localhost:3000
+
+sep31:
+  enabled: true
+  payment_type: STRICT_SEND
+  deposit_info_generator_type: self
+
+sep38:
+  enabled: true
+
+metrics:
+  enabled: true
+  extras_enabled: true
+  run_interval: 30
+
+events:
+  enabled: false
+  event_type_to_queue:
+    quote_created: ap_event_quote_created
+    transaction_created: ap_event_transaction_created
+    transaction_status_changed: ap_event_transaction_status_changed
+    transaction_error: ap_event_transaction_error
+  publisher:
+    type: kafka
+    kafka:
+      bootstrap_server: localhost:29092
+      client_id:
+      retries: 1
+      linger_ms: 1000
+      batch_size: 10
+
+assets:
+  type: json
+  value: |
+    {
+      "items": [
+        {
+          "id": "stellar:USDC:GDQOE23CFSUMSVQK4Y5JHPPYK73VYCNHZHA7ENKCV37P6SUEO6XQBKPP",
+          "distribution_account": "GABCKCYPAGDDQMSCTMSBO7C2L34NU3XXCW7LR4VVSWCCXMAJY3B4YCZP",
+          "significant_decimals": 2,
+          "sep24": {
+            "enabled": true,
+            "deposit": {
+              "enabled": true,
+              "min_amount": 1,
+              "max_amount": 1000000
+            },
+            "withdraw": {
+              "enabled": true,
+              "min_amount": 1,
+              "max_amount": 1000000
+            },
+          },
+          "sep31": {
+            "enabled": true
+            "receive": {
+              "min_amount": 1,
+              "max_amount": 1000000,
+              "methods": [
+                "SEPA",
+                "SWIFT"
+              ]
+            },
+            "quotes_supported": true,
+            "quotes_required": false
+          },
+          "sep38": {
+            "enabled": true,
+            "exchangeable_assets": [
+              "iso4217:USD"
+            ]
+          }
+        },
+        {
+          "id": "stellar:JPYC:GDQOE23CFSUMSVQK4Y5JHPPYK73VYCNHZHA7ENKCV37P6SUEO6XQBKPP",
+          "distribution_account": "GBN4NNCDGJO4XW4KQU3CBIESUJWFVBUZPOKUZHT7W7WRB7CWOA7BXVQF",
+          "significant_decimals": 4,
+          "sep24": {
+            "enabled": true,
+            "deposit": {
+              "enabled": true,
+              "min_amount": 1,
+              "max_amount": 1000000
+            },
+            "withdraw": {
+              "enabled": true,
+              "min_amount": 1,
+              "max_amount": 1000000
+            },
+          },
+          "sep31": {
+            "enabled": true
+            "receive": {
+              "min_amount": 1,
+              "max_amount": 1000000,
+              "methods": [
+                "SEPA",
+                "SWIFT"
+              ]
+            },
+            "quotes_supported": true,
+            "quotes_required": false
+          },
+          "sep38": {
+            "enabled": true,
+            "exchangeable_assets": [
+              "iso4217:USD"
+            ]
+          }
+        },
+        {
+          "id": "iso4217:USD",
+          "sep31": {
+            "enabled": false,
+            "receive": {
+              "min_amount": 1,
+              "max_amount": 1000000
+              "methods": [
+                "SEPA",
+                "SWIFT"
+              ]
+            },
+          },
+          "sep38": {
+            "enabled": true,  
+            "exchangeable_assets": [
+              "stellar:USDC:GDQOE23CFSUMSVQK4Y5JHPPYK73VYCNHZHA7ENKCV37P6SUEO6XQBKPP",
+              "stellar:JPYC:GDQOE23CFSUMSVQK4Y5JHPPYK73VYCNHZHA7ENKCV37P6SUEO6XQBKPP"
+            ],
+            "country_codes": [
+              "US"
+            ],
+            "decimals": 4,
+            "sell_delivery_methods": [
+              {
+                "name": "WIRE",
+                "description": "Send USD directly to the Anchor's bank account."
+              }
+            ],
+            "buy_delivery_methods": [
+              {
+                "name": "WIRE",
+                "description": "Have USD sent directly to your bank account."
+              }
+            ]
+          }
+        }
+      ]
+    }

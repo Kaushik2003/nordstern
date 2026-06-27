@@ -1,0 +1,5 @@
+FIU-INDIA
+
+The FIU-IND registration number is the FIU Reporting Entity Identification Number (FIUREID), a unique 10-digit code assigned to regulated businesses. This number is generated when a business successfully registers as a Reporting Entity (RE) to file mandatory reports (such as CTRs and STRs) under the Prevention of Money Laundering Act (PMLA)
+
+How to Get Your Registration NumberAccess the Portal: Visit the FINGate 2.0 Portal to begin the registration process.Submit Entity Details: Provide your basic business details and select your RE category to get a temporary registration request number.Appoint Officers: Register your Principal Officer (PO) and Designated Director (DD).Final Approval: Once the documents are validated by FIU-IND, you will receive an email containing your permanent 10-digit FIUREID.

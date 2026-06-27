@@ -1,0 +1,31 @@
+https://hyperverge.co/pricing/
+https://hyperverge.co/industries/kyc-crypto-verification/
+If your fintech deals with high-risk instant transactions (like immediate personal loans or crypto wallets) where fake IDs and identity theft are prominent threats, HyperVerge is unmatched.Why it wins: They possess some of the highest-rated facial recognition and passive liveness detection tech in the industry. It detects deepfakes, printed photos, and screen replays automatically without hurting user onboarding speeds.Cost Blueprint: Estimated at ₹45–80 per completion.Best Features: Military-grade AI face matching, low-bandwidth video processing (great for Tier 2/Tier 3 Indian regions), and rapid sandboxing.
+
+free Tier
+Start
+
+For Start-up companies
+Key Features:
+
+list_icons
+
+Free trial in sandbox environment
+
+list_icons
+
+1 month period
+
+list_icons
+
+Integrate in less than 4 hours
+
+list_icons
+
+View & Manage verifications
+
+
+Later migrate to Signzy
+https://www.signzy.com/
+
+Best for strict compliance. Their pre-built APIs easily handle the centralized CKYC registry lookups required for Indian virtual digital asset (VDA) operators.

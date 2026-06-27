@@ -1,0 +1,29 @@
+
+Built in KYC provider, we do KYC and verify customers on behalf of them , no headache of them.
+easy setup, one time setup cost, and subscription platfrom for advanced services.
+
+what’s the business opportunity for anchors? ‍
+
+Stellar is paving the path toward a new global payment standard. That’s where we want to be by 2025. Anchors have an opportunity to become an integral part of this effort.
+
+As the critical link between the Stellar network and the traditional banking system in their respective countries, anchors are positioned to leverage a variety of business models and monetization strategies, including deposit/withdraw fees, FX spread, seigniorage, and transaction fees.
+
+Successful anchors offer anchor services as part of a larger portfolio of products and services that leverage the efficiency of Stellar to provide new, cost-effective financial services, ranging from API-based Banking-as-a-Service offerings, to cross-border B2B payments and invoicing, remittances, P2P payments, international payroll, or two-sided marketplace payments.‍‍
+
+
+Types of anchors
+
+Anchors on the Stellar network can offer a variety of services that unite the fiat and digital asset economies.
+
+1. On and off-ramps
+Provide buy/sell and deposit/withdraw services between fiat and digital assets.
+
+2.Issuers
+Tokenize real-world value as digital assets on the network.
+
+3.Exchanges
+Support assets issued on the Stellar network such as USDC and XLM.
+
+4.Interoperable anchors
+Bridge their services to the Stellar blockchain via the network’s technical standards.
+

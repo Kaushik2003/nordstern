@@ -1,0 +1,29 @@
+<!-- @dsCard group="Brand" viewport="700x180" name="Motion" subtitle="Hover scale, press shrink, bouncy float" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--color-bg-canvas); padding: 28px; font-family: var(--font-body); display: flex; gap: 36px; align-items: center; }
+  .item { text-align: center; }
+  .lbl { font-family: var(--font-display); font-weight: 600; font-size: 13px; color: var(--color-text-primary); margin-top: 14px; }
+  .val { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-secondary); }
+  .dot { width: 64px; height: 64px; border-radius: var(--radius-full); background: var(--color-brand-500); margin: 0 auto; }
+  .hover:hover { transform: scale(1.08); box-shadow: var(--shadow-glow); }
+  .hover { transition: transform var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard); }
+  .float { animation: float 4s var(--ease-standard) infinite; }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  @media (prefers-reduced-motion: reduce){ .float{animation:none} }
+</style>
+</head>
+<body>
+  <div class="item"><div class="dot hover"></div><div class="lbl">Hover</div><div class="val">scale 1.02 · 120ms</div></div>
+  <div class="item"><div class="dot float"></div><div class="lbl">Ambient float</div><div class="val">4s · ±8px</div></div>
+  <div class="item">
+    <div class="val" style="text-align:left; line-height:20px">
+      fast&nbsp;&nbsp;120ms<br>base&nbsp;&nbsp;200ms<br>slow&nbsp;&nbsp;320ms<br>standard · bounce
+    </div>
+  </div>
+</body>
+</html>

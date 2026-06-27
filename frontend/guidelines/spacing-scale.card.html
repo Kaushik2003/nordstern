@@ -1,0 +1,29 @@
+<!-- @dsCard group="Spacing" viewport="700x170" name="Spacing scale" subtitle="4px base unit — space-1 → space-9" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--color-bg-canvas); padding: 28px; font-family: var(--font-body); }
+  .scale { display: flex; align-items: flex-end; gap: 18px; }
+  .item { text-align: center; }
+  .bar { background: var(--color-brand-500); border-radius: var(--radius-sm); width: 28px; }
+  .lbl { font-family: var(--font-display); font-weight: 600; font-size: 12px; color: var(--color-text-primary); margin-top: 8px; }
+  .val { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-secondary); }
+</style>
+</head>
+<body>
+<div class="scale">
+  <div class="item"><div class="bar" style="height:var(--space-1)"></div><div class="lbl">1</div><div class="val">4</div></div>
+  <div class="item"><div class="bar" style="height:var(--space-2)"></div><div class="lbl">2</div><div class="val">8</div></div>
+  <div class="item"><div class="bar" style="height:var(--space-3)"></div><div class="lbl">3</div><div class="val">12</div></div>
+  <div class="item"><div class="bar" style="height:var(--space-4)"></div><div class="lbl">4</div><div class="val">16</div></div>
+  <div class="item"><div class="bar" style="height:var(--space-5)"></div><div class="lbl">5</div><div class="val">24</div></div>
+  <div class="item"><div class="bar" style="height:var(--space-6)"></div><div class="lbl">6</div><div class="val">32</div></div>
+  <div class="item"><div class="bar" style="height:var(--space-7)"></div><div class="lbl">7</div><div class="val">48</div></div>
+  <div class="item"><div class="bar" style="height:var(--space-8)"></div><div class="lbl">8</div><div class="val">64</div></div>
+  <div class="item"><div class="bar" style="height:var(--space-9)"></div><div class="lbl">9</div><div class="val">96</div></div>
+</div>
+</body>
+</html>

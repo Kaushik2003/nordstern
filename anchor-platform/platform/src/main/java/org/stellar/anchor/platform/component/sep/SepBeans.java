@@ -1,0 +1,301 @@
+package org.stellar.anchor.platform.component.sep;
+
+import jakarta.servlet.Filter;
+import java.time.Clock;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.stellar.anchor.MoreInfoUrlConstructor;
+import org.stellar.anchor.api.callback.CustomerIntegration;
+import org.stellar.anchor.api.callback.RateIntegration;
+import org.stellar.anchor.apiclient.PlatformApiClient;
+import org.stellar.anchor.asset.AssetService;
+import org.stellar.anchor.auth.JwtService;
+import org.stellar.anchor.auth.NonceManager;
+import org.stellar.anchor.auth.NonceStore;
+import org.stellar.anchor.client.ClientFinder;
+import org.stellar.anchor.client.ClientService;
+import org.stellar.anchor.config.*;
+import org.stellar.anchor.event.EventService;
+import org.stellar.anchor.filter.WebAuthJwtFilter;
+import org.stellar.anchor.ledger.LedgerClient;
+import org.stellar.anchor.ledger.StellarRpc;
+import org.stellar.anchor.platform.condition.OnAllSepsEnabled;
+import org.stellar.anchor.platform.condition.OnAnySepsEnabled;
+import org.stellar.anchor.platform.config.*;
+import org.stellar.anchor.platform.service.SimpleInteractiveUrlConstructor;
+import org.stellar.anchor.sep1.Sep1Service;
+import org.stellar.anchor.sep10.Sep10Service;
+import org.stellar.anchor.sep12.Sep12Service;
+import org.stellar.anchor.sep24.InteractiveUrlConstructor;
+import org.stellar.anchor.sep24.Sep24Service;
+import org.stellar.anchor.sep24.Sep24TransactionStore;
+import org.stellar.anchor.sep31.Sep31Service;
+import org.stellar.anchor.sep31.Sep31TransactionStore;
+import org.stellar.anchor.sep38.Sep38QuoteStore;
+import org.stellar.anchor.sep38.Sep38Service;
+import org.stellar.anchor.sep45.Sep45Service;
+import org.stellar.anchor.sep6.Sep6Service;
+import org.stellar.anchor.sep6.Sep6TransactionStore;
+import org.stellar.anchor.util.ExchangeAmountsCalculator;
+import org.stellar.anchor.util.SepRequestValidator;
+
+/** SEP configurations */
+@Configuration
+public class SepBeans {
+
+  /**********************************
+   * SEP configurations
+   */
+  @Bean
+  @ConfigurationProperties(prefix = "sep1")
+  Sep1Config sep1Config() {
+    return new PropertySep1Config();
+  }
+
+  @Bean
+  @ConfigurationProperties(prefix = "sep10")
+  Sep10Config sep10Config(
+      StellarNetworkConfig stellarNetworkConfig,
+      SecretConfig secretConfig,
+      ClientService clientService) {
+    return new PropertySep10Config(stellarNetworkConfig, clientService, secretConfig);
+  }
+
+  @Bean
+  @ConfigurationProperties(prefix = "sep12")
+  Sep12Config sep12Config(CallbackApiConfig callbackApiConfig) {
+    return new PropertySep12Config(callbackApiConfig);
+  }
+
+  @Bean
+  @ConfigurationProperties(prefix = "sep38")
+  Sep38Config sep38Config() {
+    return new PropertySep38Config();
+  }
+
+  @Bean
+  @ConfigurationProperties(prefix = "sep45")
+  Sep45Config sep45Config(StellarNetworkConfig stellarNetworkConfig, SecretConfig secretConfig) {
+    return new PropertySep45Config(stellarNetworkConfig, secretConfig);
+  }
+
+  /**
+   * Register sep-10 token filter.
+   *
+   * @return Spring Filter Registration Bean
+   */
+  @Bean
+  public FilterRegistrationBean<Filter> sep10TokenFilter(
+      JwtService jwtService, Sep38Config sep38Config) {
+    FilterRegistrationBean<Filter> registrationBean = new FilterRegistrationBean<>();
+    registrationBean.setFilter(new WebAuthJwtFilter(jwtService));
+    registrationBean.addUrlPatterns("/sep6/deposit/*");
+    registrationBean.addUrlPatterns("/sep6/deposit-exchange/*");
+    registrationBean.addUrlPatterns("/sep6/withdraw/*");
+    registrationBean.addUrlPatterns("/sep6/withdraw-exchange/*");
+    registrationBean.addUrlPatterns("/sep6/transaction/*");
+    registrationBean.addUrlPatterns("/sep6/transactions/*");
+    registrationBean.addUrlPatterns("/sep12/*");
+    registrationBean.addUrlPatterns("/sep24/transaction/*");
+    registrationBean.addUrlPatterns("/sep24/transactions/*");
+    registrationBean.addUrlPatterns("/sep31/transactions");
+    registrationBean.addUrlPatterns("/sep31/transactions/*");
+    registrationBean.addUrlPatterns("/sep38/quote");
+    registrationBean.addUrlPatterns("/sep38/quote/*");
+    if (sep38Config.isAuthEnforced()) {
+      registrationBean.addUrlPatterns("/sep38/info");
+      registrationBean.addUrlPatterns("/sep38/price");
+      registrationBean.addUrlPatterns("/sep38/prices");
+    }
+    return registrationBean;
+  }
+
+  @Bean
+  @OnAllSepsEnabled(seps = {"sep1"})
+  Sep1Service sep1Service(Sep1Config sep1Config) {
+    return new Sep1Service(sep1Config);
+  }
+
+  @Bean
+  @OnAnySepsEnabled(seps = {"sep6", "sep10", "sep24"})
+  ClientFinder clientFinder(Sep10Config sep10Config, ClientService clientService) {
+    return new ClientFinder(sep10Config, clientService);
+  }
+
+  @Bean
+  @OnAnySepsEnabled(seps = {"sep6", "sep24"})
+  SepRequestValidator sepRequestValidator(AssetService assetService, ClientService clientService) {
+    return new SepRequestValidator(assetService, clientService);
+  }
+
+  @Bean
+  Clock systemClock() {
+    return Clock.systemUTC();
+  }
+
+  @Bean
+  @OnAnySepsEnabled(seps = {"sep45"})
+  NonceManager nonceService(NonceStore nonceStore, Clock clock) {
+    return new NonceManager(nonceStore, clock);
+  }
+
+  @Bean
+  @OnAllSepsEnabled(seps = {"sep6"})
+  Sep6Service sep6Service(
+      LanguageConfig languageConfig,
+      Sep6Config sep6Config,
+      AssetService assetService,
+      SepRequestValidator requestValidator,
+      ClientFinder clientFinder,
+      Sep6TransactionStore txnStore,
+      EventService eventService,
+      Clock clock,
+      Sep38QuoteStore sep38QuoteStore,
+      @Qualifier("sep6MoreInfoUrlConstructor") MoreInfoUrlConstructor sep6MoreInfoUrlConstructor) {
+    return new Sep6Service(
+        languageConfig,
+        sep6Config,
+        assetService,
+        requestValidator,
+        clientFinder,
+        txnStore,
+        exchangeAmountsCalculator(sep38QuoteStore, clock),
+        eventService,
+        sep6MoreInfoUrlConstructor);
+  }
+
+  @Bean
+  @OnAllSepsEnabled(seps = {"sep10"})
+  Sep10Service sep10Service(
+      StellarNetworkConfig stellarNetworkConfig,
+      SecretConfig secretConfig,
+      Sep10Config sep10Config,
+      LedgerClient ledgerClient,
+      JwtService jwtService,
+      ClientFinder clientFinder) {
+    return new Sep10Service(
+        stellarNetworkConfig, secretConfig, sep10Config, ledgerClient, jwtService, clientFinder);
+  }
+
+  @Bean
+  @OnAllSepsEnabled(seps = {"sep12"})
+  Sep12Service sep12Service(
+      CustomerIntegration customerIntegration,
+      PlatformApiClient platformApiClient,
+      EventService eventService,
+      ClientFinder clientFinder) {
+    return new Sep12Service(customerIntegration, platformApiClient, eventService, clientFinder);
+  }
+
+  @Bean
+  @OnAllSepsEnabled(seps = {"sep6", "sep24", "sep31"})
+  ExchangeAmountsCalculator exchangeAmountsCalculator(
+      Sep38QuoteStore sep38QuoteStore, Clock clock) {
+    return new ExchangeAmountsCalculator(sep38QuoteStore, clock);
+  }
+
+  @Bean
+  @OnAllSepsEnabled(seps = {"sep24"})
+  Sep24Service sep24Service(
+      LanguageConfig languageConfig,
+      StellarNetworkConfig stellarNetworkConfig,
+      Sep24Config sep24Config,
+      ClientService clientService,
+      AssetService assetService,
+      SepRequestValidator requestValidator,
+      JwtService jwtService,
+      ClientFinder clientFinder,
+      Sep24TransactionStore sep24TransactionStore,
+      EventService eventService,
+      Clock clock,
+      InteractiveUrlConstructor interactiveUrlConstructor,
+      @Qualifier("sep24MoreInfoUrlConstructor") MoreInfoUrlConstructor sep24MoreInfoUrlConstructor,
+      Sep38QuoteStore sep38QuoteStore) {
+    return new Sep24Service(
+        languageConfig,
+        stellarNetworkConfig,
+        sep24Config,
+        clientService,
+        assetService,
+        requestValidator,
+        jwtService,
+        clientFinder,
+        sep24TransactionStore,
+        eventService,
+        interactiveUrlConstructor,
+        sep24MoreInfoUrlConstructor,
+        exchangeAmountsCalculator(sep38QuoteStore, clock));
+  }
+
+  @Bean
+  InteractiveUrlConstructor interactiveUrlConstructor(
+      AssetService assetService,
+      ClientService clientService,
+      PropertySep24Config sep24Config,
+      CustomerIntegration customerIntegration,
+      JwtService jwtService) {
+    return new SimpleInteractiveUrlConstructor(
+        assetService, clientService, sep24Config, customerIntegration, jwtService);
+  }
+
+  @Bean
+  @OnAllSepsEnabled(seps = {"sep31"})
+  Sep31Service sep31Service(
+      LanguageConfig languageConfig,
+      Sep10Config sep10Config,
+      Sep31Config sep31Config,
+      Sep31TransactionStore sep31TransactionStore,
+      Sep38QuoteStore sep38QuoteStore,
+      ClientService clientService,
+      AssetService assetService,
+      RateIntegration rateIntegration,
+      Clock clock,
+      EventService eventService) {
+    return new Sep31Service(
+        languageConfig,
+        sep10Config,
+        sep31Config,
+        sep31TransactionStore,
+        sep38QuoteStore,
+        clientService,
+        assetService,
+        rateIntegration,
+        eventService,
+        clock,
+        exchangeAmountsCalculator(sep38QuoteStore, clock));
+  }
+
+  @Bean
+  @OnAllSepsEnabled(seps = {"sep38"})
+  Sep38Service sep38Service(
+      Sep38Config sep38Config,
+      AssetService assetService,
+      RateIntegration rateIntegration,
+      Sep38QuoteStore sep38QuoteStore,
+      EventService eventService) {
+    return new Sep38Service(
+        sep38Config, assetService, rateIntegration, sep38QuoteStore, eventService);
+  }
+
+  @Bean
+  @OnAnySepsEnabled(seps = {"sep45"})
+  Sep45Service sep45Service(
+      StellarNetworkConfig stellarNetworkConfig,
+      SecretConfig secretConfig,
+      Sep45Config sep45Config,
+      LedgerClient ledgerClient,
+      NonceManager nonceManager,
+      JwtService jwtService) {
+    assert (ledgerClient instanceof StellarRpc);
+    return new Sep45Service(
+        stellarNetworkConfig,
+        secretConfig,
+        sep45Config,
+        (StellarRpc) ledgerClient,
+        nonceManager,
+        jwtService);
+  }
+}

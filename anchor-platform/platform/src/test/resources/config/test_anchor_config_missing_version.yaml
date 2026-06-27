@@ -1,0 +1,10 @@
+languages: tw, en, fr
+
+clients:
+  - name: vibrant
+    type: noncustodial
+    domain: vibrant.co
+    signing_key: GA22WORKYRXB6AW7XR5GIOAOQUY4KKCENEAI34FN3KJNWHKDZTZSVLTU
+  - name: lobstr
+    type: noncustodial
+    domain: lobstr.co

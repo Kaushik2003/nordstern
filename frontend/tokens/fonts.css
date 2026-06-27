@@ -1,0 +1,16 @@
+/* ============================================================
+   Phantom Design System — Webfonts
+   ------------------------------------------------------------
+   Phantom's real wordmark uses a proprietary F37 Foundry face
+   (not publicly licensable). These open faces match its
+   rounded, friendly geometry closely:
+     • General Sans (Fontshare) — display / headings
+     • Inter                    — body / UI
+     • JetBrains Mono           — numbers, addresses, balances
+   Loaded from CDN @font-face stylesheets. If you need fully
+   offline/self-hosted binaries, replace these @imports with
+   local @font-face rules pointing at copied .woff2 files.
+   ============================================================ */
+
+@import url("https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");

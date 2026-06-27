@@ -1,0 +1,73 @@
+services:
+
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: anchor
+      POSTGRES_PASSWORD: anchor
+      POSTGRES_DB: anchordb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_mainnet:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U anchor -d anchordb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  anchor-platform:
+    image: stellar/anchor-platform:latest
+    restart: unless-stopped
+    command: ["-s", "-p", "-o"]
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+      - "8085:8085"
+    env_file:
+      - .env.mainnet
+    environment:
+      STELLAR_ANCHOR_CONFIG: /config/anchor-platform.mainnet.yaml
+      SECRET_SEP10_SIGNING_SEED: ${SIGNING_SECRET}
+      SECRET_SEP10_JWT_SECRET: ${SEP10_JWT_SECRET}
+      SECRET_DATA_USERNAME: anchor
+      SECRET_DATA_PASSWORD: anchor
+      SECRET_SEP24_INTERACTIVE_URL_JWT_SECRET: ${SEP24_INTERACTIVE_JWT_SECRET}
+      SECRET_SEP24_MORE_INFO_URL_JWT_SECRET: ${SEP24_MORE_INFO_JWT_SECRET}
+      SECRET_SEP6_MORE_INFO_URL_JWT_SECRET: ${SEP6_MORE_INFO_JWT_SECRET}
+    volumes:
+      - ./config:/config:ro
+
+  business-server:
+    build: ./business-server
+    restart: unless-stopped
+    depends_on:
+      - anchor-platform
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.mainnet
+    environment:
+      PORT: 3000
+      PLATFORM_API_URL: http://anchor-platform:8085
+      PLATFORM_API_SECRET: ${PLATFORM_API_SECRET}
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        BIZ_URL: http://business-server:3000
+        NETWORK_PASSPHRASE: "Public Global Stellar Network ; September 2015"
+    restart: unless-stopped
+    depends_on:
+      - business-server
+    ports:
+      - "3001:3001"
+    environment:
+      BIZ_URL: http://business-server:3000
+
+volumes:
+  pgdata_mainnet:

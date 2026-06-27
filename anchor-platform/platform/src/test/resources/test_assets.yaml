@@ -1,0 +1,57 @@
+items:
+  - id: stellar:USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN
+    distribution_account: GBJDTHT4562X2H37JMOE6IUTZZSDU6RYGYUNFYCHVFG3J4MYJIMU33HK
+    significant_decimals: 2
+    sep24:
+      enabled: true
+      deposit:
+        enabled: true
+        min_amount: 0
+        max_amount: 10000
+        methods:
+          - SEPA
+          - SWIFT
+      withdraw:
+        enabled: true
+        min_amount: 0
+        max_amount: 10000
+        methods:
+          - bank_account
+          - cash
+    sep31:
+      enabled: true
+      receive:
+        min_amount: 0
+        max_amount: 10000
+        methods:
+          - SEPA
+          - SWIFT
+      quotes_supported: true
+      quotes_required: true
+    sep38:
+      enabled: true
+      exchangeable_assets:
+        - stellar:USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN
+        - iso4217:USD
+  - id: iso4217:USD
+    sep31:
+      enabled: false
+      receive:
+        min_amount: 1
+        max_amount: 1000000
+        methods:
+          - SEPA
+          - SWIFT
+    sep38:
+      enabled: true
+      exchangeable_assets:
+        - stellar:USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN
+      country_codes:
+        - US
+      decimals: 4
+      sell_delivery_methods:
+        - name: WIRE
+          description: Send USD directly to the Anchor's bank account.
+      buy_delivery_methods:
+        - name: WIRE
+          description: Have USD sent directly to your bank account.

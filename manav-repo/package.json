@@ -1,0 +1,13 @@
+{
+  "name": "stellar-anchor",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "setup:testnet": "node scripts/setup-testnet.mjs",
+    "setup:mainnet": "node scripts/setup-mainnet.mjs",
+    "init:mainnet":  "node scripts/init-mainnet-accounts.mjs"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^13.0.0"
+  }
+}

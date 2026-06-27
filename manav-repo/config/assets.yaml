@@ -1,0 +1,16 @@
+items:
+  - id: "stellar:ANCH:GCJOKNJTZKCNAEO57G67O3JAH7SSXQ5UWVJERTVTUCMUW46AYGKGCHH2"
+    distribution_account: "GALQZA7BEZ72X4LLQ4LVWZ4GIB4QD4LI4NGJW2SXP6EU5ECFWCSXCOPN"
+    significant_decimals: 2
+    sep24:
+      enabled: true
+      deposit:
+        enabled: true
+        min_amount: 1
+        max_amount: 1000000
+        methods: []
+      withdraw:
+        enabled: true
+        min_amount: 1
+        max_amount: 1000000
+        methods: []

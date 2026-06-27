@@ -1,0 +1,19 @@
+NETWORK_PASSPHRASE="Public Global Stellar Network ; September 2015"
+TRANSFER_SERVER_SEP0024="https://YOUR_DOMAIN/sep24"
+WEB_AUTH_ENDPOINT="https://YOUR_DOMAIN/auth"
+SIGNING_KEY="GBXF7SA4X5P67CNGO33TSXDYQS4IEYKG7TMR4OXBWW2J54USVZUDFTNN"
+
+[DOCUMENTATION]
+ORG_NAME="Your Anchor Name"
+ORG_URL="https://YOUR_DOMAIN"
+ORG_DESCRIPTION="Stellar anchor for ANCH"
+
+[[CURRENCIES]]
+code="ANCH"
+issuer="GDWMWXIY5MZ2GCKCGZHCNUW6R445ZNNI2D345EU4TCABPQY3JPFTGC27"
+status="live"
+name="Anchor Token"
+desc="Token issued by the ANCH anchor"
+is_asset_anchored=false
+anchor_asset_type="fiat"
+display_decimals=2

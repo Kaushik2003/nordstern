@@ -53,7 +53,7 @@ it is almost certainly wrong here.
 **Goal: build one working anchor service of our own, on the Stellar Anchor
 Platform, structured so it becomes the template for anchors we onboard later.**
 
-The functional MVP lives in **`manav-repo/`**. Target for the MVP:
+The functional MVP lives in **`anchor-service/`**. Target for the MVP:
 
 1. **Stellar Anchor Platform running** (SEP-1/10/12/24 at minimum) against
    **testnet**, wired to a custom business server. ✅ working.
@@ -71,7 +71,7 @@ The functional MVP lives in **`manav-repo/`**. Target for the MVP:
    backend verification. Not yet wired to a PSP.
 6. **Fiat payout flow** designed *around* Cashfree/RazorpayX — ⚠️ **designed, not
    integrated**. Keep the interface abstract (see §6, §7 seams).
-7. **An operator-facing surface**: `manav-repo/frontend` (functional wallet +
+7. **An operator-facing surface**: `anchor-service/frontend` (functional wallet +
    dashboard) and `frontend/` (the higher-fidelity "Keel" console prototype).
 
 Treat items marked ⚠️ as **the MVP work still to do**, and items marked ✅ as the
@@ -100,7 +100,7 @@ decisions that are still open:
 - **No compliance/legal automation presented as advice.** We can build workflow
   scaffolding; we do not encode legal conclusions.
 - **No Kubernetes / production infra hardening yet.** Docker Compose is the
-  deliberate local-dev choice (`manav-repo/docs/decision-log.md`, DL-002).
+  deliberate local-dev choice (`anchor-service/docs/decision-log.md`, DL-002).
 
 ---
 
@@ -113,7 +113,7 @@ decisions that are still open:
 - **Asset:** `ANCH` (4-char test code), 2 significant decimals, issued by an
   issuer account, distributed from a distribution account. Stand-in for a real
   INR-backed asset (DL-004).
-- **Anchor Platform version:** the config in `manav-repo/config/` targets AP
+- **Anchor Platform version:** the config in `anchor-service/config/` targets AP
   **v4.4.0** and runs via the official `stellar/anchor-platform:latest` Docker
   image. The upstream *source* in `anchor-platform/` is for study/reference, not
   the runtime.
@@ -123,7 +123,7 @@ decisions that are still open:
   (DL-001). Match this stack; don't introduce Kotlin/Java for new services.
 - **Control plane:** TypeScript/Express + **PostgreSQL** (`pg`), JWT + bcrypt
   auth. Separate `controldb` from the Anchor Platform's `anchordb`.
-- **Frontends:** Next.js (App Router) + React 19. `manav-repo/frontend` uses
+- **Frontends:** Next.js (App Router) + React 19. `anchor-service/frontend` uses
   `@stellar/freighter-api` for wallet signing and proxies to backends via
   `/biz/*` (business-server) and `/cp/*` (control-plane) rewrites — same-origin,
   no CORS in the browser.
@@ -210,15 +210,15 @@ Full technical map (services, ports, data flow, seams):
 Subprojects have their own tooling. There is no top-level build. Work inside the
 relevant subproject.
 
-### Running the working anchor stack (`manav-repo/`)
+### Running the working anchor stack (`anchor-service/`)
 
 ```bash
-cd manav-repo
+cd anchor-service
 node scripts/setup-testnet.mjs   # one-time: creates keypairs, funds via Friendbot, writes .env.testnet
 ./scripts/dev.sh                 # sources .env.testnet, runs `docker compose up --build`
 ```
 
-Services and ports (see `manav-repo/docker-compose.yml`):
+Services and ports (see `anchor-service/docker-compose.yml`):
 
 | Service          | Port | Role                                                        |
 |------------------|------|-------------------------------------------------------------|
@@ -265,7 +265,7 @@ just config:
 - Confirm the current Anchor Platform behavior against the running container or
   `docs/` before assuming SEP semantics from memory — AP versions differ.
 - Record any consequential architectural choice in
-  `manav-repo/docs/decision-log.md` (follow the `DL-00x` format).
+  `anchor-service/docs/decision-log.md` (follow the `DL-00x` format).
 
 ---
 
@@ -279,8 +279,8 @@ There are **two** copies of the Anchor Platform in this repo — don't confuse t
    material.** Read it to understand AP internals, config schema, and SEP
    behavior. The MVP does **not** build or run from here.
 2. **The Docker image the MVP actually runs** — `stellar/anchor-platform:latest`,
-   launched by `manav-repo/docker-compose.yml` with `-s -p -o` (SEP server,
-   Platform API, Observer). Its configuration is **`manav-repo/config/`**:
+   launched by `anchor-service/docker-compose.yml` with `-s -p -o` (SEP server,
+   Platform API, Observer). Its configuration is **`anchor-service/config/`**:
    - `anchor-platform.yaml` — SEP toggles, network, callback/Platform API URLs,
      DB, assets. (Note: SEP-6/31/38 are enabled only because the AP requires them
      alongside SEP-24; SEP-24 is the one active flow.)
@@ -288,7 +288,7 @@ There are **two** copies of the Anchor Platform in this repo — don't confuse t
    - `assets.yaml` — the `ANCH` asset definition (deposit/withdraw limits/methods).
    - `*.mainnet.*` variants exist but are not the working path.
 
-Rule of thumb: **to change how the anchor behaves, edit `manav-repo/config/` and
+Rule of thumb: **to change how the anchor behaves, edit `anchor-service/config/` and
 the business server — not `anchor-platform/`.** Use `anchor-platform/` and
 `sep24-reference-ui/` only to learn the correct contract.
 
@@ -354,6 +354,6 @@ Do not skip ahead. Each phase assumes the seams from earlier phases exist.
 - **Keep the two frontends and the two AP copies straight** (§8). Ask which
   surface a task targets if it's ambiguous.
 - **Match existing stacks and conventions**; log significant decisions in
-  `manav-repo/docs/decision-log.md`.
+  `anchor-service/docs/decision-log.md`.
 - When something here is out of date with the code, **fix the code or fix this
   file** — don't silently work around the contradiction.

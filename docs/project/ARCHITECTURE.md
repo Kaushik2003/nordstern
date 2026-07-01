@@ -10,7 +10,7 @@ Companion to `AGENTS.md`. Where this and the code disagree, fix one of them.
 ```
 nordstern/                     # git root; one repo, several subprojects
 ├─ AGENTS.md / CLAUDE.md        # canonical agent guidance (root)
-├─ manav-repo/                  # ★ the working anchor MVP (backend + wallet UI + control plane)
+├─ anchor-service/              # ★ the working anchor MVP (backend + wallet UI + control plane)
 │  ├─ docker-compose.yml        # orchestrates db + anchor-platform + business-server + control-plane + frontend
 │  ├─ config/                   # Anchor Platform config (anchor-platform.yaml, stellar.toml, assets.yaml, *.mainnet.*)
 │  ├─ business-server/          # TS/Express: Platform callbacks + SEP-24 interactive UI + Stellar ops
@@ -25,7 +25,7 @@ nordstern/                     # git root; one repo, several subprojects
 ```
 
 **Two frontends, kept distinct:**
-- `manav-repo/frontend` — *functional*. Talks to the live testnet backend via
+- `anchor-service/frontend` — *functional*. Talks to the live testnet backend via
   `/biz/*` (business-server) and `/cp/*` (control-plane) rewrites; signs with
   Freighter. This is the real wallet/dashboard.
 - `frontend/web` ("Keel") — *demo-grade prototype*. Synthetic data, simulated
@@ -33,12 +33,12 @@ nordstern/                     # git root; one repo, several subprojects
   Do not wire it to live keys; do not downgrade the functional UI to its mock data.
 
 **Two Anchor Platform copies, kept distinct:** see `AGENTS.md` §8. Edit
-`manav-repo/config/` to change anchor behavior; read `anchor-platform/` only to
+`anchor-service/config/` to change anchor behavior; read `anchor-platform/` only to
 learn the contract.
 
 ---
 
-## 2. Service topology (manav-repo)
+## 2. Service topology (anchor-service)
 
 ```
  Third-party Stellar wallet (Lobstr / Vibrant / Freighter)
@@ -139,10 +139,10 @@ Guidelines:
 
 ## 5. Where to make common changes
 
-- Change anchor SEP behavior / limits / asset → `manav-repo/config/*`.
-- Change deposit/withdraw business logic → `manav-repo/business-server/src/`.
+- Change anchor SEP behavior / limits / asset → `anchor-service/config/*`.
+- Change deposit/withdraw business logic → `anchor-service/business-server/src/`.
 - Add KYC / payout / UPI → add an adapter + mock, wire it in the business server;
   do **not** call a vendor SDK directly from the flow.
-- Operator UI (functional) → `manav-repo/frontend/app/anchor/*`.
+- Operator UI (functional) → `anchor-service/frontend/app/anchor/*`.
 - Demo console visuals → `frontend/web` (per `frontend/PRD.md`).
-- Record consequential decisions → `manav-repo/docs/decision-log.md` (`DL-00x`).
+- Record consequential decisions → `anchor-service/docs/decision-log.md` (`DL-00x`).

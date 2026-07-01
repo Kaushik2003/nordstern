@@ -8,7 +8,7 @@ truth for every coding agent). Read it before doing anything in this repo:
 ## Claude Code specifics
 
 - **This is the repo-root guidance.** It applies to the whole `nordstern/` repo:
-  `manav-repo/` (the working anchor stack), `frontend/` (brand/landing/console),
+  `anchor-service/` (the working anchor stack), `frontend/` (brand/landing/console),
   `anchor-platform/` (upstream AP reference), `docs/`.
 - **Scoped instructions still apply and win locally.** `frontend/CLAUDE.md`
   covers Cashfree Payments integration work in that subtree and its skills under

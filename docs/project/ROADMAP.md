@@ -19,11 +19,11 @@ generalize later.*
 - ✅ Deposit mints `ANCH` to the user's Stellar wallet end-to-end.
 - ✅ Withdrawal: Observer detects the returned `ANCH` payment by memo.
 - ✅ control-plane skeleton (auth/tenants/config/admin) + Postgres.
-- ✅ Functional wallet + operator dashboard (`manav-repo/frontend`).
+- ✅ Functional wallet + operator dashboard (`anchor-service/frontend`).
 - 🚧 KYC and fiat in/out are **mocked** — acceptable for Phase 0.
 
 **Exit criteria:** deposit and withdrawal complete on testnet from a real wallet;
-decisions recorded in `manav-repo/docs/decision-log.md`.
+decisions recorded in `anchor-service/docs/decision-log.md`.
 
 ---
 

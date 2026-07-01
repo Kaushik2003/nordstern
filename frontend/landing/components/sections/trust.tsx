@@ -25,6 +25,21 @@ export function Trust() {
       <Reveal delay={0.1}>
         <Text className="mt-14 max-w-xl text-white/70">{TRUST.lead}</Text>
       </Reveal>
+
+      {/* customer results */}
+      <Stagger className="mt-14 grid gap-8 border-t border-white/10 pt-10 sm:grid-cols-3">
+        {TRUST.results.map((r) => (
+          <StaggerItem key={r.brand}>
+            <p className="text-3xl font-medium tracking-tight text-white">
+              {r.value}
+            </p>
+            <p className="mt-1 text-sm text-white/60">{r.caption}</p>
+            <p className="mt-3 text-xs uppercase tracking-[0.16em] text-white/40">
+              {r.brand}
+            </p>
+          </StaggerItem>
+        ))}
+      </Stagger>
     </Section>
   );
 }

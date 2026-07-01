@@ -1,48 +1,36 @@
 import { Section } from "@/components/ui/section";
-import { SectionHeader } from "@/components/ui/typography";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { IconButton } from "@/components/ui/icon-button";
-import { BentoGrid } from "@/components/ui/bento-grid";
-import { Stagger, StaggerItem } from "@/components/motion/stagger";
+import { Heading } from "@/components/ui/typography";
+import { Reveal } from "@/components/motion/reveal";
+import { OutcomeRotator } from "./outcome-rotator";
+import { OutcomeGallery } from "./outcome-gallery";
 import { OUTCOMES } from "@/lib/content";
 
+/**
+ * Editorial two-column section: brand thesis (left) + auto-rotating pitch and
+ * two offset images (right). Order on mobile: heading → rotator → gallery.
+ */
 export function Outcomes() {
   return (
     <Section id="outcomes">
-      <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-        <SectionHeader
-          eyebrow={OUTCOMES.eyebrow}
-          title={OUTCOMES.title}
-          lead={OUTCOMES.lead}
-          className="max-w-xl"
-        />
-        <Button href={OUTCOMES.cta.href} variant="ghost" size="sm">
-          {OUTCOMES.cta.label}
-        </Button>
-      </div>
+      <div className="grid grid-cols-1 gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16 xl:gap-24">
+        {/* left — thesis, minimal, kicker pinned bottom */}
+        <Reveal className="flex flex-col justify-between gap-14">
+          <Heading size="display" className="max-w-[11ch]">
+            {OUTCOMES.heading}
+          </Heading>
+          <p className="text-xs uppercase tracking-[0.2em] text-subtle">
+            {OUTCOMES.kicker}
+          </p>
+        </Reveal>
 
-      <Stagger className="mt-14">
-        <BentoGrid cols={3}>
-          {OUTCOMES.stats.map((s) => (
-            <StaggerItem key={s.brand}>
-              <Card tone="noir" interactive className="flex h-full min-h-[15rem] flex-col justify-between">
-                <p className="text-sm font-semibold text-white/70">{s.brand}</p>
-                <p className="mt-3 max-w-[16rem] text-lg leading-snug">{s.title}</p>
-                <div className="mt-auto flex items-end justify-between pt-8">
-                  <div>
-                    <p className="bg-gradient-to-r from-brand-200 via-brand to-[color:var(--color-aurora-cyan)] bg-clip-text text-5xl font-medium tracking-tight text-transparent">
-                      {s.value}
-                    </p>
-                    <p className="mt-1 text-sm text-white/60">{s.caption}</p>
-                  </div>
-                  <IconButton className="border-white/15 bg-white/5 text-white group-hover:bg-white group-hover:text-ink" />
-                </div>
-              </Card>
-            </StaggerItem>
-          ))}
-        </BentoGrid>
-      </Stagger>
+        {/* right — rotating pitch + editorial images */}
+        <div className="flex min-w-0 flex-col gap-14">
+          <OutcomeRotator />
+          <Reveal y={24}>
+            <OutcomeGallery />
+          </Reveal>
+        </div>
+      </div>
     </Section>
   );
 }

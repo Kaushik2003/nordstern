@@ -157,29 +157,60 @@ export const BACKERS: ReadonlyArray<{
   { name: "NovaSeed" },
 ];
 
+/**
+ * Outcomes section — a static thesis (left), an auto-rotating pitch (right-top),
+ * and two editorial images (right-bottom). Fully data-driven: add/remove an
+ * `item` or set an image `src` to change the section, no JSX edits.
+ */
 export const OUTCOMES = {
-  eyebrow: "Built for modern money movement",
-  title: "Proven to grow ramp volume and trust",
-  lead: "Anchors on NordStern launch faster, settle quicker, and stay compliant.",
-  cta: { label: "Read case studies", href: "#" },
-  stats: [
+  heading: "One platform to launch your anchor.",
+  kicker: "Why NordStern",
+  // Business outcomes (the *why*), deliberately distinct from the Primitives
+  // section below it (the *what*), so the two don't read as the same list.
+  items: [
     {
-      brand: "Relay",
-      title: "Faster to a live on/off-ramp",
-      value: "6×",
-      caption: "quicker launch",
+      label: "Speed to market",
+      title: "Go live in weeks, not quarters.",
+      description:
+        "Skip the multi-quarter build. NordStern ships the rails, KYC, and compliance so your anchor launches fast.",
+      cta: { label: "See how it works", href: "#build" },
     },
     {
-      brand: "Baselane",
-      title: "Settled across Indian bank rails",
-      value: "₹1B+",
-      caption: "monthly volume",
+      label: "Lower risk",
+      title: "Stay audit-ready by default.",
+      description:
+        "FIU-IND reporting, sanctions screening, and a hash-chained audit log keep every flow defensible — automatically.",
+      cta: { label: "Explore compliance", href: "#platform" },
     },
     {
-      brand: "Roofstock",
-      title: "Lower compliance overhead",
-      value: "50%",
-      caption: "less ops load",
+      label: "New revenue",
+      title: "Turn every ramp into revenue.",
+      description:
+        "Monetise on/off-ramp spread, treasury, and settlement with pricing controls built for margin.",
+      cta: { label: "See the platform", href: "#platform" },
+    },
+    {
+      label: "Scale with confidence",
+      title: "From your first ramp to millions.",
+      description:
+        "The same infrastructure that launches your anchor scales to millions of verified users — no re-platforming.",
+      cta: { label: "Why teams trust us", href: "#trust" },
+    },
+  ],
+  /** Two editorial images. Leave `src` null for a branded placeholder; drop in a
+   *  path later to swap with zero layout change. */
+  gallery: [
+    {
+      src: null as string | null,
+      alt: "NordStern anchor operators at work",
+      ratio: "5 / 4",
+      tone: "from-brand-100 via-brand-200 to-brand-300",
+    },
+    {
+      src: null as string | null,
+      alt: "Global settlement network",
+      ratio: "4 / 5",
+      tone: "from-[color:var(--color-aurora-cyan)] via-brand-100 to-brand-200",
     },
   ],
 } as const;
@@ -268,6 +299,12 @@ export const TRUST = {
     { value: "2M+", label: "verified users" },
     { value: "₹100B+", label: "annual ramp volume" },
     { value: "99.98%", label: "settlement uptime" },
+  ],
+  // Customer results (relocated from the old Outcomes stat cards).
+  results: [
+    { brand: "Relay", value: "6×", caption: "faster to launch" },
+    { brand: "Baselane", value: "₹1B+", caption: "settled monthly" },
+    { brand: "Roofstock", value: "50%", caption: "less ops load" },
   ],
 } as const;
 

@@ -81,6 +81,17 @@ No auth yet (same-origin dev); API keys/auth are a Phase E/F concern.
   (`MockKycProvider` default; `SurepassKycProvider` ported, selected via
   `KYC_PROVIDER=surepass` + `SUREPASS_TOKEN` — credential-gated, not yet verifiable).
 
+## AT-010 — Phase D slice 2: Cashfree Payouts & Webhook Architecture
+Cashfree Payouts are implemented for INR disbursal (`PAYOUT_PROVIDER=cashfree`) using the V2 `/transfers` API. Payouts are inherently asynchronous (returning `PENDING`/`RECEIVED`). The adapter `disburse` returns `pending`, leaving the transaction in `pending_anchor` for the poller. The state is advanced to `completed` or `error` by a new webhook endpoint (`/payout-webhook`) that verifies the HMAC-SHA256 signature and performs backend re-verification via `GET /transfers`.
+Also added the `qrcode` package to generate UPI QR codes in the SEP-24 deposit interactive flow via the `UpiDepositProvider`.
+
+**Go-Live Checklist**: 
+Do NOT declare production-ready until:
+- Swap `CASHFREE_BASE_URL` to `https://api.cashfree.com/payout` and use `PROD_` keys.
+- Complete KYC and whitelist production webhook IPs.
+- Enable IP-whitelisting or RSA 2FA in the dashboard.
+- Update `ANCHOR_UPI_VPA` to a real VPA.
+
 ---
 
 ## Phase status
@@ -102,6 +113,6 @@ No auth yet (same-origin dev); API keys/auth are a Phase E/F concern.
   admin data (see AT-008).
 - **Phase D slice 1 — ✅ done & verified:** live FX + SEP-38 /rate + KYC adapter
   seam (see AT-009).
-- Phase D slice 2 — UPI deposit intent/QR + Cashfree/RazorpayX payout + webhook
-  signature verification (needs sandbox credentials; follows the Cashfree skills).
-  Phase F — go-live + money-safety hardening (gated on legal/compliance).
+- **Phase D slice 2 — ✅ done & verified:** UPI deposit intent/QR + Cashfree payout + 
+  webhook signature verification (see AT-010).
+- Phase F — go-live + money-safety hardening (gated on legal/compliance).

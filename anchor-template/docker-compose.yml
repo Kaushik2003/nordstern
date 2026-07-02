@@ -77,6 +77,12 @@ services:
       FX_URL: ${FX_URL:-https://open.er-api.com/v6/latest/USD}
       SUREPASS_BASE_URL: ${SUREPASS_BASE_URL:-https://sandbox.surepass.io}
       SUREPASS_TOKEN: ${SUREPASS_TOKEN:-}
+      CASHFREE_APP_ID: ${CASHFREE_APP_ID:-}
+      CASHFREE_SECRET: ${CASHFREE_SECRET:-}
+      CASHFREE_API_VERSION: ${CASHFREE_API_VERSION:-2024-01-01}
+      CASHFREE_BASE_URL: ${CASHFREE_BASE_URL:-https://sandbox.cashfree.com/payout}
+      ANCHOR_UPI_VPA: ${ANCHOR_UPI_VPA:-nordstern.anchor@upi}
+      ANCHOR_UPI_NAME: "${ANCHOR_UPI_NAME:-NordStern Anchor}"
 
   # ── client — Next.js operator console / management frontend (live data) ────────
   client:

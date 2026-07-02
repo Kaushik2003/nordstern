@@ -1,47 +1,221 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useLive, Summary, Tx } from '../../lib/api';
-import { RefreshDot } from '../../components/bits';
-import { TxTable } from '../../components/TxTable';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Download, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { PageContainer, PageHeader } from "@/components/shell/page";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Segmented } from "@/components/ui/segmented";
+import { SearchInput } from "@/components/ui/input";
+import { Avatar } from "@/components/ui/avatar";
+import { StatusPill } from "@/components/ui/pill";
+import { Copyable } from "@/components/ui/copyable";
+import { Skeleton } from "@/components/ui/skeleton";
+import { VirtualRows } from "@/components/ui/virtual-rows";
+import { TxDrawer } from "@/components/transactions/tx-drawer";
+import { toast } from "sonner";
+import { useApp } from "@/lib/providers";
+import { useSkeleton, useNow } from "@/lib/hooks";
+import { inr, inrCompact, truncHash, relTime, absIST } from "@/lib/format";
+import { cn } from "@/lib/cn";
 
-type Filter = 'all' | 'deposit' | 'withdrawal';
-const labels: Record<Filter, string> = { all: 'All', deposit: 'Deposits', withdrawal: 'Withdrawals' };
+// API
+import { useLive, Tx as ApiTx } from "@/lib/api";
+import type { Tx as ProtoTx, TxStatus } from "@/lib/data/types";
 
-export default function Transactions() {
-  const { data, error } = useLive<{ transactions: Tx[] }>('/admin/transactions', 5000);
-  const { data: s } = useLive<Summary>('/admin/summary', 10000);
-  const [filter, setFilter] = useState<Filter>('all');
+// Convert API Tx to Prototype Tx
+function mapApiTxToProto(apiTx: ApiTx): ProtoTx {
+  const dir = apiTx.kind === "deposit" ? "in" : "out";
+  const amount = parseFloat(apiTx.amountIn?.amount || apiTx.amountExpected?.amount || "0");
+  
+  // Map anchor status to prototype status
+  let status: TxStatus = "pending";
+  if (apiTx.status === "completed") status = "settled";
+  if (apiTx.status === "error") status = "failed";
+  if (apiTx.status === "pending_user_transfer_start" || apiTx.status === "incomplete") status = "pending";
 
-  const all = data?.transactions ?? [];
-  const txs = filter === 'all' ? all : all.filter((t) => t.kind === filter);
+  return {
+    id: apiTx.id,
+    hash: apiTx.stellarTx || apiTx.id,
+    dir,
+    type: apiTx.kind === "deposit" ? "deposit" : "withdraw",
+    status,
+    userId: "u-live",
+    userName: "Live User",
+    userInitials: "LU",
+    amount,
+    fee: 0,
+    spreadFee: 0,
+    flatFee: 0,
+    networkFee: 0,
+    corridor: "INR",
+    createdAt: apiTx.startedAt ? new Date(apiTx.startedAt).getTime() : Date.now(),
+    updatedAt: apiTx.updatedAt ? new Date(apiTx.updatedAt).getTime() : Date.now(),
+    city: "Live",
+    state: "Data",
+    lat: 0,
+    lng: 0,
+    source: "API",
+    utr: apiTx.memo || undefined,
+  };
+}
+
+type Dir = "all" | "in" | "out" | "pending" | "failed";
+const COLS = "grid grid-cols-[118px_104px_128px_minmax(150px,1fr)_120px_78px_112px_104px] items-center gap-2 px-4";
+
+export default function TransactionsPage() {
+  const ready = useSkeleton();
+  const { density } = useApp();
+  const now = useNow(6_000);
+
+  // Live Data
+  const { data, loading, error } = useLive<{ transactions: ApiTx[] }>('/admin/transactions', 5000);
+
+  const [dir, setDir] = useState<Dir>("all");
+  const [q, setQ] = useState("");
+  const [selected, setSelected] = useState<ProtoTx | null>(null);
+  const [drawer, setDrawer] = useState(false);
+
+  const all: ProtoTx[] = useMemo(() => {
+    if (!data?.transactions) return [];
+    return data.transactions.map(mapApiTxToProto).sort((a, b) => b.createdAt - a.createdAt);
+  }, [data]);
+
+  const filtered = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    return all.filter((t) => {
+      if (dir === "in" && t.dir !== "in") return false;
+      if (dir === "out" && t.dir !== "out") return false;
+      if (dir === "pending" && !["received", "minting", "burning", "payout", "pending"].includes(t.status)) return false;
+      if (dir === "failed" && t.status !== "failed") return false;
+      if (query && !(`${t.userName} ${t.hash} ${t.city} ${t.corridor}`.toLowerCase().includes(query))) return false;
+      return true;
+    });
+  }, [all, dir, q]);
+
+  const summary = useMemo(() => {
+    let inV = 0, outV = 0, inC = 0, outC = 0;
+    for (const t of filtered) {
+      if (t.status === "failed") continue;
+      if (t.dir === "in") { inV += t.amount; inC++; } else { outV += t.amount; outC++; }
+    }
+    return { inV, outV, net: inV - outV, inC, outC };
+  }, [filtered]);
+
+  const rowH = density === "compact" ? 42 : 52;
+
+  if (!ready || (loading && !data)) return <TxSkeleton />;
 
   return (
-    <>
-      <div className="topbar">
-        <div>
-          <h1>Transactions</h1>
-          <div className="crumb">{all.length} total · live SEP-24 ledger</div>
+    <PageContainer>
+      <PageHeader
+        title="Transactions"
+        subtitle="The authoritative ledger of every deposit and withdrawal, in real time."
+        actions={<Button variant="secondary" size="sm" leadingIcon={<Download className="size-3.5" />} onClick={() => toast("Export started", { description: `${filtered.length} rows · CSV` })}>Export</Button>}
+      />
+
+      {error && (
+        <div className="mb-4 rounded-[12px] border border-crit/25 bg-crit-fill px-4 py-2.5 text-[13px] text-crit">
+          Can't reach the anchor: {error}
         </div>
-        <RefreshDot error={error} />
+      )}
+
+      {/* Direction summary */}
+      <div className="mb-4 grid gap-3 sm:grid-cols-3">
+        <SummaryCard tone="pos" icon={<ArrowDownLeft className="size-4 text-pos" />} label="In" value={inrCompact(summary.inV)} count={summary.inC} />
+        <SummaryCard tone="neg" icon={<ArrowUpRight className="size-4 text-neg" />} label="Out" value={inrCompact(summary.outV)} count={summary.outC} />
+        <SummaryCard tone={summary.net >= 0 ? "pos" : "neg"} label="Net" value={`${summary.net >= 0 ? "+" : "−"}${inrCompact(Math.abs(summary.net))}`} count={summary.inC + summary.outC} sub="settled" />
       </div>
 
-      <div className="content grid">
-        {error && <div className="errbar">Can’t reach the anchor: {error}</div>}
-        <div className="tablewrap">
-          <div className="head">
-            <div className="filters">
-              {(Object.keys(labels) as Filter[]).map((f) => (
-                <button key={f} className={`chip ${filter === f ? 'on' : ''}`} onClick={() => setFilter(f)}>
-                  {labels[f]}
-                </button>
+      {/* Filters */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <Segmented
+          options={[
+            { label: "All", value: "all" }, { label: "In", value: "in" }, { label: "Out", value: "out" },
+            { label: "Pending", value: "pending" }, { label: "Failed", value: "failed" },
+          ]}
+          value={dir}
+          onChange={setDir}
+        />
+        <SearchInput placeholder="Search user, hash, city…" value={q} onChange={(e) => setQ(e.target.value)} className="ml-auto w-full sm:w-72" />
+      </div>
+
+      <Card className="overflow-hidden p-0">
+        <div className="overflow-x-auto">
+          <div className="min-w-[940px]">
+            <div className={cn(COLS, "border-b border-border-subtle bg-sunken/70 py-2.5")}>
+              {["Time", "Direction", "Type", "User", "Amount", "Fee", "Status", "Hash"].map((h, i) => (
+                <span key={h} className={cn("font-mono text-[10.5px] font-medium uppercase tracking-wider text-text-tertiary", (i === 4 || i === 5) && "text-right")}>{h}</span>
               ))}
             </div>
-            <span className="muted" style={{ fontSize: 12 }}>{txs.length} shown</span>
+            {filtered.length === 0 ? (
+              <div className="px-4 py-16 text-center text-[13px] text-text-tertiary">No live transactions match these filters.</div>
+            ) : (
+              <VirtualRows
+                items={filtered}
+                rowHeight={rowH}
+                height={620}
+                getKey={(t) => t.id}
+                renderRow={(t) => (
+                  <button
+                    onClick={() => { setSelected(t); setDrawer(true); }}
+                    className={cn(COLS, "h-full w-full border-b border-border-subtle text-left transition-colors hover:bg-surface-2/50")}
+                  >
+                    <span className="font-mono text-[11.5px] tabular-nums text-text-secondary" title={absIST(t.createdAt)}>{relTime(t.createdAt, now)}</span>
+                    <span className={cn("flex items-center gap-1.5 text-[12.5px] font-medium", t.dir === "in" ? "text-pos" : "text-neg")}>
+                      {t.dir === "in" ? <ArrowDownLeft className="size-3.5" /> : <ArrowUpRight className="size-3.5" />}
+                      {t.dir === "in" ? "In" : "Out"}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13px] text-text-primary">{t.type === "deposit" ? "Deposit" : "Withdraw"}</span>
+                      <span className="block truncate font-mono text-[10.5px] text-text-tertiary">{t.dir === "in" ? "mint" : "burn → payout"}</span>
+                    </span>
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Avatar name={t.userName} initials={t.userInitials} size={24} />
+                      <span className="truncate text-[13px] text-text-secondary">{t.userName}</span>
+                    </span>
+                    <span className={cn("text-right font-mono text-[13px] font-medium tabular-nums", t.dir === "in" ? "text-pos" : "text-neg")}>{t.dir === "in" ? "+" : "−"}{inr(t.amount)}</span>
+                    <span className="text-right font-mono text-[12px] tabular-nums text-text-tertiary">{inr(t.fee)}</span>
+                    <span><StatusPill status={t.status} /></span>
+                    <span onClick={(e) => e.stopPropagation()}><Copyable value={t.hash} display={truncHash(t.hash, 5, 3)} /></span>
+                  </button>
+                )}
+              />
+            )}
           </div>
-          <TxTable txs={txs} network={s?.network} />
+        </div>
+      </Card>
+
+      <TxDrawer tx={selected} open={drawer} onOpenChange={setDrawer} />
+    </PageContainer>
+  );
+}
+
+function SummaryCard({ tone, icon, label, value, count, sub }: { tone: "pos" | "neg"; icon?: React.ReactNode; label: string; value: string; count: number; sub?: string }) {
+  return (
+    <Card>
+      <div className="flex items-center justify-between p-4">
+        <div>
+          <div className="flex items-center gap-1.5 eyebrow mb-1.5">{icon}{label}</div>
+          <div className={cn("font-mono text-[22px] font-semibold tabular-nums", tone === "pos" ? "text-pos" : "text-neg")}>{value}</div>
+        </div>
+        <div className="text-right">
+          <div className="font-mono text-[15px] tabular-nums text-text-secondary">{count}</div>
+          <div className="text-[11px] text-text-tertiary">{sub ?? "txns"}</div>
         </div>
       </div>
-    </>
+    </Card>
+  );
+}
+
+function TxSkeleton() {
+  return (
+    <PageContainer>
+      <Skeleton className="mb-5 h-7 w-44" />
+      <div className="mb-4 grid gap-3 sm:grid-cols-3">
+        <Skeleton className="h-20 rounded-[14px]" /><Skeleton className="h-20 rounded-[14px]" /><Skeleton className="h-20 rounded-[14px]" />
+      </div>
+      <Skeleton className="h-[680px] rounded-[14px]" />
+    </PageContainer>
   );
 }

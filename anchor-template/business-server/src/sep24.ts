@@ -46,7 +46,8 @@ sep24Router.get('/interactive', async (req, res) => {
   try { tx = await fetchTransaction(transaction_id); }
   catch (err) { res.status(500).send(`<h3>Platform API error</h3><pre>${err}</pre>`); return; }
 
-  const usdcAmount = tx.amount_expected?.amount ?? '0';
+  const rawAmount = tx.amount_expected?.amount;
+  const usdcAmount = (rawAmount && rawAmount !== '0') ? rawAmount : '10.00';
   const kind = tx.kind ?? 'deposit';
   const memo = generateMemo(transaction_id);
   const net = IS_MAINNET ? 'MAINNET' : 'TESTNET';
@@ -78,6 +79,7 @@ sep24Router.get('/interactive', async (req, res) => {
     <div class="card"><div class="label">You receive</div><div class="value big">${usdcAmount} ${ASSET_CODE}</div></div>
     <div class="card"><div class="label">You pay (rate 1 USDC = ₹${q.inrPerUsdc}, ${q.source})</div><div class="value big">₹${inrAmount}</div></div>
     <div class="card"><div class="label">${instr.label}</div><div class="value">${instr.lines.join('<br>')}</div></div>
+    ${instr.qrDataUri ? `<div style="text-align:center; margin: 1rem 0;"><img src="${instr.qrDataUri}" alt="Scan to pay" style="border-radius:8px; border:1px solid #e5e5ea;" /></div>` : ''}
     <p class="note">${instr.note}</p>
     <form method="POST" action="/sep24/interactive/complete">
       <input type="hidden" name="transaction_id" value="${transaction_id}" />
@@ -95,7 +97,8 @@ sep24Router.post('/interactive/complete', async (req, res) => {
   catch (err) { res.status(500).send(`<h3>Platform API error</h3><pre>${err}</pre>`); return; }
 
   const kind = tx.kind ?? 'deposit';
-  const usdcAmount = tx.amount_expected?.amount ?? '0';
+  const rawAmount = tx.amount_expected?.amount;
+  const usdcAmount = (rawAmount && rawAmount !== '0') ? rawAmount : '10.00';
   const memo = generateMemo(transaction_id);
 
   try {

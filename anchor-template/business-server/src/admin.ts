@@ -81,3 +81,74 @@ adminRouter.get('/summary', async (_req, res) => {
     res.status(500).json({ error: (err as Error).message });
   }
 });
+
+adminRouter.get('/users', async (_req, res) => {
+  try {
+    const records = await listTransactions({ sep: '24' });
+    
+    // Group transactions by the authenticated user's Stellar account
+    const usersMap = new Map<string, any>();
+
+    for (const tx of records) {
+      // Find the best identifier for the user (SEP-10 account, sender, or destination)
+      const account = tx.sep10_account ?? tx.customers?.sender?.account ?? tx.destination_account;
+      if (!account) continue;
+
+      const txAmount = Number(tx.amount_expected?.amount ?? tx.amount_in?.amount ?? tx.amount_out?.amount ?? 0);
+      const isCompleted = tx.status === 'completed';
+
+      if (!usersMap.has(account)) {
+        usersMap.set(account, {
+          id: account,
+          name: `User ${account.slice(0, 4)}...${account.slice(-4)}`,
+          initials: 'U',
+          email: `${account.slice(0, 8)}@example.com`,
+          phone: '+91 ••••• ••••',
+          city: 'Unknown',
+          state: 'Unknown',
+          lat: 0,
+          lng: 0,
+          status: 'verified', // Mock KYC status
+          tier: 'T1', // Mock tier
+          risk: 'low',
+          riskFactors: [],
+          lifetimeVolume: 0,
+          txCount: 0,
+          lastSeen: tx.started_at ? new Date(tx.started_at).getTime() : Date.now(),
+          joined: tx.started_at ? new Date(tx.started_at).getTime() : Date.now(),
+          address: 'Stellar Network',
+          matchScore: 98,
+          source: 'Testnet',
+          verifiedAcross: 1,
+        });
+      }
+
+      const user = usersMap.get(account);
+      user.txCount += 1;
+      
+      if (isCompleted) {
+        user.lifetimeVolume += txAmount;
+      }
+      
+      // Update lastSeen if this tx is newer
+      const txTime = tx.started_at ? new Date(tx.started_at).getTime() : Date.now();
+      if (txTime > user.lastSeen) {
+        user.lastSeen = txTime;
+      }
+
+      // Dynamically adjust mock tier and risk based on volume for visual variety
+      if (user.lifetimeVolume > 5000) {
+        user.tier = 'T2';
+      }
+      if (user.lifetimeVolume > 15000) {
+        user.risk = 'med';
+      }
+    }
+
+    const users = Array.from(usersMap.values()).sort((a, b) => b.lastSeen - a.lastSeen);
+
+    res.json({ users });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});

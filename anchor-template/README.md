@@ -69,8 +69,9 @@ docker compose up --build        # bring up db + anchor-platform + business-serv
   - slice 1 ✅ — **live FX** (`FEE_PROVIDER=live`, no-key feed w/ fallback) + real
     **SEP-38 `/rate`** (validated by the AP) + **KYC** as a `KycProvider` seam
     (mock default, Surepass real impl gated on `SUREPASS_TOKEN`).
-  - slice 2 — UPI deposit intent/QR + Cashfree/RazorpayX payout + webhook signature
-    verification (needs sandbox credentials).
+  - slice 2 ✅ — **Cashfree Payouts** adapter with async webhook status (HMAC-SHA256
+    verified, backend re-verified) + **UPI deposit intent/QR** (`qrcode`) in the
+    SEP-24 interactive flow.
 - **Phase F — Go-live hardening (gated on legal/compliance).**
 
 Testnet/sandbox is the default; anything that moves real money is a deliberate,

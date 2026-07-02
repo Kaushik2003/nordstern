@@ -65,8 +65,12 @@ docker compose up --build        # bring up db + anchor-platform + business-serv
   it → withdrawal poller disburses INR (mock payout) → completed. Admin API added.
 - **Client (console) ✅:** Next.js operator frontend (`client/`) on live data —
   treasury float, KPIs, and the transaction ledger.
-- **Phase D — Real adapters (sandbox):** KYC, UPI deposit, Cashfree/RazorpayX payout,
-  real FX — behind mock-first adapter seams.
+- **Phase D — Real adapters (sandbox), behind mock-first seams:**
+  - slice 1 ✅ — **live FX** (`FEE_PROVIDER=live`, no-key feed w/ fallback) + real
+    **SEP-38 `/rate`** (validated by the AP) + **KYC** as a `KycProvider` seam
+    (mock default, Surepass real impl gated on `SUREPASS_TOKEN`).
+  - slice 2 — UPI deposit intent/QR + Cashfree/RazorpayX payout + webhook signature
+    verification (needs sandbox credentials).
 - **Phase F — Go-live hardening (gated on legal/compliance).**
 
 Testnet/sandbox is the default; anything that moves real money is a deliberate,

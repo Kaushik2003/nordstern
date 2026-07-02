@@ -69,6 +69,18 @@ It is the frontend that will manage everything the operator needs, not just a
 read-only dashboard.
 No auth yet (same-origin dev); API keys/auth are a Phase E/F concern.
 
+## AT-009 — Phase D slice 1: live FX + SEP-38 /rate + KYC seam
+- **Live FX** (`LiveRateProvider`, `FEE_PROVIDER=live`, now the default): USD→INR
+  from a public no-key feed (`open.er-api.com`; USDC≈USD), cached 60s, degrades to
+  `RATE_INR_USD` on failure. Deposits/withdrawals now use the live rate (verified
+  10 USDC → 952.40 INR at 95.24).
+- **SEP-38 `/rate`** implemented and validated end-to-end by the AP (`/sep38/price`
+  → our callback → accepted). Amounts made internally consistent (sell = price×buy
+  at 2 dp) to pass AP rate validation; firm quotes get id + expires_at.
+- **KYC seam**: `/customer` moved from an inline stub to the `KycProvider` adapter
+  (`MockKycProvider` default; `SurepassKycProvider` ported, selected via
+  `KYC_PROVIDER=surepass` + `SUREPASS_TOKEN` — credential-gated, not yet verifiable).
+
 ---
 
 ## Phase status
@@ -88,5 +100,8 @@ No auth yet (same-origin dev); API keys/auth are a Phase E/F concern.
   the operator dashboard (read-only live data).
 - **Client (console) — ✅ built:** Next.js operator frontend (`client/`) on live
   admin data (see AT-008).
-- Phase D — real adapters (KYC, UPI, Cashfree payout, live FX, SEP-38 /rate).
+- **Phase D slice 1 — ✅ done & verified:** live FX + SEP-38 /rate + KYC adapter
+  seam (see AT-009).
+- Phase D slice 2 — UPI deposit intent/QR + Cashfree/RazorpayX payout + webhook
+  signature verification (needs sandbox credentials; follows the Cashfree skills).
   Phase F — go-live + money-safety hardening (gated on legal/compliance).

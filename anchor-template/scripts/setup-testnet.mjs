@@ -110,7 +110,7 @@ const env = [
   'DB_PASSWORD=anchor',
   '',
   'KYC_PROVIDER=mock',
-  'FEE_PROVIDER=mock',
+  'FEE_PROVIDER=live',
   'DEPOSIT_PROVIDER=mock',
   'PAYOUT_PROVIDER=mock',
   '',

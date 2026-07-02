@@ -1,0 +1,75 @@
+name: nordstern-anchor-template
+
+# Single-anchor stack (INR ↔ USDC, testnet). Run `node scripts/setup-testnet.mjs`
+# first — it writes the `.env` this file interpolates and renders config/.
+
+services:
+  # ── Postgres — Anchor Platform transaction state (anchordb) ───────────────────
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-anchor}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-anchor}
+      POSTGRES_DB: anchordb
+    ports:
+      # Host port overridable (default 5432) so this stack can coexist with others.
+      - "${DB_HOST_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-anchor} -d anchordb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Anchor Platform (official image) — SEP server + Platform API + Observer ────
+  anchor-platform:
+    image: stellar/anchor-platform:latest
+    command: ["-s", "-p", "-o"]
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"   # SEP server — wallets/users
+      - "8085:8085"   # Platform API — business-server
+    volumes:
+      - ./config:/config:ro
+    environment:
+      STELLAR_ANCHOR_CONFIG: /config/anchor-platform.yaml
+      SECRET_SEP10_SIGNING_SEED: ${SIGNING_SECRET}
+      SECRET_SEP10_JWT_SECRET: ${SEP10_JWT_SECRET}
+      SECRET_DATA_USERNAME: ${DB_USER:-anchor}
+      SECRET_DATA_PASSWORD: ${DB_PASSWORD:-anchor}
+      SECRET_SEP24_INTERACTIVE_URL_JWT_SECRET: ${SEP24_INTERACTIVE_JWT_SECRET}
+      SECRET_SEP24_MORE_INFO_URL_JWT_SECRET: ${SEP24_MORE_INFO_JWT_SECRET}
+      SECRET_SEP6_MORE_INFO_URL_JWT_SECRET: ${SEP6_MORE_INFO_JWT_SECRET}
+
+  # ── business-server — our callbacks + SEP-24 interactive + Stellar ops ─────────
+  business-server:
+    build: ./business-server
+    restart: unless-stopped
+    depends_on:
+      - anchor-platform
+    ports:
+      # Host port overridable (default 3000). The SEP-24 interactive_url in
+      # config/anchor-platform.yaml assumes 3000 — change both together if you
+      # remap this for a real wallet flow.
+      - "${BIZ_HOST_PORT:-3000}:3000"
+    environment:
+      PORT: 3000
+      PLATFORM_API_URL: http://anchor-platform:8085
+      ASSET_CODE: ${ASSET_CODE:-USDC}
+      ASSET_ISSUER_PUBLIC: ${ASSET_ISSUER_PUBLIC}
+      TREASURY_PUBLIC: ${TREASURY_PUBLIC}
+      TREASURY_SECRET: ${TREASURY_SECRET}
+      HORIZON_URL: ${HORIZON_URL:-https://horizon-testnet.stellar.org}
+      NETWORK_PASSPHRASE: "${NETWORK_PASSPHRASE:-Test SDF Network ; September 2015}"
+      KYC_PROVIDER: ${KYC_PROVIDER:-mock}
+      FEE_PROVIDER: ${FEE_PROVIDER:-mock}
+      DEPOSIT_PROVIDER: ${DEPOSIT_PROVIDER:-mock}
+      PAYOUT_PROVIDER: ${PAYOUT_PROVIDER:-mock}
+
+volumes:
+  pgdata:

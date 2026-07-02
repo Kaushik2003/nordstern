@@ -31,7 +31,8 @@ well-built anchor that later becomes the template we provision from.
 | `db` (Postgres)  | 5432 | `anchordb` (Anchor Platform state)          |
 | `anchor-platform`| 8080 | SEP server — wallets/users talk here        |
 | `anchor-platform`| 8085 | Platform API — the business server talks here |
-| `business-server`| 3000 | Callbacks + SEP-24 interactive + Stellar ops |
+| `business-server`| 3000 | Callbacks + SEP-24 interactive + Stellar ops + `/admin` API |
+| `dashboard`      | 3001 | Next.js operator console (live data via `/biz` proxy)      |
 
 ## Quick start (testnet)
 

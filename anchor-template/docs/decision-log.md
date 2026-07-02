@@ -56,6 +56,17 @@ reconciliation) and short-circuits `completed`. A full idempotency ledger
 (match prior on-chain sends per tx, transfer-after-commit) is a Phase F hardening
 item. Reserve guardrail (`assertTreasuryReserve`) runs before any transfer.
 
+## AT-008 — Operator dashboard: Next.js 16 on live data
+`dashboard/` is a Next.js 16 (React 19.2) console showing **live** anchor data —
+treasury USDC float, KPIs (counts, on/off-ramp volumes), and the SEP-24 ledger.
+Follows the established visual direction: pure purple `#AB9FF2` accent (no gold),
+dark canvas, emerald-in `#2EC08B` / coral-out. Reads the business-server `/admin`
+API through a runtime proxy route (`app/biz/[...path]/route.ts`) that reads
+`BIZ_INTERNAL_URL` at request time, so one image works in dev and compose. Client
+components poll every 5s for a live feel. `output: standalone` → slim Docker image;
+runs as the `dashboard` compose service (host port `DASH_HOST_PORT`, default 3001).
+No auth yet (same-origin dev); API keys/auth are a Phase E/F concern.
+
 ---
 
 ## Phase status

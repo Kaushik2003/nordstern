@@ -17,13 +17,8 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      const { user } = await login(email, password);
-      localStorage.setItem('cp_tenant_id', user.tenantId);
-      if (user.tenantStatus === 'active') {
-        router.push('/anchor/(app)/dashboard');
-      } else {
-        router.push('/anchor/onboarding');
-      }
+      await login(email, password);
+      router.push('/anchor/anchors');
     } catch (err: any) {
       setError(err.message);
     } finally {

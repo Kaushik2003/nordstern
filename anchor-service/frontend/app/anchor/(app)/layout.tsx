@@ -5,10 +5,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import { clearToken } from '@/lib/cp';
 
 const NAV = [
-  { href: '/anchor/(app)/dashboard',    icon: '📊', label: 'Dashboard' },
-  { href: '/anchor/(app)/transactions', icon: '💸', label: 'Transactions' },
-  { href: '/anchor/(app)/rules',        icon: '⚖️',  label: 'Business Rules' },
-  { href: '/anchor/(app)/settings',     icon: '⚙️',  label: 'Settings' },
+  { href: '/anchor/anchors',      icon: '⚓', label: 'Anchors' },
+  { href: '/anchor/dashboard',    icon: '📊', label: 'Dashboard' },
+  { href: '/anchor/transactions', icon: '💸', label: 'Transactions' },
+  { href: '/anchor/rules',        icon: '⚖️',  label: 'Business Rules' },
+  { href: '/anchor/settings',     icon: '⚙️',  label: 'Settings' },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

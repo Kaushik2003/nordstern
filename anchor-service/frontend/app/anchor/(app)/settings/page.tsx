@@ -1,13 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getTenant, Tenant } from '@/lib/cp';
+import { useRouter } from 'next/navigation';
+import { getAnchor, getSelectedAnchor, Anchor } from '@/lib/cp';
 
 export default function SettingsPage() {
-  const [tenant, setTenant]   = useState<Tenant | null>(null);
+  const router = useRouter();
+  const [tenant, setTenant]   = useState<Anchor | null>(null);
   const [copied, setCopied]   = useState('');
 
-  useEffect(() => { getTenant().then(setTenant); }, []);
+  useEffect(() => {
+    const id = getSelectedAnchor();
+    if (!id) { router.push('/anchor/anchors'); return; }
+    getAnchor(id).then(setTenant);
+  }, []);
 
   function copy(text: string, key: string) {
     navigator.clipboard.writeText(text);
@@ -26,14 +32,15 @@ export default function SettingsPage() {
         {/* Anchor Info */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
           <h2 className="font-semibold">Anchor Info</h2>
-          <Row label="Company name" value={tenant?.name ?? '…'} />
+          <Row label="Anchor name" value={tenant?.name ?? '…'} />
+          <Row label="Asset" value={tenant?.asset_code ?? '…'} />
           <Row label="Network" value={tenant?.network ?? '…'} />
-          <Row label="Status" value={tenant?.status ?? '…'} />
+          <Row label="Status" value={tenant?.stack_status ?? '…'} />
           <div>
             <div className="text-xs text-slate-400 mb-1">Stellar.toml</div>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs text-blue-400">https://dockyard.app/t/{tenant?.slug}/.well-known/stellar.toml</span>
-              <button onClick={() => copy(`https://dockyard.app/t/${tenant?.slug}/.well-known/stellar.toml`, 'toml')} className="text-slate-500 hover:text-white text-xs">
+              <span className="font-mono text-xs text-blue-400">http://{tenant?.home_domain}/.well-known/stellar.toml</span>
+              <button onClick={() => copy(`http://${tenant?.home_domain}/.well-known/stellar.toml`, 'toml')} className="text-slate-500 hover:text-white text-xs">
                 {copied === 'toml' ? '✓' : '⧉'}
               </button>
             </div>

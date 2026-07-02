@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getConfig, saveConfig, TenantConfig } from '@/lib/cp';
+import { useRouter } from 'next/navigation';
+import { getConfig, saveConfig, getSelectedAnchor, TenantConfig } from '@/lib/cp';
 
 const DEFAULTS: TenantConfig = {
   min_deposit: 10, max_deposit: 10000,
@@ -16,13 +17,18 @@ const DEFAULTS: TenantConfig = {
 };
 
 export default function RulesPage() {
+  const router = useRouter();
   const [cfg, setCfg]       = useState<TenantConfig>(DEFAULTS);
+  const [anchorId, setAnchorId] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
   const [saved, setSaved]     = useState(false);
 
   useEffect(() => {
-    getConfig().then(c => { if (c.min_deposit) setCfg(c); }).finally(() => setLoading(false));
+    const id = getSelectedAnchor();
+    if (!id) { router.push('/anchor/anchors'); return; }
+    setAnchorId(id);
+    getConfig(id).then(c => { if (c.min_deposit) setCfg(c); }).finally(() => setLoading(false));
   }, []);
 
   function set<K extends keyof TenantConfig>(k: K, v: TenantConfig[K]) {
@@ -33,7 +39,7 @@ export default function RulesPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    await saveConfig(cfg);
+    await saveConfig(anchorId, cfg);
     setSaved(true);
     setSaving(false);
   }

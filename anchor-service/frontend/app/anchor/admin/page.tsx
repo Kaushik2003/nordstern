@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { adminGetTenants } from '@/lib/cp';
+import { adminGetAnchors } from '@/lib/cp';
 
 export default function AdminPage() {
   const [tenants, setTenants] = useState<any[]>([]);
@@ -9,14 +9,16 @@ export default function AdminPage() {
   const [error, setError]     = useState('');
 
   useEffect(() => {
-    adminGetTenants().then(setTenants).catch(e => setError(e.message)).finally(() => setLoading(false));
+    adminGetAnchors().then(setTenants).catch(e => setError(e.message)).finally(() => setLoading(false));
   }, []);
 
   const statusColor: Record<string, string> = {
-    active:  'text-green-400 bg-green-400/10',
-    funding: 'text-yellow-400 bg-yellow-400/10',
-    pending: 'text-slate-400 bg-slate-400/10',
-    error:   'text-red-400 bg-red-400/10',
+    active:       'text-green-400 bg-green-400/10',
+    provisioning: 'text-yellow-400 bg-yellow-400/10',
+    pending:      'text-slate-400 bg-slate-400/10',
+    suspended:    'text-orange-400 bg-orange-400/10',
+    removed:      'text-slate-500 bg-slate-500/10',
+    error:        'text-red-400 bg-red-400/10',
   };
 
   return (
@@ -30,12 +32,12 @@ export default function AdminPage() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-            <div className="text-slate-400 text-xs mb-1">Total Tenants</div>
+            <div className="text-slate-400 text-xs mb-1">Total Anchors</div>
             <div className="text-3xl font-bold">{tenants.length}</div>
           </div>
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
             <div className="text-slate-400 text-xs mb-1">Active</div>
-            <div className="text-3xl font-bold text-green-400">{tenants.filter(t => t.status === 'active').length}</div>
+            <div className="text-3xl font-bold text-green-400">{tenants.filter(t => t.stack_status === 'active').length}</div>
           </div>
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
             <div className="text-slate-400 text-xs mb-1">Active Alerts</div>
@@ -49,10 +51,10 @@ export default function AdminPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-800 text-slate-400 text-xs text-left">
-                <th className="px-5 py-3 font-medium">Tenant</th>
+                <th className="px-5 py-3 font-medium">Anchor</th>
                 <th className="px-5 py-3 font-medium">Network</th>
                 <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 font-medium">Users</th>
+                <th className="px-5 py-3 font-medium">Owner</th>
                 <th className="px-5 py-3 font-medium">Alerts</th>
                 <th className="px-5 py-3 font-medium">Created</th>
               </tr>
@@ -74,11 +76,11 @@ export default function AdminPage() {
                     </span>
                   </td>
                   <td className="px-5 py-4">
-                    <span className={`text-xs px-2 py-1 rounded-full ${statusColor[t.status] ?? 'text-slate-400 bg-slate-400/10'}`}>
-                      {t.status}
+                    <span className={`text-xs px-2 py-1 rounded-full ${statusColor[t.stack_status] ?? 'text-slate-400 bg-slate-400/10'}`}>
+                      {t.stack_status}
                     </span>
                   </td>
-                  <td className="px-5 py-4 text-sm text-slate-300">{t.user_count}</td>
+                  <td className="px-5 py-4 text-xs text-slate-400">{t.owner_email ?? '—'}</td>
                   <td className="px-5 py-4">
                     {Number(t.active_alerts) > 0
                       ? <span className="text-xs text-red-400 bg-red-400/10 px-2 py-1 rounded-full">{t.active_alerts} active</span>

@@ -1,6 +1,6 @@
 'use client';
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Token + selected-anchor helpers ────────────────────────────────────────────
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -8,8 +8,15 @@ function getToken(): string | null {
 }
 
 export function setToken(t: string) { localStorage.setItem('cp_token', t); }
-export function clearToken()        { localStorage.removeItem('cp_token'); }
+export function clearToken()        { localStorage.removeItem('cp_token'); localStorage.removeItem('cp_anchor_id'); }
 export function isLoggedIn()        { return !!getToken(); }
+
+// An operator owns many anchors; the console works against a "selected" one.
+export function setSelectedAnchor(id: string) { localStorage.setItem('cp_anchor_id', id); }
+export function getSelectedAnchor(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('cp_anchor_id');
+}
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
   const token = getToken();
@@ -21,28 +28,53 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
     },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error ?? 'Request failed');
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((json as any).error ?? 'Request failed');
   return json as T;
 }
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Types ───────────────────────────────────────────────────────────────────
 
-export interface Tenant {
-  id: string;
-  name: string;
-  slug: string;
-  status: 'pending' | 'funding' | 'active' | 'error';
-  network: string;
-  fiat_balance: string;
-  onchain_balance: string | null;
-  keypairs: Keypair[] | null;
-}
+export type StackStatus = 'pending' | 'provisioning' | 'active' | 'error' | 'suspended' | 'removed';
 
 export interface Keypair {
   role: 'signing' | 'distribution' | 'issuer';
   public_key: string;
 }
+
+export interface AnchorAdapters {
+  kyc_provider: string;
+  deposit_provider: string;
+  payout_provider: string;
+  fee_provider: string;
+}
+
+export interface Anchor {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  stack_status: StackStatus;
+  status_detail?: string;
+  network: string;
+  home_domain?: string;
+  asset_code?: string;
+  asset_issuer?: string;
+  fiat_balance?: string;
+  onchain_balance?: string | null;
+  keypairs?: Keypair[];
+  adapters?: AnchorAdapters;
+  kyc_provider?: string;
+  deposit_provider?: string;
+  payout_provider?: string;
+  fee_provider?: string;
+  active_alerts?: number;
+  owner_email?: string;
+  created_at?: string;
+}
+
+/** @deprecated use Anchor */
+export type Tenant = Anchor;
 
 export interface TenantConfig {
   min_deposit: number;
@@ -66,10 +98,6 @@ export interface AuthUser {
   id: string;
   email: string;
   role: string;
-  tenantId: string;
-  tenantName: string;
-  tenantStatus: string;
-  network: string;
 }
 
 export interface Alert {
@@ -80,10 +108,10 @@ export interface Alert {
   created_at: string;
 }
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
+// ── Auth (operator only — no auto-anchor) ──────────────────────────────────────
 
-export async function register(name: string, email: string, password: string, network: string) {
-  const data = await call<{ token: string; user: AuthUser }>('POST', '/auth/register', { name, email, password, network });
+export async function register(email: string, password: string) {
+  const data = await call<{ token: string; user: AuthUser }>('POST', '/auth/register', { email, password });
   setToken(data.token);
   return data;
 }
@@ -94,22 +122,29 @@ export async function login(email: string, password: string) {
   return data;
 }
 
-// ── Tenant ────────────────────────────────────────────────────────────────────
+// ── Anchors ─────────────────────────────────────────────────────────────────
 
-export function getTenant()                        { return call<Tenant>('GET', '/tenants/me'); }
-export function getTenantStatus(id: string)        { return call<{ status: string; keypairs: Keypair[] }>('GET', `/tenants/${id}/status`); }
-export function provision(id: string)              { return call<{ accounts: Record<string, string> }>('POST', `/tenants/${id}/provision`); }
+export interface AdapterChoice { kyc?: string; deposit?: string; payout?: string; fee?: string }
 
-// ── Config ────────────────────────────────────────────────────────────────────
+export function listAnchors()                 { return call<Anchor[]>('GET', '/anchors'); }
+export function createAnchor(name: string, adapters?: AdapterChoice) {
+  return call<Anchor>('POST', '/anchors', { name, adapters });
+}
+export function getAnchor(id: string)          { return call<Anchor>('GET', `/anchors/${id}`); }
+export function getAnchorStatus(id: string)    { return call<{ stack_status: StackStatus; status_detail?: string; home_domain?: string }>('GET', `/anchors/${id}/status`); }
+export function provisionAnchor(id: string)    { return call<{ message: string; slug: string }>('POST', `/anchors/${id}/provision`); }
+export function teardownAnchor(id: string)     { return call<{ ok: boolean }>('DELETE', `/anchors/${id}`); }
 
-export function getConfig()                        { return call<TenantConfig>('GET', '/config'); }
-export function saveConfig(cfg: Partial<TenantConfig>) { return call<{ ok: boolean }>('PUT', '/config', cfg); }
-export function getAlerts()                        { return call<Alert[]>('GET', '/config/alerts'); }
-export function injectAlert()                      { return call<{ ok: boolean }>('POST', '/config/alerts/inject'); }
-export function resolveAlert(id: string)           { return call<{ ok: boolean }>('POST', `/config/alerts/${id}/resolve`); }
+// ── Config (per anchor) ────────────────────────────────────────────────────────
 
-// ── Admin ─────────────────────────────────────────────────────────────────────
+export function getConfig(anchorId: string)                        { return call<TenantConfig>('GET', `/config/${anchorId}`); }
+export function saveConfig(anchorId: string, cfg: Partial<TenantConfig>) { return call<{ ok: boolean }>('PUT', `/config/${anchorId}`, cfg); }
+export function getAlerts(anchorId: string)                        { return call<Alert[]>('GET', `/config/${anchorId}/alerts`); }
+export function injectAlert(anchorId: string)                      { return call<{ ok: boolean }>('POST', `/config/${anchorId}/alerts/inject`); }
+export function resolveAlert(anchorId: string, id: string)         { return call<{ ok: boolean }>('POST', `/config/${anchorId}/alerts/${id}/resolve`); }
 
-export function adminGetTenants() {
-  return call<(Tenant & { user_count: number; active_alerts: number })[]>('GET', '/admin/tenants');
+// ── Admin (platform-admin) ─────────────────────────────────────────────────────
+
+export function adminGetAnchors() {
+  return call<(Anchor & { owner_email: string; active_alerts: number })[]>('GET', '/admin/anchors');
 }

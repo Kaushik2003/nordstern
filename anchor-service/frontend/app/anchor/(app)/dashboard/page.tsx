@@ -2,21 +2,25 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getTenant, getAlerts, injectAlert, resolveAlert, Tenant, Alert } from '@/lib/cp';
+import { getAnchor, getAlerts, injectAlert, resolveAlert, getSelectedAnchor, Anchor, Alert } from '@/lib/cp';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [tenant, setTenant]   = useState<Tenant | null>(null);
+  const [tenant, setTenant]   = useState<Anchor | null>(null);
   const [alerts, setAlerts]   = useState<Alert[]>([]);
+  const [anchorId, setAnchorId] = useState('');
   const [loading, setLoading] = useState(true);
 
   async function load() {
+    const id = getSelectedAnchor();
+    if (!id) { router.push('/anchor/anchors'); return; }
+    setAnchorId(id);
     try {
-      const [t, a] = await Promise.all([getTenant(), getAlerts()]);
+      const [t, a] = await Promise.all([getAnchor(id), getAlerts(id)]);
       setTenant(t);
       setAlerts(a);
     } catch {
-      router.push('/anchor/login');
+      router.push('/anchor/anchors');
     } finally {
       setLoading(false);
     }
@@ -25,12 +29,12 @@ export default function DashboardPage() {
   useEffect(() => { load(); }, []);
 
   async function handleInjectAlert() {
-    await injectAlert();
+    await injectAlert(anchorId);
     load();
   }
 
   async function handleResolve(id: string) {
-    await resolveAlert(id);
+    await resolveAlert(anchorId, id);
     load();
   }
 
@@ -59,8 +63,8 @@ export default function DashboardPage() {
             <span className={`text-xs px-2 py-0.5 rounded-full ${tenant.network === 'mainnet' ? 'bg-orange-500/20 text-orange-400' : 'bg-blue-500/20 text-blue-400'}`}>
               {tenant.network.toUpperCase()}
             </span>
-            <span className={`text-xs px-2 py-0.5 rounded-full ${tenant.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
-              {tenant.status === 'active' ? '✓ Operational' : tenant.status}
+            <span className={`text-xs px-2 py-0.5 rounded-full ${tenant.stack_status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+              {tenant.stack_status === 'active' ? '✓ Operational' : tenant.stack_status}
             </span>
           </div>
         </div>
@@ -92,7 +96,7 @@ export default function DashboardPage() {
           sub={outOfSync ? `${(mismatch * 100).toFixed(1)}% delta` : 'Fiat = On-chain'}
           valueClass={outOfSync ? 'text-red-400' : 'text-green-400'}
         />
-        <StatCard label="Status" value={tenant.status === 'active' ? 'Active' : tenant.status} sub={`Network: ${tenant.network}`} />
+        <StatCard label="Status" value={tenant.stack_status === 'active' ? 'Active' : tenant.stack_status} sub={`Network: ${tenant.network}`} />
       </div>
 
       {/* Balance graph placeholder + transactions */}
@@ -111,7 +115,7 @@ export default function DashboardPage() {
               ⚠ Inject reconciliation mismatch
               <div className="text-xs text-slate-500 mt-0.5">Demo: create a $500 discrepancy</div>
             </button>
-            <a href="/anchor/(app)/rules" className="w-full border border-slate-700 hover:border-slate-600 text-slate-300 text-sm px-4 py-3 rounded-lg transition-colors block">
+            <a href="/anchor/rules" className="w-full border border-slate-700 hover:border-slate-600 text-slate-300 text-sm px-4 py-3 rounded-lg transition-colors block">
               ⚙ Configure business rules
             </a>
             <a href={`https://stellar.expert/explorer/testnet/account/${tenant.keypairs?.find(k => k.role === 'distribution')?.public_key}`}

@@ -1,6 +1,7 @@
 import express from 'express';
 import { callbacksRouter } from './callbacks.js';
 import { sep24Router } from './sep24.js';
+import { adminRouter } from './admin.js';
 import { ASSET_CODE, TREASURY_PUBLIC } from './config.js';
 import { getTreasuryUsdcBalance } from './stellar.js';
 
@@ -18,6 +19,9 @@ export function createApp() {
   // AP v4.4.0 calls callbacks at the base_url root: /customer, /rate.
   app.use('/', callbacksRouter);
   app.use('/sep24', sep24Router);
+
+  // Operator dashboard API (read-only, live data).
+  app.use('/admin', adminRouter);
 
   // SEP-6 more_info_url stub (config points here; SEP-6 is not an active flow).
   app.get('/sep6/transaction', (req, res) => {

@@ -29,6 +29,17 @@ export async function getTreasuryUsdcBalance(): Promise<string | null> {
   return bal ? bal.balance : null;
 }
 
+// Treasury balances (XLM + USDC) for the operator dashboard.
+export async function getTreasuryBalances(): Promise<{ xlm: string | null; usdc: string | null }> {
+  if (!TREASURY_PUBLIC) return { xlm: null, usdc: null };
+  const account = await horizon.loadAccount(TREASURY_PUBLIC);
+  const xlm = account.balances.find((b: any) => b.asset_type === 'native')?.balance ?? null;
+  const usdc = account.balances.find(
+    (b: any) => b.asset_code === ASSET_CODE && b.asset_issuer === ASSET_ISSUER_PUBLIC,
+  )?.balance ?? null;
+  return { xlm, usdc };
+}
+
 // Reserve guardrail — refuse to release USDC the treasury float can't cover.
 // This is what makes the anchor a liquidity provider rather than a minter.
 export async function assertTreasuryReserve(amount: string): Promise<void> {

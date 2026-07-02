@@ -6,6 +6,9 @@ import { MockRateProvider } from './rate/mock.js';
 import { DepositProvider } from './deposit/DepositProvider.js';
 import { MockDepositProvider } from './deposit/mock.js';
 
+import { PayoutProvider } from './payout/PayoutProvider.js';
+import { MockPayoutProvider } from './payout/mock.js';
+
 // ─── Adapter factory ───────────────────────────────────────────────────────────
 // One implementation per seam, selected from env (mock-first). Real vendors
 // (UPI collection, live FX, Cashfree payout, HyperVerge KYC) slot in here in
@@ -23,7 +26,14 @@ function makeDeposit(): DepositProvider {
   }
 }
 
+function makePayout(): PayoutProvider {
+  switch (PROVIDERS.payout) {
+    default: return new MockPayoutProvider();
+  }
+}
+
 export const rate    = makeRate();
 export const deposit = makeDeposit();
+export const payout  = makePayout();
 
-console.log(`[adapters] rate=${PROVIDERS.fee} deposit=${PROVIDERS.deposit} (kyc=${PROVIDERS.kyc} payout=${PROVIDERS.payout} — Phase D)`);
+console.log(`[adapters] rate=${PROVIDERS.fee} deposit=${PROVIDERS.deposit} payout=${PROVIDERS.payout} (kyc=${PROVIDERS.kyc} — Phase D)`);

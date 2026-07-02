@@ -60,10 +60,12 @@ docker compose up --build        # bring up db + anchor-platform + business-serv
 - **Phase B — USDC on-ramp + treasury ✅:** USDC float funded; real USDC transfer on
   deposit with a reserve check; INR/USD FX applied to `amount_in` (mock RateProvider).
   INR declared as an off-chain `iso4217:INR` asset.
-- **Phase C — USDC off-ramp:** Observer detects returned USDC by memo; mock payout.
+- **Phase C — USDC off-ramp ✅:** user returns USDC with a memo → AP Observer detects
+  it → withdrawal poller disburses INR (mock payout) → completed. Admin API added.
+- **Dashboard ✅:** Next.js operator console (`dashboard/`) on live data — treasury
+  float, KPIs, and the transaction ledger.
 - **Phase D — Real adapters (sandbox):** KYC, UPI deposit, Cashfree/RazorpayX payout,
   real FX — behind mock-first adapter seams.
-- **Phase E — Treasury + console (live data).**
 - **Phase F — Go-live hardening (gated on legal/compliance).**
 
 Testnet/sandbox is the default; anything that moves real money is a deliberate,

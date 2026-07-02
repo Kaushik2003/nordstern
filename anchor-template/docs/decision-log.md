@@ -67,6 +67,13 @@ item. Reserve guardrail (`assertTreasuryReserve`) runs before any transfer.
   `amount_in 885.00 iso4217:INR` / `amount_out 10 USDC` (FX 88.50 via mock
   RateProvider), reserve-checked, treasury debited. Withdrawal *initiation* wired;
   detection/payout is Phase C.
-- Phase C — USDC off-ramp (Observer detection by memo + mock payout). Phase D —
-  real adapters (KYC, UPI, Cashfree payout, live FX, SEP-38 /rate). Phase E —
-  console. Phase F — go-live + money-safety hardening (gated on legal/compliance).
+- **Phase C — USDC off-ramp: ✅ done & verified.** `scripts/test-withdrawal.mjs`
+  proves the round trip: user sends USDC to the treasury with a memo → AP Observer
+  detects it (→ pending_anchor) → withdrawal poller disburses INR via mock
+  PayoutProvider → completed (`amount_in 10 USDC` / `amount_out 885.00 INR`).
+  Treasury credited. Admin API (`/admin/summary`, `/admin/transactions`) added for
+  the operator dashboard (read-only live data).
+- **Dashboard — ✅ built:** Next.js operator console (`dashboard/`) on live admin
+  data (see AT-008).
+- Phase D — real adapters (KYC, UPI, Cashfree payout, live FX, SEP-38 /rate).
+  Phase F — go-live + money-safety hardening (gated on legal/compliance).

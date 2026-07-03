@@ -33,6 +33,7 @@ well-built anchor that later becomes the template we provision from.
 | `anchor-platform`| 8085 | Platform API — the business server talks here |
 | `business-server`| 3000 | Callbacks + SEP-24 interactive + Stellar ops + `/admin` API |
 | `client`         | 3001 | Next.js operator console / management frontend (live data)  |
+| `ngrok`          | 4040 | Public HTTPS tunnel → business-server (DIDIT webhooks + hosted-flow redirect); inspector on 4040 |
 
 ## Quick start (testnet)
 
@@ -47,6 +48,11 @@ docker compose up --build        # bring up db + anchor-platform + business-serv
 
 - **`.env` does not exist until you run the setup script** — that's the first thing
   to check if the stack won't start.
+- **KYC (DIDIT) needs the tunnel.** Set `NGROK_AUTHTOKEN` in `.env`
+  ([get one](https://dashboard.ngrok.com/get-started/your-authtoken)) and stop any host
+  `ngrok` (`pkill ngrok`) before `up` — the reserved static domain in `PUBLIC_BASE_URL`
+  allows one agent. DIDIT reports the KYC decision via a **webhook** to that public URL
+  (the source of truth); `localhost` can't receive it. `KYC_PROVIDER=mock` skips all this.
 - Verify: `curl http://localhost:8080/.well-known/stellar.toml` and
   `curl http://localhost:3000/health` (shows the treasury USDC float).
 - Smoke tests: `node scripts/test-handshake.mjs` (Phase A) and

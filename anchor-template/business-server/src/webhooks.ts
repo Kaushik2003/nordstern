@@ -2,13 +2,74 @@ import { Router } from 'express';
 import express from 'express';
 import crypto from 'crypto';
 import { fetchTransaction, patchTransaction } from './platform.js';
-import { assetId } from './config.js';
+import { assetId, DIDIT_WEBHOOK_SECRET } from './config.js';
+import { applyWebhook } from './adapters/kyc/didit.js';
 
 // ─── Webhooks Router ────────────────────────────────────────────────────────
-// Handles incoming async event notifications from external providers.
-// Currently handles Cashfree Payouts status webhooks for Phase D slice 2.
+// Handles incoming async event notifications from external providers:
+//   POST /payout-webhook  — Cashfree Payouts status (Phase D slice 2)
+//   POST /webhooks/didit  — DIDIT KYC decision (source of truth for verification)
 
 export const webhooksRouter = Router();
+
+// ─── DIDIT KYC webhook ──────────────────────────────────────────────────────
+// The authoritative signal that a user's identity check finished. We authenticate
+// with DIDIT's `X-Signature` = HMAC-SHA256 over the EXACT raw request bytes
+// (captured in app.ts via express.json's `verify` hook, so we never re-stringify).
+// Hashing the raw body — rather than re-canonicalising the parsed JSON like the
+// X-Signature-V2 scheme — avoids any JS↔Python serialisation drift and is stable
+// across webhook versions (v1/v2/v3). See docs.didit.me/integration/webhooks.
+
+// NOTE: DIDIT's hosted-config delivery posts to the webhook host ROOT ("/"),
+// dropping any path we register in /v3/webhook/. We therefore accept BOTH the
+// descriptive "/webhooks/didit" and "/" (no other POST "/" handler exists — the
+// SEP callbacks use /customer, /rate). The X-Signature check gates either path.
+webhooksRouter.post(['/webhooks/didit', '/'], async (req, res) => {
+  if (!DIDIT_WEBHOOK_SECRET || DIDIT_WEBHOOK_SECRET.startsWith('<')) {
+    console.error('[didit-webhook] DIDIT_WEBHOOK_SECRET not configured');
+    res.status(500).send('not configured');
+    return;
+  }
+
+  const sig = (req.headers['x-signature'] as string) ?? '';
+  const ts = Number(req.headers['x-timestamp']);
+  const raw: Buffer | undefined = (req as unknown as { rawBody?: Buffer }).rawBody;
+
+  // 1. Freshness — reject anything older/newer than 300s (replay protection).
+  if (!ts || Math.abs(Date.now() / 1000 - ts) > 300) {
+    res.status(401).send('stale');
+    return;
+  }
+
+  // 2. Authenticate: HMAC-SHA256 of the RAW body bytes must equal X-Signature,
+  //    compared in constant time. Never re-stringify the parsed body for this.
+  if (!raw || !raw.length) {
+    console.error('[didit-webhook] raw body unavailable');
+    res.status(400).send('no body');
+    return;
+  }
+  const expected = crypto.createHmac('sha256', DIDIT_WEBHOOK_SECRET).update(raw).digest('hex');
+  if (sig.length !== expected.length ||
+      !crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig))) {
+    res.status(401).send('bad sig');
+    return;
+  }
+
+  // 4. Apply the decision (light DB work — 2 queries, well within the 5s budget),
+  //    then ack. On failure return 500 so DIDIT retries (~1m, then ~4m) instead of
+  //    silently dropping the decision.
+  //    HARDENING: the dedupe-insert and the decision upsert inside applyWebhook are
+  //    not yet in a single DB transaction, so a crash between them could drop a
+  //    decision on retry. Polling + re-verify masks this today; wrap in a tx when
+  //    the store is hardened for production.
+  try {
+    await applyWebhook(req.body);
+    res.status(200).send('ok');
+  } catch (err) {
+    console.error('[didit-webhook] apply error:', err instanceof Error ? err.message : err);
+    res.status(500).send('processing error');
+  }
+});
 
 const APP_ID = process.env.CASHFREE_APP_ID ?? '';
 const SECRET = process.env.CASHFREE_SECRET ?? '';

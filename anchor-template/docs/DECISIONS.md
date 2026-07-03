@@ -38,3 +38,23 @@
 **Alternatives considered:** Relying on the client to not double-click, or building a massive Kafka-based event sourcing ledger.
 **Why alternatives were rejected:** Client-side prevention is unsafe. Kafka is overkill for the MVP.
 **Future implications:** We will eventually need to build a robust Transfer-After-Commit or outbox-pattern idempotency ledger in Phase F.
+
+## DEC-006: ngrok (Reserved Static Domain) as the Dev Public-Ingress Tunnel
+**Decision:** Run ngrok as a first-class Docker Compose service that publishes the
+business-server on a **reserved static** `*.ngrok-free.dev` domain (set once in
+`PUBLIC_BASE_URL`), rather than a hand-started `ngrok` process with an ephemeral URL.
+**Why we made it:** Real DIDIT KYC reports its decision **server-to-server via a webhook** —
+the source of truth for the KYC gate — and the hosted flow is finished on the user's phone.
+`localhost` cannot receive that webhook, so a public HTTPS URL is mandatory in local dev. A
+random ngrok URL changes every restart, forcing re-registration of the DIDIT webhook and
+`PUBLIC_BASE_URL` each boot (a documented, repeated failure). A reserved domain + a Compose
+service makes the URL stable and brings the tunnel up with the rest of the stack.
+**Alternatives considered:** Manual `ngrok` per session; Cloudflare Tunnel; deploying the
+business-server to a public host for testing.
+**Why alternatives were rejected:** Manual/ephemeral tunnels caused the recurring "webhook
+not delivered" breakage. A cloud deploy is heavier than needed for local iteration. Cloudflare
+Tunnel is a viable equal — ngrok was already in use with a reserved domain.
+**Future implications:** This is a **development** ingress only. Production replaces it with a
+real domain + TLS (ingress/load balancer). The webhook remains the source of truth; the
+browser redirect stays cosmetic (see ARCHITECTURE §5). `NGROK_AUTHTOKEN` is a secret in `.env`;
+a reserved domain permits one agent at a time.

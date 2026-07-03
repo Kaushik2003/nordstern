@@ -4,7 +4,7 @@
 
 ## Current Architecture
 
-The `anchor-template` stack runs in Docker Compose and consists of four main services:
+The `anchor-template` stack runs in Docker Compose and consists of five main services:
 
 ```mermaid
 graph TD
@@ -12,10 +12,12 @@ graph TD
     AP -->|Platform API\nPort 8085| BS(Business Server)
     BS -->|Interactive UI| W
     BS -->|Stellar SDK| S[Stellar Network]
-    BS -->|Adapters| V[External Vendors\nRazorpay, Cashfree, UPI]
+    BS -->|Adapters| V[External Vendors\nDIDIT, Cashfree, UPI]
     C[Client Dashboard\nPort 3001] -->|/admin API| BS
     AP --> DB[(PostgreSQL)]
     BS --> DB
+    DIDIT[DIDIT KYC\nHosted Flow] -->|webhook: status.updated| NG(ngrok\nStatic HTTPS domain)
+    NG -->|public → business-server:3000| BS
 ```
 
 ### 1. `anchor-platform` (The Compliance Engine)
@@ -39,6 +41,31 @@ A Next.js (App Router) React frontend running on **Port 3001**.
 ### 4. `db` (Database)
 A PostgreSQL database running on **Port 5432**.
 - Holds the `anchordb` schema used by the Anchor Platform to maintain transaction state.
+- The business-server also uses it (schema `nordstern`) for the durable KYC store
+  (`kyc_verifications`, `kyc_webhook_events`), keyed on the user's SEP-10 account.
+
+### 5. `ngrok` (Public HTTPS Ingress — dev)
+A Docker Compose service (`ngrok/ngrok`) that publishes `business-server:3000` on a
+**reserved static domain** (`*.ngrok-free.dev`), set once in `PUBLIC_BASE_URL`. Inspector
+at **Port 4040**.
+
+**Why it exists:** the DIDIT KYC hosted flow is completed on the user's **phone** (a QR
+scanned from the desktop wallet), and DIDIT reports the decision **server-to-server via a
+webhook** — that webhook, *not* the browser redirect, is the **source of truth** for the
+KYC gate. `localhost` cannot receive it, so a public HTTPS URL is required. Because the
+domain is **reserved/static**, `PUBLIC_BASE_URL` and the DIDIT webhook registration stay
+stable across restarts (previously an ephemeral ngrok URL had to be re-registered on every
+boot). Making it a Compose service means the whole stack — including the tunnel — comes up
+with a single `docker compose up`; no separate `ngrok` process to run by hand.
+
+- Auth via `NGROK_AUTHTOKEN` in `.env`; the tunnel targets `business-server` over the
+  Compose network, not the host.
+- A reserved domain permits **one agent at a time** — stop any host `ngrok` (`pkill ngrok`)
+  before `docker compose up`, or the container fails to bind the domain.
+- The interactive webview polls `/sep24/kyc/status` every 3s and advances the moment the
+  webhook lands, so the cross-device redirect never needs to return to the desktop session.
+  (`PUBLIC_BASE_URL` is captured at container **create** time — recreate business-server
+  after changing it, or a stale value leaks into the DIDIT session `callback` redirect.)
 
 ---
 

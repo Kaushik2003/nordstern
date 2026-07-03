@@ -1,0 +1,30 @@
+Viewed README.md:20-35
+
+These are fantastic questions because they strike right at the heart of how this architecture scales to production. 
+
+### 1. Where do KYC, Razorpay, and UPI integrations sit?
+
+**They sit entirely inside the `business-server` (Port 3000).** 
+
+The official Stellar Anchor Platform (the Java app) is deliberately "dumb" when it comes to local banking and KYC. It knows the Stellar protocols, but it knows absolutely nothing about Razorpay, HyperVerge, or UPI. 
+
+Instead, the `business-server` acts as the bridge. If you look inside your codebase at `anchor-template/business-server/src/adapters/`, you'll see we built "seams" (interfaces) for these exact features. 
+* Right now, the business server is configured to use a `MockPayoutProvider` and a `MockKycProvider`. 
+* When you are ready for real money, you will write a `RazorpayPayoutProvider` that implements that same interface. 
+* When a user wants to withdraw, the `business-server` will trigger the Razorpay API. When Razorpay confirms the payout via a webhook, the `business-server` will ping the Anchor Platform (on port 8085) and say *"Update transaction #123 to complete!"*
+
+### 2. How are these hosted in production?
+
+In production, **you do NOT expose all of these ports to the internet.** In fact, exposing some of them is a massive security risk!
+
+Instead, you use a **Reverse Proxy** (like NGINX, AWS Application Load Balancer, or Cloudflare). The proxy listens on standard HTTPS (Port 443) and routes traffic to the correct internal Docker containers based on the URL. 
+
+Here is exactly how the ports are mapped in a production environment (like AWS ECS or a Kubernetes cluster):
+
+* **`db` (5432)**: **STRICTLY INTERNAL.** Never exposed to the internet. (In production, you usually delete this Docker container entirely and replace it with a managed database like AWS RDS or GCP Cloud SQL).
+* **`anchor-platform` (8085 - Platform API)**: **STRICTLY INTERNAL.** This API has god-level access to alter transaction states. Only your `business-server` is allowed to talk to it over the private Docker network.
+* **`anchor-platform` (8080 - SEP Server)**: **PUBLIC.** Your proxy routes `https://api.yourdomain.com/` to this port so consumer wallets worldwide can discover your anchor and authenticate.
+* **`business-server` (3000)**: **PARTIALLY PUBLIC.** Your proxy routes specific paths (like `https://api.yourdomain.com/sep24/interactive` for the webview, and `/webhooks/razorpay` for payment callbacks) to this port. The internal `/admin` data endpoints are kept locked down.
+* **`client` (3001)**: **PUBLIC (but authenticated).** You host this on a subdomain like `https://console.yourdomain.com/`. It is accessible on the internet, but heavily protected by a login screen (NextAuth/JWT) so only authorized operators can see your dashboard.
+
+This separation of concerns means your core Anchor Platform can remain isolated and secure, while your Next.js and Node.js servers handle all the messy real-world web traffic!

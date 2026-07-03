@@ -8,7 +8,9 @@ import { getTreasuryUsdcBalance } from './stellar.js';
 
 export function createApp() {
   const app = express();
-  app.use(express.json());
+  // Stash the raw request bytes so webhook handlers can verify HMAC signatures
+  // over the exact payload (DIDIT's X-Signature) without re-serialisation drift.
+  app.use(express.json({ verify: (req, _res, buf) => { (req as any).rawBody = buf; } }));
   app.use(express.urlencoded({ extended: true }));
 
   app.get('/health', async (_req, res) => {

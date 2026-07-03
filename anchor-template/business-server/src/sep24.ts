@@ -3,6 +3,7 @@ import { ASSET_CODE, IS_MAINNET, TREASURY_PUBLIC, assetId } from './config.js';
 import { fetchTransaction, patchTransaction } from './platform.js';
 import { generateMemo, sendUsdc, assertTreasuryReserve, hasUsdcTrustline } from './stellar.js';
 import { rate, deposit } from './adapters/index.js';
+import { getStatus, createSession } from './adapters/kyc/didit.js';
 
 // ─── SEP-24 interactive ────────────────────────────────────────────────────────
 // The Anchor Platform opens this URL in the wallet's webview.
@@ -37,6 +38,91 @@ const page = (title: string, body: string) => `<!DOCTYPE html>
   a { color:#6d28d9; font-size:.85rem; }
 </style></head><body>${body}</body></html>`;
 
+// ── KYC identity (the DIDIT vendor id) ──────────────────────────────────────────
+// The stable per-user identity we key KYC on is the SEP-10 authenticated account.
+// In this AP version that surfaces as `creator.account` (verified against a live
+// transaction — there is no `sep10_account` field), with sensible fallbacks.
+function resolveAccount(tx: Record<string, any>): string {
+  return tx.creator?.account
+    ?? tx.customers?.sender?.account
+    ?? tx.destination_account
+    ?? '';
+}
+
+// Client-side KYC flow: create session on click → embed the DIDIT iframe → poll our
+// status endpoint (the webhook is the source of truth) → reload when verified. No
+// backticks so it embeds cleanly in the page template literal.
+const kycClientScript = (txId: string) => `
+(function(){
+  var txId = ${JSON.stringify(txId)};
+  var btn = document.getElementById('verifyBtn');
+  var consent = document.getElementById('consent');
+  var frameWrap = document.getElementById('frameWrap');
+  var statusEl = document.getElementById('kycStatus');
+  var poll = null;
+  function setStatus(m){ statusEl.textContent = m; }
+  btn.addEventListener('click', function(){
+    btn.disabled = true; setStatus('Starting secure verification…');
+    fetch('/sep24/kyc/session?transaction_id=' + encodeURIComponent(txId), { method:'POST' })
+      .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, j:j }; }); })
+      .then(function(res){
+        if(!res.ok || !res.j.url){
+          setStatus(res.j.error || 'Could not start verification. Please try again.');
+          btn.disabled = false; return;
+        }
+        consent.style.display = 'none';
+        var f = document.createElement('iframe');
+        f.src = res.j.url;
+        f.setAttribute('allow','camera; microphone; fullscreen; autoplay; encrypted-media');
+        f.style.width = '100%'; f.style.height = '70vh'; f.style.border = '0'; f.style.borderRadius = '8px';
+        frameWrap.appendChild(f);
+        // Fallback: some browsers block the camera inside a cross-origin iframe.
+        // Offer a top-level tab (camera + framing always work there); the poll below
+        // still flips the gate open once the webhook lands, regardless of where the
+        // user completes the flow.
+        var a = document.createElement('a');
+        a.href = res.j.url; a.target = '_blank'; a.rel = 'noopener';
+        a.textContent = 'Camera not working here? Open verification in a new tab ↗';
+        a.className = 'note';
+        a.style.display = 'inline-block'; a.style.marginTop = '.5rem';
+        frameWrap.appendChild(a);
+        setStatus('Complete the steps above to verify your identity.');
+        poll = setInterval(check, 3000);
+      })
+      .catch(function(){ setStatus('Network error. Please try again.'); btn.disabled = false; });
+  });
+  function check(){
+    fetch('/sep24/kyc/status?transaction_id=' + encodeURIComponent(txId))
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if(j.status === 'ACCEPTED'){ clearInterval(poll); setStatus('✓ Verified — loading…'); setTimeout(function(){ location.reload(); }, 800); }
+        else if(j.status === 'REJECTED'){ clearInterval(poll); setStatus('Verification was declined. Reload the page to try again.'); }
+        else { setStatus('Verification in progress…'); }
+      })
+      .catch(function(){});
+  }
+})();`;
+
+function kycGatePage(transactionId: string, kind: string): string {
+  const action = kind === 'withdrawal' ? 'withdraw' : 'deposit';
+  const net = IS_MAINNET ? 'MAINNET' : 'TESTNET';
+  return page('Verify your identity', `
+    <h2>Verify your identity <span class="badge">${net}</span></h2>
+    <p class="sub">Transaction <code>${transactionId}</code></p>
+    <div id="consent">
+      <div class="card">
+        <div class="label">One-time identity check</div>
+        <p class="note">Before you can ${action}, we need to verify your identity. This opens a secure
+          flow (powered by DIDIT): you'll photograph your ID and take a quick selfie. Your camera is
+          used only for this verification, and we store only the result — not your documents.</p>
+      </div>
+      <button id="verifyBtn" type="button">Verify my identity</button>
+    </div>
+    <div id="frameWrap" style="margin-top:.5rem"></div>
+    <p class="note" id="kycStatus"></p>
+    <script>${kycClientScript(transactionId)}</script>`);
+}
+
 // ── GET interactive: render the deposit / withdraw screen ───────────────────────
 sep24Router.get('/interactive', async (req, res) => {
   const { transaction_id } = req.query as Record<string, string>;
@@ -46,9 +132,21 @@ sep24Router.get('/interactive', async (req, res) => {
   try { tx = await fetchTransaction(transaction_id); }
   catch (err) { res.status(500).send(`<h3>Platform API error</h3><pre>${err}</pre>`); return; }
 
+  const kind = tx.kind ?? 'deposit';
+
+  // ── KYC gate ──────────────────────────────────────────────────────────────
+  // No money screen until identity is verified. A returning, still-valid account
+  // is ACCEPTED and skips straight through; anyone else gets the DIDIT flow.
+  // Fail CLOSED: if the status can't be read, show the gate (never the money screen).
+  const account = resolveAccount(tx);
+  const kycStatus = await getStatus(account).catch(() => 'NEEDS_INFO');
+  if (kycStatus !== 'ACCEPTED') {
+    res.type('html').send(kycGatePage(transaction_id, kind));
+    return;
+  }
+
   const rawAmount = tx.amount_expected?.amount;
   const usdcAmount = (rawAmount && rawAmount !== '0') ? rawAmount : '10.00';
-  const kind = tx.kind ?? 'deposit';
   const memo = generateMemo(transaction_id);
   const net = IS_MAINNET ? 'MAINNET' : 'TESTNET';
 
@@ -95,6 +193,20 @@ sep24Router.post('/interactive/complete', async (req, res) => {
   let tx: Record<string, any>;
   try { tx = await fetchTransaction(transaction_id); }
   catch (err) { res.status(500).send(`<h3>Platform API error</h3><pre>${err}</pre>`); return; }
+
+  // ── KYC enforcement (money-affecting precondition) ──────────────────────────
+  // The GET /interactive gate only controls DISPLAY. Money actually moves here, so
+  // KYC must be enforced SERVER-SIDE — otherwise this endpoint can be POSTed
+  // directly to bypass the iframe. Same principle as the amount/destination:
+  // never trust the client form. Covers deposit (USDC release) and withdrawal
+  // (the pending_user_transfer_start transition the poller later acts on).
+  const account = resolveAccount(tx);
+  if ((await getStatus(account).catch(() => 'NEEDS_INFO')) !== 'ACCEPTED') {
+    res.status(403).type('html').send(page('Verification required',
+      `<h3 class="err">Identity verification required</h3>
+       <p class="note">Complete identity verification before this transaction can proceed.</p>`));
+    return;
+  }
 
   const kind = tx.kind ?? 'deposit';
   const rawAmount = tx.amount_expected?.amount;
@@ -167,6 +279,40 @@ sep24Router.post('/interactive/complete', async (req, res) => {
     // Reflect the failure in Platform state so the tx isn't stuck mid-flight.
     await patchTransaction(transaction_id, { status: 'error', message: msg }).catch(() => {});
     res.status(500).type('html').send(page('Error', `<h3 class="err">Error</h3><pre>${msg}</pre>`));
+  }
+});
+
+// ── KYC session: create (or reuse) a DIDIT session for this tx's account ─────────
+sep24Router.post('/kyc/session', async (req, res) => {
+  const transaction_id = (req.query.transaction_id ?? req.body?.transaction_id) as string | undefined;
+  if (!transaction_id) { res.status(400).json({ error: 'Missing transaction_id' }); return; }
+  try {
+    const tx = await fetchTransaction(transaction_id);
+    const account = resolveAccount(tx);
+    if (!account) { res.status(400).json({ error: 'No account on transaction' }); return; }
+    const session = await createSession(account, transaction_id);
+    res.json({ url: session.url, session_token: session.sessionToken, status: session.status });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[kyc/session] error:', msg);
+    const friendly = /enough credits|top ?up/i.test(msg)
+      ? 'Identity verification is temporarily unavailable (provider not funded). Please try again later.'
+      : 'Could not start verification. Please try again.';
+    res.status(502).json({ error: friendly, detail: msg });
+  }
+});
+
+// ── KYC status: current verification status for this tx's account (webview polls) ─
+sep24Router.get('/kyc/status', async (req, res) => {
+  const transaction_id = req.query.transaction_id as string | undefined;
+  if (!transaction_id) { res.status(400).json({ error: 'Missing transaction_id' }); return; }
+  try {
+    const tx = await fetchTransaction(transaction_id);
+    const status = await getStatus(resolveAccount(tx));
+    res.json({ status });
+  } catch (err) {
+    console.error('[kyc/status] error:', err instanceof Error ? err.message : err);
+    res.status(502).json({ status: 'PROCESSING', error: 'status check failed' });
   }
 });
 

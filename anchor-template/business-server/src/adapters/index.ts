@@ -3,6 +3,7 @@ import { PROVIDERS } from '../config.js';
 import { RateProvider } from './rate/RateProvider.js';
 import { MockRateProvider } from './rate/mock.js';
 import { LiveRateProvider } from './rate/live.js';
+import { CmcRateProvider } from './rate/cmc.js';
 
 import { DepositProvider } from './deposit/DepositProvider.js';
 import { MockDepositProvider } from './deposit/mock.js';
@@ -15,6 +16,7 @@ import { CashfreePayoutProvider } from './payout/cashfree.js';
 import { KycProvider } from './kyc/KycProvider.js';
 import { MockKycProvider } from './kyc/mock.js';
 import { SurepassKycProvider } from './kyc/surepass.js';
+import { DiditKycProvider } from './kyc/didit.js';
 
 // ─── Adapter factory ───────────────────────────────────────────────────────────
 // One implementation per seam, selected from env (mock-first). Real vendors slot
@@ -22,7 +24,8 @@ import { SurepassKycProvider } from './kyc/surepass.js';
 
 function makeRate(): RateProvider {
   switch (PROVIDERS.fee) {          // FEE_PROVIDER selects the FX/pricing source
-    case 'live': return new LiveRateProvider();
+    case 'cmc':  return new CmcRateProvider();   // CoinMarketCap USDC→INR
+    case 'live': return new LiveRateProvider();  // generic USD→INR feed
     default:     return new MockRateProvider();
   }
 }
@@ -43,6 +46,7 @@ function makePayout(): PayoutProvider {
 
 function makeKyc(): KycProvider {
   switch (PROVIDERS.kyc) {
+    case 'didit':    return new DiditKycProvider();
     case 'surepass': return new SurepassKycProvider();
     default:         return new MockKycProvider();
   }

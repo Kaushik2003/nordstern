@@ -1,0 +1,86 @@
+# NordStern Anchor Template — Stellar Anchor Platform v4.4.0 config.
+# Single anchor, INR ↔ USDC, testnet. Secrets (signing seed, DB creds, JWT
+# secrets) come from environment (SECRET_* vars), never this file.
+version: 1
+
+stellar_network:
+  network: TESTNET
+  horizon_url: https://horizon-testnet.stellar.org
+  # Horizon (not Soroban RPC): cursor-based pagination, no narrow-history window
+  # that trips the Observer when the stored start ledger ages out.
+  type: horizon
+
+# The AP calls OUR business server for the decisions it delegates. In AP v4.4.0
+# that is ONLY /customer (SEP-12) and /rate (SEP-38) — there is no /unique_address
+# or /fee callback in this version (verified against upstream `callback/`).
+callback_api:
+  base_url: http://business-server:3000
+  auth:
+    type: none
+
+platform_api:
+  auth:
+    type: none
+
+app_logging:
+  level: INFO
+  stellar_level: INFO
+
+sep1:
+  enabled: true
+  toml:
+    type: file
+    value: /config/stellar.toml
+
+sep10:
+  enabled: true
+  home_domains:
+    - localhost:8080
+
+sep12:
+  enabled: true
+
+sep24:
+  enabled: true
+  interactive_url:
+    # Browser/webview-reachable (host), not the in-network service name.
+    base_url: http://localhost:3000/sep24/interactive
+    jwt_expiration: 3600
+  more_info_url:
+    base_url: http://localhost:3000/sep24/transaction
+    jwt_expiration: 3600
+
+# SEP-6/31/38 are enabled only because the AP requires them alongside SEP-24
+# (the exchangeAmountsCalculator bean, @OnAllSepsEnabled {6,24,31}). SEP-24 is our
+# one active user flow. SEP-38 /rate becomes the real INR/USD FX quote in Phase B.
+sep6:
+  enabled: true
+  features:
+    account_creation: false
+    claimable_balances: false
+  more_info_url:
+    base_url: http://localhost:3000/sep6/transaction
+    jwt_expiration: 3600
+
+sep31:
+  enabled: true
+  payment_type: STRICT_SEND
+
+sep38:
+  enabled: true
+  sep10_enforced: false
+  auth_enforced: false
+
+data:
+  type: postgres
+  server: db:5432
+  database: anchordb
+  flyway_enabled: true
+  ddl_auto: update
+
+events:
+  enabled: false
+
+assets:
+  type: file
+  value: /config/assets.yaml

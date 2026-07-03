@@ -1,0 +1,20 @@
+Viewed TESTING_GUIDE.md:1-28
+
+The USDC you just saw minted and transferred is **Testnet USDC**. 
+
+Because you are currently running the anchor on the Stellar Test Network, the USDC is a simulated dummy token, not real money. 
+
+Here is exactly what it is and how it works:
+* **Asset Code:** `USDC`
+* **Testnet Issuer Account:** `GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5` (This is the standard, globally recognized test-issuer for USDC on the Stellar testnet).
+
+### How it works in your Anchor
+Your anchor acts as an **on/off-ramp**, not the issuer of the token. 
+You don't mint the asset from scratch. Instead, you hold a "Treasury" account that is pre-funded with this USDC. 
+1. When a user deposits fiat (INR), your Anchor takes their real INR via UPI/Razorpay.
+2. Your Anchor then transfers the equivalent amount of USDC from your Treasury account into the user's personal Stellar wallet.
+
+### When you go to Production (Mainnet)
+When you are ready to flip the switch to mainnet, all you do is change your `.env` configuration to point to the real Stellar Network and swap out the testnet issuer address for the **real Circle USDC issuer address**: `GA5ZSEJYB37JRC52ZMRGIP2NXYA2NGAU66P4R66A7KFVBXYQ2UURTYA5`.
+
+At that point, your anchor will be dealing with real, 1:1 USD-backed Circle USDC!

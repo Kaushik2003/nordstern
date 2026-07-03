@@ -1,0 +1,50 @@
+---
+title: Local Development
+description: How to run the NordStern stack locally
+---
+
+## Prerequisites
+
+- Docker and Docker Compose
+- Node.js (v20+)
+- A Stellar testnet account (created automatically via scripts)
+
+## Running the Stack
+
+The working anchor stack is located in the `anchor-service/` directory.
+
+### 1. Setup Testnet
+
+Before running the stack, you must generate your testnet keypairs and fund them via Friendbot. This creates the `.env.testnet` file required by Docker.
+
+```bash
+cd anchor-service
+node scripts/setup-testnet.mjs
+```
+
+### 2. Launch Services
+
+Run the development script which sources the `.env.testnet` file and spins up the Docker containers.
+
+```bash
+./scripts/dev.sh
+```
+
+This starts:
+- PostgreSQL database
+- Anchor Platform (SEP Server & API)
+- Business Server
+- Control Plane
+- Frontend Dashboard
+
+## Smoke Testing
+
+You can smoke-test flows without a UI wallet by running the provided scripts in a separate terminal:
+
+```bash
+node scripts/test-deposit.mjs
+node scripts/test-withdrawal.mjs
+```
+
+> [!WARNING]
+> **Testnet vs Mainnet:** Testnet/mainnet is config, not code. Network, Horizon URL, asset, and accounts come from config/env. Sandbox must be the default; going live must be a deliberate config swap. **Never hardcode production URLs or keys.**

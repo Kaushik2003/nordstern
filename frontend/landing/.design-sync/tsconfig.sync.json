@@ -1,0 +1,11 @@
+{
+  "//": "design-sync build tsconfig. Self-contained (the paths plugin does NOT follow `extends`). baseUrl `..` -> repo landing root. Mirrors the app's @/* alias and stubs next/link + next/image so the DS bundle renders standalone.",
+  "compilerOptions": {
+    "baseUrl": "..",
+    "paths": {
+      "@/*": ["./*"],
+      "next/link": ["./.design-sync/stubs/next-link.tsx"],
+      "next/image": ["./.design-sync/stubs/next-image.tsx"]
+    }
+  }
+}

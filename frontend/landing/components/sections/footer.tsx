@@ -17,7 +17,7 @@ function StatusBadge() {
 
 export function Footer() {
   return (
-    <footer className="bg-brand px-3 pb-4 pt-3 sm:px-4 sm:pb-5">
+    <footer className="bg-surface-2 px-3 pb-4 pt-3 sm:px-4 sm:pb-5">
       {/* large rounded card floating on the purple frame */}
       <div className="rounded-[1.75rem] bg-canvas p-7 sm:rounded-[2.25rem] sm:p-10 lg:p-14">
         <div className="grid gap-12 lg:grid-cols-[1fr_2.15fr] lg:gap-16">
@@ -31,7 +31,7 @@ export function Footer() {
 
           {/* right: CTA card + link columns */}
           <div>
-            <div className="rounded-3xl bg-surface p-7 sm:p-9">
+            <div className="rounded-3xl border border-line bg-surface p-7 sm:p-9">
               <Heading size="h3" className="max-w-md text-[clamp(1.6rem,2.4vw,2.1rem)] font-normal">
                 {FOOTER.cta.title}
               </Heading>
@@ -74,12 +74,12 @@ export function Footer() {
       </div>
 
       {/* bottom bar on the purple frame */}
-      <Container className="mt-4 flex flex-col items-center justify-between gap-3 px-3 text-[13px] text-white/85 sm:flex-row">
+      <Container className="mt-4 flex flex-col items-center justify-between gap-3 px-3 text-[13px] text-muted sm:flex-row">
         <span>© {new Date().getFullYear()} NordStern</span>
         <div className="flex gap-6">
-          <Link href="#" className="transition-colors hover:text-white">Terms</Link>
-          <Link href="#" className="transition-colors hover:text-white">Privacy</Link>
-          <Link href="#" className="transition-colors hover:text-white">Cookies</Link>
+          <Link href="#" className="transition-colors hover:text-ink">Terms</Link>
+          <Link href="#" className="transition-colors hover:text-ink">Privacy</Link>
+          <Link href="#" className="transition-colors hover:text-ink">Cookies</Link>
         </div>
       </Container>
     </footer>

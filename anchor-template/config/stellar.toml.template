@@ -1,0 +1,21 @@
+# SEP-1 service-discovery file wallets fetch from the SEP server (8080).
+# Rendered from this template by scripts/setup-testnet.mjs into config/stellar.toml.
+NETWORK_PASSPHRASE="Test SDF Network ; September 2015"
+TRANSFER_SERVER_SEP0024="http://localhost:8080/sep24"
+WEB_AUTH_ENDPOINT="http://localhost:8080/auth"
+SIGNING_KEY="__SIGNING_PUBLIC__"
+
+[DOCUMENTATION]
+ORG_NAME="NordStern Anchor (template)"
+ORG_URL="http://localhost:8080"
+ORG_DESCRIPTION="NordStern-managed Stellar anchor — INR <> USDC (testnet)"
+
+[[CURRENCIES]]
+code="USDC"
+issuer="GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
+status="test"
+name="USD Coin (Circle, testnet)"
+desc="USDC held and transferred by this anchor; issued by Circle, not the anchor."
+is_asset_anchored=true
+anchor_asset_type="crypto"
+display_decimals=2

@@ -1,0 +1,33 @@
+---
+title: Introduction
+description: Welcome to the NordStern Documentation
+---
+
+## What is NordStern?
+
+**NordStern** is a B2B infrastructure platform that lets a business become a compliant Stellar anchor in India without building the technical, KYC, banking, and operations stack themselves. 
+
+A Stellar *anchor* is the on/off-ramp between fiat (INR) and the Stellar network: it takes fiat deposits and issues 1:1-backed tokens, and it redeems those tokens back to fiat. Doing this well means running SEP protocol servers, KYC/AML, banking/UPI integrations, treasury, and compliance workflows — expensive and repetitive to rebuild for every anchor.
+
+NordStern runs and manages that stack **on behalf of anchors**. The pitch to a customer is roughly: 
+> *"Bring your liquidity, your bank relationship, and your regulatory standing. We provide the SEP servers, KYC integration, payment rails, and the operator console. You collect the spread/fees."*
+
+## What NordStern is NOT
+
+It is crucial to understand what NordStern is **not**:
+
+- ❌ **Not a crypto exchange / trading app.** No order books, no speculation, no "buy the dip" UX. Token movement exists only to bridge fiat ↔ Stellar.
+- ❌ **Not a consumer wallet.** End users hold funds in *third-party* Stellar wallets (Lobstr, Vibrant, Freighter). We do not custody user keys or ship a retail wallet as the product. NordStern renders the SEP-24 *interactive flow* that those wallets open in a webview — that is all.
+- ❌ **Not a coin/token launchpad.** The `ANCH` test token is a stand-in for a fiat-backed asset, not a product to promote.
+
+## MVP Scope
+
+The current functional MVP lives in the `anchor-service/` directory and acts as one working anchor service of our own on the Stellar Anchor Platform. 
+
+It handles:
+1. **Stellar Anchor Platform integration** (SEP-1/10/12/24 at minimum) against testnet.
+2. **SEP-24 deposit (on-ramp)** end-to-end (fiat-in step is currently simulated).
+3. **SEP-24 withdrawal (off-ramp)** detection.
+4. An operator-facing surface to manage these flows.
+
+Proceed to the next sections to dive into the architecture, operations, and integrations!

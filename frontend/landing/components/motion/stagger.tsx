@@ -17,9 +17,9 @@ type StaggerProps = {
 export function Stagger({
   children,
   className,
-  delayChildren = 0.08,
-  stagger = 0.09,
-  amount = 0.25,
+  delayChildren = 0.15,
+  stagger = 0.18,
+  amount = 0.15,
   once = true,
 }: StaggerProps) {
   const reduce = useReducedMotion();
@@ -43,7 +43,7 @@ export function Stagger({
 }
 
 const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 28 },
+  hidden: { opacity: 0, y: 40 },
   show: { opacity: 1, y: 0, transition: { duration: DURATION.slow, ease: EASE } },
 };
 

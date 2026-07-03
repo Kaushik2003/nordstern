@@ -1,0 +1,26 @@
+---
+title: Fiat Rails (UPI & Payouts)
+description: Handling INR deposits and withdrawals
+---
+
+## Fiat-In: Deposits
+
+When a user initiates a SEP-24 deposit, the wallet opens an interactive webview rendered by our `business-server`.
+
+**Current MVP Status:** ✅ Working on testnet, but the **fiat-in step is simulated**. (The screen shows a placeholder "wire" transfer, and clicking confirm simply releases the tokens).
+
+**Future State:** ⚠️ **Planned**
+The target design is the SEP-24 webview triggering a `upi://pay` intent on mobile (or displaying a QR code on desktop) with backend verification via a provider like Cashfree or Razorpay.
+
+## Fiat-Out: Payouts
+
+When a user sends `ANCH` tokens back to the anchor with a memo, the observer detects it.
+
+**Current MVP Status:** ✅ Detection works, but **fiat payout is simulated** (no real PSP).
+
+**Future State:** ⚠️ **Designed, not integrated**
+This is the seam where Cashfree Payouts or RazorpayX will plug in. The payout flow is designed *around* these vendors, but the interface remains abstract (a `PayoutProvider`). 
+
+> [!CAUTION]
+> **Real money moves are largely irreversible.**
+> Mainnet payout via live Cashfree Payouts moves actual funds. Do not enable it casually in a demo path. Before anyone says an integration is "production-ready," we must perform domain whitelisting, webhook signature verification, and backend re-verification.

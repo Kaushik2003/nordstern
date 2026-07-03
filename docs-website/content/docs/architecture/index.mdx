@@ -1,0 +1,28 @@
+---
+title: Architecture Overview
+description: High-level system architecture of NordStern
+---
+
+## The Core Principle
+
+**The Anchor Platform owns the protocol; our code owns the business.**
+
+NordStern acts as the *business server* in the Stellar ecosystem. We never reimplement SEP-1, SEP-10, SEP-12, or SEP-24 ourselves — the official Stellar Anchor Platform (AP) does that. Our business server only answers the decisions the AP delegates to it.
+
+## Architecture Map
+
+NordStern consists of several distinct services operating together in a local Docker compose environment (for the MVP):
+
+- `db` (Postgres): Holds both `anchordb` (used by the Anchor Platform) and `controldb` (used by our control plane).
+- `anchor-platform`: The official Stellar SEP server. Wallets and users talk here on port 8080. Our business server communicates with its Platform API on port 8085.
+- `business-server`: Our custom Node.js/Express server that handles callbacks from the Anchor Platform, renders the SEP-24 interactive UI, and performs Stellar network operations.
+- `control-plane`: A separate service handling tenant authentication and keypair provisioning, acting as the seed for our future multi-tenant SaaS.
+- `frontend`: The Next.js operator dashboard and functional wallet for testing.
+
+## Data Flow
+
+Money movement in NordStern is **asynchronous and status-driven**.
+
+Transaction state lives authoritatively in the Anchor Platform database. The state is advanced via Platform API `PATCH` requests and the Stellar Observer — not by synchronous request/response cycles. New flows are designed around status transitions and webhooks/callbacks.
+
+When a Stellar payment arrives, it is matched by memo. We never assume synchronous settlement and never blindly retry a fund movement on a 5xx error without checking status first.

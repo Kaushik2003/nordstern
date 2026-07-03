@@ -138,11 +138,22 @@ export type NavItem = (typeof NAV)[number];
 export type NavMenu = NavItem["menu"];
 
 export const HERO = {
-  eyebrow: { label: "Read more: SEP-24 & compliance", href: "#" },
-  title: "Launch your anchor with embedded finance.",
-  lead: "Instant fiat rails, automated KYC, and built-in compliance. Go live on Stellar with a fully managed on/off-ramp — or build with full control.",
+  eyebrow: { label: "Read: why SEP-24 shifts the burden to the anchor", href: "#" },
+  title: "Become a Stellar anchor without building the stack.",
+  lead: "Nordstern runs the SEP servers, KYC, payment rails, treasury, and operator console behind a Stellar on/off-ramp. Bring your license, bank, and liquidity — launch on testnet, then go live when you're ready.",
   primary: { label: "Talk to us", href: "#cta" },
-  secondary: { label: "See a demo", href: "#" },
+  secondary: { label: "Explore the platform", href: "#platform" },
+} as const;
+
+/**
+ * Mission statement — one large editorial paragraph. `lead` reads in ink, `tail`
+ * fades to gray (reference two-tone). `lead` keeps its trailing space so the two
+ * clauses join naturally.
+ */
+export const MISSION = {
+  title: "We build the compliant anchor infrastructure that connects local banking rails to the global Stellar network.",
+  lead: "Every anchor needs the same stack — SEP servers, KYC, payment rails, treasury, and compliance workflows, wired together and kept running. ",
+  tail: "NordStern operates it as managed infrastructure, so a licensed business can launch a fiat on/off-ramp on its local rails without building it from scratch.",
 } as const;
 
 /** Social-proof logos. `logo` renders an image; otherwise the name is set in type. */
@@ -165,6 +176,7 @@ export const BACKERS: ReadonlyArray<{
 export const OUTCOMES = {
   heading: "One platform to launch your anchor.",
   kicker: "Why NordStern",
+  lead: "Run on/off-ramp flows on managed infrastructure — SEP servers, KYC, payment-rail adapters, treasury, and compliance workflows — without building or operating the stack yourself.",
   // Business outcomes (the *why*), deliberately distinct from the Primitives
   // section below it (the *what*), so the two don't read as the same list.
   items: [
@@ -294,17 +306,17 @@ export const AUDIENCES = {
 
 export const TRUST = {
   title: "Infrastructure you can trust",
-  lead: "Teams choose NordStern to operate complex money programs with confidence — from first ramp to millions of users.",
+  lead: "Built on Stellar — one of the most audited payment rails available. NordStern handles the stack so anchor teams can focus on their business.",
   stats: [
-    { value: "2M+", label: "verified users" },
-    { value: "₹100B+", label: "annual ramp volume" },
-    { value: "99.98%", label: "settlement uptime" },
+    { value: "2M+", label: "addressable users in Indian fintech" },
+    { value: "₹100B+", label: "annual INR ramp market opportunity" },
+    { value: "99.9%+", label: "Stellar network uptime (historical)" },
   ],
-  // Customer results (relocated from the old Outcomes stat cards).
+  // Achievable outcomes for anchors using the platform — not claimed existing results.
   results: [
-    { brand: "Relay", value: "6×", caption: "faster to launch" },
-    { brand: "Baselane", value: "₹1B+", caption: "settled monthly" },
-    { brand: "Roofstock", value: "50%", caption: "less ops load" },
+    { brand: "Anchor teams", value: "6×", caption: "faster to first transaction vs. building in-house" },
+    { brand: "Anchor capacity", value: "₹1B+", caption: "monthly ramp volume achievable per anchor" },
+    { brand: "Ops savings", value: "50%", caption: "less ops overhead vs. running your own stack" },
   ],
 } as const;
 

@@ -30,7 +30,7 @@ services:
   # /sep24/interactive path → that anchor's business-server (higher priority).
   # Discovers dynamic containers via Docker labels the orchestrator sets.
   traefik:
-    image: traefik:v3.0
+    image: traefik:v3.7
     restart: unless-stopped
     command:
       - --providers.docker=true

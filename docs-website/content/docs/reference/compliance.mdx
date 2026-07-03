@@ -1,0 +1,36 @@
+---
+title: Open Compliance Questions
+description: Regulatory hurdles and open legal questions
+---
+
+## Disclaimer
+
+**We do not give legal advice, and neither should the code or docs.**
+
+The legal model for NordStern is deliberately *not finalized*. We architect for optionality. Do not resolve the following open questions in code; they require qualified Indian fintech/regulatory counsel.
+
+## 1. Fiat Holding & Licensing
+
+- **Who holds the fiat, and under what license?** 
+  Is it a master escrow/nodal account run by NordStern? Does each anchor hold its own account? Or is it a licensed managed-account model? This changes who the regulated entity is.
+
+## 2. VDA / VDASP Classification & FIU-IND
+
+- Fiat-to-token on/off-ramps may be classified as Virtual Digital Asset Service Providers requiring **FIU-IND registration** (PMLA reporting). 
+- **Which entity registers?** Does NordStern register, or does the individual anchor?
+
+## 3. Custody Model
+
+- Are we ever in custody of customer funds or keys? 
+- Custody triggers heavier obligations. The MVP avoids custody unless/until counsel approves a specific model.
+
+## 4. Banking Partnership Shape
+
+- Embedded banking vs. bring-your-own-bank vs. BaaS (e.g., virtual accounts).
+- Bank risk systems often freeze crypto-adjacent, high-velocity accounts lacking FIU registration, posing a real operational risk.
+
+## 5. Whose License Enables What
+
+- Payments, PPI/wallet, cross-border/remittance, and VDA rules may each apply depending on the specific flows an anchor decides to offer.
+
+When code *must* assume something to proceed, make the assumption a **named, swappable config/adapter** and note it.

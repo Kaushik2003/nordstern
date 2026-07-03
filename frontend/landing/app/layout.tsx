@@ -1,20 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { SmoothScroll } from "@/components/motion/smooth-scroll";
+import { clearSansText, clearSansDisplay } from "@/lib/fonts";
 import { siteConfig, socialProfiles } from "@/lib/site";
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -100,9 +89,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} h-full`}
+      className={`${clearSansText.variable} ${clearSansDisplay.variable} h-full`}
     >
-      <body className="min-h-full antialiased">
+      <body className="min-h-full antialiased font-clear-display">
+        <SmoothScroll />
         {children}
         <script
           type="application/ld+json"

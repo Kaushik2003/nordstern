@@ -85,8 +85,8 @@ assets:
   type: yaml
   value: |
     items:
-      - id: "stellar:ANCH:GCJOKNJTZKCNAEO57G67O3JAH7SSXQ5UWVJERTVTUCMUW46AYGKGCHH2"
-        distribution_account: "GALQZA7BEZ72X4LLQ4LVWZ4GIB4QD4LI4NGJW2SXP6EU5ECFWCSXCOPN"
+      - id: "stellar:ANCH:GB77U3E3A3Q5D3ILYYP6TM2XU5VUCTKPCXB4UAOK4LRXYTKCOA6XMA4D"
+        distribution_account: "GCJHSFJETWDJNK2MDUWSBQA6P6VC4K4WOTKL6F5GTP4EDDUUF6GGWA6M"
         significant_decimals: 2
         sep24:
           enabled: true

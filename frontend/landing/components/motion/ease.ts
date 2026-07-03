@@ -5,8 +5,8 @@ export const EASE = [0.22, 1, 0.36, 1] as const;
 
 export const DURATION = {
   fast: 0.25,
-  base: 0.5,
-  slow: 0.8,
+  base: 0.75,
+  slow: 1.2,
 } as const;
 
 export const baseTransition: Transition = {
@@ -16,6 +16,6 @@ export const baseTransition: Transition = {
 
 /** Fade + rise, used by Reveal / StaggerItem. */
 export const revealVariants: Variants = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 40 },
   show: { opacity: 1, y: 0, transition: baseTransition },
 };

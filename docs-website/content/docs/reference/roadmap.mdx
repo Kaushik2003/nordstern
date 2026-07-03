@@ -1,0 +1,42 @@
+---
+title: Project Roadmap
+description: Phased rollout plan for NordStern
+---
+
+## Phase 0 — Foundation (Current)
+
+- One anchor on testnet.
+- SEP-24 deposit mints tokens.
+- Withdrawal detected.
+- KYC + fiat mocked.
+- **Status:** ✅ Mostly Done.
+
+## Phase 1 — Real Rails Behind Adapters
+
+- Implement `KycProvider` (HyperVerge).
+- Implement `DepositProvider` (UPI collection).
+- Implement `PayoutProvider` (Cashfree/RazorpayX) as swappable adapters.
+- Real webhook verification.
+- Still on testnet/sandbox.
+
+## Phase 2 — Operator Productization
+
+- Converge the functional dashboard with the "Keel" console.
+- Treasury, fees/spread config, transaction ops, and compliance views driven by live data.
+
+## Phase 3 — Multi-anchor
+
+- Promote `control-plane` from seed to real tenanting.
+- Scope assets/keys/transactions per anchor.
+- Subdomain launch.
+- Shared-KYC (pending legal approval).
+
+## Phase 4 — Go-Live Hardening
+
+- Mainnet launch.
+- Custody/banking model chosen with counsel.
+- Kubernetes (k8s) / infra setup.
+- Monitoring and incident runbooks.
+
+> [!CAUTION]
+> **Do not skip ahead.** Each phase assumes the seams and scaffolding from the earlier phases exist.

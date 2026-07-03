@@ -157,3 +157,17 @@ export const Layers = (p: SVGProps<SVGSVGElement>) => (
     <path d="m12 2 9 5-9 5-9-5zM3 12l9 5 9-5M3 17l9 5 9-5" />
   </Svg>
 );
+
+export const Search = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="m21 21-4.3-4.3" />
+  </Svg>
+);
+
+export const Bell = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z" />
+    <path d="M10 20a2 2 0 0 0 4 0" />
+  </Svg>
+);

@@ -1,7 +1,0 @@
-<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Phantom placeholder mark">
-
-  <rect width="120" height="120" rx="28" fill="#AB9FF2"></rect>
-  <path d="M60 28c-16.6 0-30 13.4-30 30v30c0 2.9 3.4 4.4 5.6 2.5l5.3-4.6a4 4 0 0 1 5.2 0l4.6 4a4 4 0 0 0 5.2 0l4.6-4a4 4 0 0 1 5.2 0l4.6 4a4 4 0 0 0 5.2 0l5.3 4.6c2.2 1.9 5.6.4 5.6-2.5V58c0-16.6-13.4-30-30-30Z" fill="#FFFFFF"></path>
-  <ellipse cx="49" cy="58" rx="5.5" ry="7.5" fill="#3C315B"></ellipse>
-  <ellipse cx="71" cy="58" rx="5.5" ry="7.5" fill="#3C315B"></ellipse>
-</svg>

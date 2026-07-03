@@ -1,38 +1,19 @@
-import Image from "next/image";
+import { Logos19 } from "@/components/logos19";
 import { Container } from "@/components/ui/container";
 import { Reveal } from "@/components/motion/reveal";
-import { BACKERS } from "@/lib/content";
 
-/** Monochrome social-proof row. Image logos render muted; the rest are set in type. */
+/** "Built with" marquee — the Stellar ecosystem and stack NordStern runs on. */
 export function LogoStrip() {
   return (
-    <section className="border-y border-line py-10">
-      <Container>
-        <Reveal
-          className="flex flex-wrap items-center justify-center gap-x-12 gap-y-6 sm:justify-between"
-          y={16}
-        >
-          {BACKERS.map((b) =>
-            b.logo ? (
-              <Image
-                key={b.name}
-                src={b.logo.src}
-                alt={b.name}
-                width={b.logo.width}
-                height={b.logo.height}
-                className="h-6 w-auto opacity-45 grayscale transition-opacity hover:opacity-70"
-              />
-            ) : (
-              <span
-                key={b.name}
-                className="text-lg font-semibold tracking-tight text-subtle transition-colors hover:text-muted"
-              >
-                {b.name}
-              </span>
-            ),
-          )}
-        </Reveal>
-      </Container>
-    </section>
+    <Container className="mt-8 sm:mt-12 lg:mt-16">
+      <Reveal>
+        <div className="flex flex-col gap-12">
+          <p className="text-center text-[12px] font-medium uppercase tracking-[0.16em] text-subtle">
+            Built with
+          </p>
+          <Logos19 className="py-0" />
+        </div>
+      </Reveal>
+    </Container>
   );
 }

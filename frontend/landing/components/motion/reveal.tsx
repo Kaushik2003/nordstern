@@ -16,6 +16,8 @@ type RevealProps = {
   /** Viewport trigger threshold (0–1). */
   amount?: number;
   once?: boolean;
+  /** Intersection observer margin (e.g. "0px 0px -100px 0px"). */
+  margin?: string;
 };
 
 /**
@@ -26,12 +28,13 @@ type RevealProps = {
 export function Reveal({
   children,
   className,
-  y = 24,
+  y = 40,
   x = 0,
   delay = 0,
   duration = DURATION.slow,
-  amount = 0.3,
+  amount = 0.08,
   once = true,
+  margin = "0px 0px -80px 0px",
 }: RevealProps) {
   const reduce = useReducedMotion();
 
@@ -44,7 +47,7 @@ export function Reveal({
       className={className}
       initial={{ opacity: 0, y, x }}
       whileInView={{ opacity: 1, y: 0, x: 0 }}
-      viewport={{ once, amount }}
+      viewport={{ once, amount, margin }}
       transition={{ duration, ease: EASE, delay }}
     >
       {children}

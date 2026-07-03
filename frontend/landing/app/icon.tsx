@@ -9,20 +9,7 @@ export const contentType = "image/png";
 export default function Icon() {
   return new ImageResponse(
     (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: 7,
-          background: siteConfig.colors.ink,
-        }}
-      >
-        {/* white ring + purple comet reads cleanly on the dark tile */}
-        <img width={22} height={22} src={markDataUri("#ffffff")} alt="" />
-      </div>
+      <img width={32} height={32} src={markDataUri()} alt="" />
     ),
     { ...size },
   );

@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import { siteConfig } from "./site";
 
 const { brand, brandRing } = siteConfig.colors;
@@ -13,6 +15,17 @@ export function markSvg(ring: string = brandRing): string {
 
 /** Base64 data URI for use as an <img src> inside ImageResponse. */
 export function markDataUri(ring?: string): string {
-  const b64 = Buffer.from(markSvg(ring)).toString("base64");
-  return `data:image/svg+xml;base64,${b64}`;
+  // If ring is white (representing dark mode background), use the light logo (white ring)
+  const isLightLogo = ring === "#ffffff" || ring === "white";
+  const filename = isLightLogo ? "logo-light.png" : "logo-dark.png";
+
+  try {
+    const filePath = path.join(process.cwd(), "public", filename);
+    const buffer = fs.readFileSync(filePath);
+    return `data:image/png;base64,${buffer.toString("base64")}`;
+  } catch (error) {
+    // Fallback to SVG if file-read fails (e.g. build environments)
+    const b64 = Buffer.from(markSvg(ring)).toString("base64");
+    return `data:image/svg+xml;base64,${b64}`;
+  }
 }

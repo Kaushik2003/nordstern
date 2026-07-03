@@ -5,11 +5,11 @@ export const clearSansText = localFont({
   src: [
     {
       path: "../public/ClearSansTextRegular.woff2",
-      weight: "700",
+      weight: "400",
       style: "normal",
     },
   ],
-  variable: "--font-clear-text",
+  variable: "--ff-clear-text",
   display: "swap",
 });
 
@@ -18,10 +18,10 @@ export const clearSansDisplay = localFont({
   src: [
     {
       path: "../public/ClearSansDisplayRegular.woff2",
-      weight: "700",
+      weight: "400",
       style: "normal",
     },
   ],
-  variable: "--font-clear-display",
+  variable: "--ff-clear-display",
   display: "swap",
 });

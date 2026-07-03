@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { SmoothScroll } from "@/components/motion/smooth-scroll";
 import { clearSansText, clearSansDisplay } from "@/lib/fonts";
 import { siteConfig, socialProfiles } from "@/lib/site";
 import { Analytics } from "@vercel/analytics/next"
@@ -90,7 +91,8 @@ export default function RootLayout({
       lang="en"
       className={`${clearSansText.variable} ${clearSansDisplay.variable} h-full`}
     >
-      <body className="min-h-full antialiased">
+      <body className="min-h-full antialiased font-clear-display">
+        <SmoothScroll />
         {children}
         <script
           type="application/ld+json"

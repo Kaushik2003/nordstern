@@ -4,12 +4,15 @@ import Image from "next/image";
 /** NordStern logo mark. */
 export function LogoMark({
   className,
+  tone = "dark",
 }: {
   className?: string;
+  tone?: "dark" | "light";
 }) {
+  const src = tone === "dark" ? "/logo-dark.png" : "/logo-light.png";
   return (
     <img 
-      src="/logo.png" 
+      src={src} 
       alt="NordStern" 
       className={cn("h-10 w-10 object-contain rounded-[10px]", className)} 
     />
@@ -26,7 +29,7 @@ export function Logo({
 }) {
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
-      <LogoMark />
+      <LogoMark tone={tone} />
       <span
         className={cn(
           "text-lg font-semibold tracking-tight",

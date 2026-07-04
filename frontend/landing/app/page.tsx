@@ -16,7 +16,8 @@ export default function Home() {
   return (
     <>
       <Navbar />
-      <main id="top">
+      
+      <main className= "mx-auto" id="top">
         <Hero />
         <LogoStrip />
         <Mission />

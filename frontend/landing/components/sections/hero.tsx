@@ -81,7 +81,7 @@ export function Hero() {
         };
 
   return (
-    <section className="relative overflow-hidden pt-24 pb-16 sm:pt-32 lg:pb-24 font-clear-display">
+    <section className="relative overflow-hidden pt-16 pb-0 sm:pt-24 font-clear-display">
       <HeroGlow />
       <Container>
         {/* headline row */}
@@ -146,22 +146,47 @@ export function Hero() {
 
         {/* dashboard — the frame lifts in, then its interior cascades (~6s total) */}
         <motion.div
-          className="relative mt-12 lg:mt-16"
+          className="relative mt-10 lg:mt-14"
           initial={reduce ? false : { opacity: 0, y: 64 }}
           animate={{ opacity: 1, y: 0 }}
           transition={reduce ? undefined : { delay: 1.2, duration: 1.2, ease: EASE }}
         >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={view}
-              initial={reduce ? false : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={reduce ? undefined : { opacity: 0 }}
-              transition={{ duration: 0.35, ease: EASE }}
-            >
-              <ConsoleDashboard view={view} />
-            </motion.div>
-          </AnimatePresence>
+          {/* clip to 75% of the dashboard height — overlay fades the cut edge */}
+          <div className="overflow-hidden" style={{ maxHeight: "65vh" }}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={view}
+                initial={reduce ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={reduce ? undefined : { opacity: 0 }}
+                transition={{ duration: 0.35, ease: EASE }}
+              >
+                <ConsoleDashboard view={view} />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* smooth fade-out overlay — many stops to avoid visible banding */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute bottom-0 left-0 right-0 h-96"
+            style={{
+              background: [
+                "linear-gradient(to bottom,",
+                "rgba(255,255,255,0)   0%,",
+                "rgba(255,255,255,0.01) 10%,",
+                "rgba(255,255,255,0.04) 20%,",
+                "rgba(255,255,255,0.10) 30%,",
+                "rgba(255,255,255,0.22) 40%,",
+                "rgba(255,255,255,0.40) 52%,",
+                "rgba(255,255,255,0.62) 64%,",
+                "rgba(255,255,255,0.80) 76%,",
+                "rgba(255,255,255,0.93) 88%,",
+                "rgba(255,255,255,1)   100%",
+                ")",
+              ].join(" "),
+            }}
+          />
         </motion.div>
       </Container>
     </section>

@@ -40,6 +40,7 @@ export function Footer() {
                   {FOOTER.cta.body}
                 </p>
                 <Button
+                  id="footer-cta-button"
                   href={FOOTER.cta.button.href}
                   variant="primary"
                   className="w-fit shrink-0"

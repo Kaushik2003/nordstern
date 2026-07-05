@@ -13,7 +13,7 @@ export function Resources() {
       <div className="grid gap-12 lg:grid-cols-[1fr_1.4fr]">
         {/* left: header + post list */}
         <Reveal>
-          <SectionHeader eyebrow={RESOURCES.eyebrow} title={RESOURCES.title} />
+          <SectionHeader title={RESOURCES.title} />
           <ul className="mt-8 divide-y divide-line border-y border-line">
             {RESOURCES.posts.map((p) => (
               <li key={p.title} className="py-4">

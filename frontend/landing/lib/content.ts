@@ -229,33 +229,33 @@ export const OUTCOMES = {
 
 export const PRIMITIVES = {
   eyebrow: "The platform",
-  title: "One platform, every anchor primitive",
-  lead: "Compose simple building blocks into any money flow your users need.",
+  title: "The full anchor stack, run for you",
+  lead: "Every layer, working together — nothing left for you to assemble.",
   items: [
     {
-      title: "Virtual accounts",
-      body: "Every user gets a dedicated Indian account number & IFSC. Money routes in over UPI, IMPS, NEFT and RTGS — and mints on Stellar automatically.",
-      href: "#",
-      icon: "bank",
+      id: "users",
+      title: "A Native App for Users",
+      caption: "We provide the secure mobile app so your users can discover anchors, complete quick liveness verifications, and swap INR ↔ USDC directly in the wallets they trust.",
     },
     {
-      title: "Money movement",
-      body: "On/off-ramp with same-day settlement. Send, receive, and reconcile across fiat and Stellar with a single API.",
-      href: "#",
-      icon: "bolt",
-      featured: true,
+      id: "businesses",
+      title: "B2B Console for Businesses",
+      caption: "We run the SEP servers, payment rails, console, and treasury. Bring your licensing, bank account, and liquidity — and launch with your compliances completely done.",
     },
     {
-      title: "KYC & onboarding",
-      body: "Passive liveness, deepfake detection and face-match tuned for Tier 2/3 India. We verify your users on your behalf.",
-      href: "#",
-      icon: "users",
+      id: "compliance",
+      title: "Screened and Sealed",
+      caption: "Every transaction is screened for sanctions/PEP and logged in a tamper-evident audit ledger to maintain robust compliance dynamically.",
     },
     {
-      title: "Compliance & reporting",
-      body: "FIU-IND reporting, sanctions screening, monitoring rules and a hash-chained audit log — built in.",
-      href: "#",
-      icon: "shield",
+      id: "identity",
+      title: "Identity Verified Once",
+      caption: "Document, face-match, and deepfake verification. Users check once with Didit and use it across the entire network.",
+    },
+    {
+      id: "developers",
+      title: "Complete Control for Developers",
+      caption: "Embed anchor flows or design custom money experiences. Integrate via our unified SDK or direct REST APIs, test in sandboxes, and listen to real-time webhook events.",
     },
   ],
 } as const;
@@ -285,20 +285,21 @@ export const BUILD_PATHS = {
 export const AUDIENCES = {
   eyebrow: "Who it's for",
   title: "Purpose-built for fintechs, wallets, and exchanges",
+  lead: "Launch your anchor once — and every user on the NordStern app can reach it from day one. You build the ramp; we bring the demand.",
   items: [
     {
       title: "Fintechs & PSPs",
-      body: "Embed ramps, banking and payouts to become the money hub for your customers.",
+      body: "Launch a compliant INR↔USDC ramp inside your product — banking, KYC and payouts included — without building a Stellar stack or bank relationships yourself.",
       icon: "bank",
     },
     {
       title: "Wallets",
-      body: "Offer instant on/off-ramps and balances to grow engagement and revenue.",
+      body: "Turn your wallet into an instant on/off-ramp with USDC balances — more activity and a new revenue line, no rails to maintain.",
       icon: "bolt",
     },
     {
       title: "Exchanges",
-      body: "Give users a compliant fiat gateway with cards and money movement built in.",
+      body: "Add a compliant INR gateway for deposits, withdrawals and settlement — fully handled, end to end.",
       icon: "users",
     },
   ],
@@ -332,6 +333,37 @@ export const RESOURCES = {
     { title: "Beyond the API: running a compliant anchor", href: "#" },
   ],
   cta: { label: "See all resources", href: "#" },
+} as const;
+
+export const FAQ = {
+  title: "Everything you need to know,",
+  titleTail: "before you launch.",
+  items: [
+    {
+      q: "What is a Stellar anchor?",
+      a: "An anchor is the bridge between local fiat and the Stellar network — it takes fiat deposits, issues 1:1-backed tokens like USDC, and redeems them back to fiat. NordStern runs that entire bridge on your behalf.",
+    },
+    {
+      q: "What does NordStern actually run for me?",
+      a: "The full stack: the SEP protocol servers, INR payment rails, USDC settlement on Stellar, identity via Didit, compliance monitoring, treasury and an operator console — hosted, monitored and kept running.",
+    },
+    {
+      q: "How long does it take to launch?",
+      a: "You start on testnet in days, then go live once your license, bank and reserves are in place — typically a few weeks, versus the multiple quarters it takes to build the stack in-house.",
+    },
+    {
+      q: "Which payment rails are supported?",
+      a: "Deposits and payouts run over UPI, IMPS, NEFT and RTGS through regulated partners, with every transfer reconciled to on-chain settlement automatically.",
+    },
+    {
+      q: "How does KYC work?",
+      a: "Users complete document, liveness and face-match verification once through Didit. The verified identity is reused across every flow and tuned for Tier 2/3 India.",
+    },
+    {
+      q: "Do users hold their own funds?",
+      a: "Yes. Assets stay in the user's own Stellar wallet — NordStern renders the deposit and withdrawal experience but never takes custody of user keys.",
+    },
+  ],
 } as const;
 
 export const FINAL_CTA = {

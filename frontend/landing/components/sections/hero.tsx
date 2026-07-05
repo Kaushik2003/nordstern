@@ -20,10 +20,6 @@ import {
   type ConsoleView,
 } from "@/components/mockups/console-dashboard";
 import { HERO } from "@/lib/content";
-import {
-  GooglePlayButton,
-  AppStoreButton,
-} from "@/components/base/buttons/app-store-buttons";
 
 const TABS: { id: ConsoleView; label: string; Icon: typeof Grid }[] = [
   { id: "overview", label: "Overview", Icon: Grid },
@@ -81,7 +77,7 @@ export function Hero() {
         };
 
   return (
-    <section className="relative overflow-hidden pt-16 pb-0 sm:pt-24 font-clear-display">
+    <section className="relative overflow-hidden pt-24 pb-0 font-clear-display">
       <HeroGlow />
       <Container>
         {/* headline row */}
@@ -119,11 +115,12 @@ export function Hero() {
 
         {/* CTAs */}
         <motion.div
-          className="mt-20 flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-end lg:mt-14"
+          className="mt-10 flex flex-col items-start gap-6 sm:mt-12 sm:flex-row sm:items-center lg:mt-14 lg:justify-end"
           {...rise(0.8, 12, 0.6)}
         >
           <div className="flex items-center gap-7 font-clear-display">
             <Button
+              id="hero-primary-button"
               href={HERO.primary.href}
               variant="primary"
               className="h-12 px-7"
@@ -132,6 +129,7 @@ export function Hero() {
             </Button>
 
             <Link
+              id="hero-secondary-link"
               href={HERO.secondary.href}
               className="group inline-flex items-center gap-1 text-[15px] font-medium text-ink"
             >

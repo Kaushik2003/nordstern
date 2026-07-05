@@ -35,7 +35,7 @@ export function Section({
     <section
       id={id}
       className={cn(
-        "relative w-full py-20 sm:py-24 lg:py-32",
+        "relative w-full py-16 sm:py-24 lg:py-32",
         TONE[tone],
         className,
       )}

@@ -11,7 +11,7 @@ export function FinalCTA() {
       <Aurora intensity="soft" className="opacity-30" />
       <Reveal className="mx-auto flex max-w-3xl flex-col items-center">
         <Heading className="text-white">{FINAL_CTA.title}</Heading>
-        <Button href={FINAL_CTA.cta.href} variant="white" className="mt-9">
+        <Button id="final-cta-button" href={FINAL_CTA.cta.href} variant="white" className="mt-9">
           {FINAL_CTA.cta.label}
         </Button>
       </Reveal>

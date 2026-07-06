@@ -1,5 +1,5 @@
 import {
-  Keypair, Horizon, TransactionBuilder, BASE_FEE, Operation, Asset,
+  Keypair, Horizon, TransactionBuilder, BASE_FEE, Operation, Asset, Memo,
 } from '@stellar/stellar-sdk';
 import {
   HORIZON_URL, TREASURY_PUBLIC, TREASURY_SECRET, ASSET_CODE, ASSET_ISSUER_PUBLIC, NET_PASS,
@@ -64,15 +64,62 @@ export async function hasUsdcTrustline(account: string): Promise<boolean> {
 }
 
 // Deposit on-ramp: transfer USDC from the treasury float to the user.
-export async function sendUsdc(destination: string, amount: string): Promise<string> {
+// The payment carries a deterministic text memo (derived from the SEP transaction
+// id) so a landed-but-unrecorded transfer can later be found on-chain by
+// `findTreasuryPayment` — this is what makes the release idempotent and
+// crash-recoverable (see releases.ts). The memo is optional so older callers /
+// tests still work, but the release path always passes it.
+export async function sendUsdc(destination: string, amount: string, memo?: string): Promise<string> {
   if (!TREASURY_SECRET) throw new Error('TREASURY_SECRET not set');
   const keypair = Keypair.fromSecret(TREASURY_SECRET);
   const account = await horizon.loadAccount(TREASURY_PUBLIC);
-  const tx = new TransactionBuilder(account, { fee: BASE_FEE, networkPassphrase: NET_PASS })
+  const builder = new TransactionBuilder(account, { fee: BASE_FEE, networkPassphrase: NET_PASS })
     .addOperation(Operation.payment({ destination, asset: usdcAsset(), amount }))
-    .setTimeout(30)
-    .build();
+    .setTimeout(30);
+  if (memo) builder.addMemo(Memo.text(memo));
+  const tx = builder.build();
   tx.sign(keypair);
   const result = await horizon.submitTransaction(tx);
   return (result as any).hash;
+}
+
+// Reconciliation lookup: has THIS deposit already been paid out on-chain?
+// Answers "did the money leave?" without guessing — we scan the treasury's recent
+// transactions for one whose text memo matches, then confirm it contains a payment
+// of `amount` USDC to `destination`. Returns the settling tx hash, or null.
+//
+// Bounded to the most recent `SCAN_LIMIT` treasury transactions: reconciliation
+// runs seconds-to-minutes after a submit (crash recovery), so the transaction is
+// always in the recent window. A high-volume production treasury would page with a
+// stored cursor instead — noted as a scaling follow-up.
+const SCAN_LIMIT = 50;
+export async function findTreasuryPayment(
+  destination: string,
+  amount: string,
+  memo: string,
+): Promise<{ hash: string } | null> {
+  if (!TREASURY_PUBLIC) return null;
+  const page = await horizon
+    .transactions()
+    .forAccount(TREASURY_PUBLIC)
+    .order('desc')
+    .limit(SCAN_LIMIT)
+    .call();
+
+  for (const rec of page.records) {
+    if (!rec.successful || rec.memo_type !== 'text' || rec.memo !== memo) continue;
+    // Memo matched — confirm the operation actually paid the expected amount/asset
+    // to the expected destination (memo alone is not proof of the exact transfer).
+    const ops = await rec.operations();
+    const paid = ops.records.some(
+      (o: any) =>
+        o.type === 'payment' &&
+        o.to === destination &&
+        o.asset_code === ASSET_CODE &&
+        o.asset_issuer === ASSET_ISSUER_PUBLIC &&
+        Number(o.amount) === Number(amount),
+    );
+    if (paid) return { hash: rec.hash };
+  }
+  return null;
 }

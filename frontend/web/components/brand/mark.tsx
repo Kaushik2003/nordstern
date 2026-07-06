@@ -32,11 +32,19 @@ export function BrandMark({ size = 26, className }: { size?: number; className?:
   );
 }
 
-export function Wordmark({ size = 26, className }: { size?: number; className?: string }) {
+export function Wordmark({
+  size = 26,
+  className,
+  textClassName,
+}: {
+  size?: number;
+  className?: string;
+  textClassName?: string;
+}) {
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
       <BrandMark size={size} />
-      <span className="font-display text-[16px] font-semibold tracking-tight text-text-primary">
+      <span className={cn("font-display text-[16px] font-semibold tracking-tight text-text-primary", textClassName)}>
         Nord<span className="text-brand">Stern</span>
       </span>
     </span>

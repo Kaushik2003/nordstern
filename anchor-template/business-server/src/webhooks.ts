@@ -62,10 +62,8 @@ webhooksRouter.post(['/webhooks/didit', '/'], async (req, res) => {
   // 4. Apply the decision (light DB work — 2 queries, well within the 5s budget),
   //    then ack. On failure return 500 so DIDIT retries (~1m, then ~4m) instead of
   //    silently dropping the decision.
-  //    HARDENING: the dedupe-insert and the decision upsert inside applyWebhook are
-  //    not yet in a single DB transaction, so a crash between them could drop a
-  //    decision on retry. Polling + re-verify masks this today; wrap in a tx when
-  //    the store is hardened for production.
+  //    HARDENING: the dedupe-insert and the decision-upsert are wrapped in a single,
+  //    atomic DB transaction inside applyWebhook, ensuring crash consistency.
   try {
     await applyWebhook(req.body);
     res.status(200).send('ok');

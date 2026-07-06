@@ -1,0 +1,79 @@
+{{- $api := include "anchor.host.api" . -}}
+# Anchor Platform — runs -s -p -o (SEP server + Platform API + Observer) in one pod.
+# replicas MUST be 1: the Observer is a single-writer ledger watcher.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anchor-platform
+  namespace: {{ include "anchor.namespace" . }}
+  labels:
+    {{- include "anchor.labels" . | nindent 4 }}
+    app: anchor-platform
+spec:
+  replicas: {{ .Values.anchorPlatform.replicas }}
+  strategy: { type: Recreate }        # singleton — never two Observers at once
+  selector:
+    matchLabels: { app: anchor-platform }
+  template:
+    metadata:
+      labels:
+        app: anchor-platform
+        {{- include "anchor.labels" . | nindent 8 }}
+    spec:
+      securityContext: { runAsNonRoot: true, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: anchor-platform
+          image: {{ include "anchor.image.anchorPlatform" . }}
+          args: ["-s", "-p", "-o"]
+          ports:
+            - { name: sep, containerPort: 8080 }
+            - { name: platform, containerPort: 8085 }
+          env:
+            - name: STELLAR_ANCHOR_CONFIG
+              value: /config/anchor-platform.yaml
+            # Public URL overrides (config file ships localhost defaults for dev).
+            - name: SEP24_INTERACTIVE_URL_BASE_URL
+              value: "https://{{ $api }}/sep24/interactive"
+            - name: SEP24_MORE_INFO_URL_BASE_URL
+              value: "https://{{ $api }}/sep24/transaction"
+            # Secrets sourced from the ESO-synced anchor-secrets Secret. Key names on
+            # the left are what the AP expects; the right are the Secrets Manager keys.
+            - { name: SECRET_SEP10_SIGNING_SEED,                 valueFrom: { secretKeyRef: { name: anchor-secrets, key: SIGNING_SECRET } } }
+            - { name: SECRET_SEP10_JWT_SECRET,                   valueFrom: { secretKeyRef: { name: anchor-secrets, key: SEP10_JWT_SECRET } } }
+            - { name: SECRET_SEP24_INTERACTIVE_URL_JWT_SECRET,   valueFrom: { secretKeyRef: { name: anchor-secrets, key: SEP24_INTERACTIVE_JWT_SECRET } } }
+            - { name: SECRET_SEP24_MORE_INFO_URL_JWT_SECRET,     valueFrom: { secretKeyRef: { name: anchor-secrets, key: SEP24_MORE_INFO_JWT_SECRET } } }
+            - { name: SECRET_SEP6_MORE_INFO_URL_JWT_SECRET,      valueFrom: { secretKeyRef: { name: anchor-secrets, key: SEP6_MORE_INFO_JWT_SECRET } } }
+            - { name: SECRET_DATA_USERNAME,                      valueFrom: { secretKeyRef: { name: anchor-secrets, key: DB_USER } } }
+            - { name: SECRET_DATA_PASSWORD,                      valueFrom: { secretKeyRef: { name: anchor-secrets, key: DB_PASSWORD } } }
+          volumeMounts:
+            - { name: ap-config,     mountPath: /config/anchor-platform.yaml, subPath: anchor-platform.yaml }
+            - { name: ap-config,     mountPath: /config/assets.yaml,          subPath: assets.yaml }
+            - { name: ap-stellar,    mountPath: /config/stellar.toml,         subPath: stellar.toml }
+          readinessProbe:
+            httpGet: { path: /health, port: 8080 }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 8080 }
+            initialDelaySeconds: 40
+            periodSeconds: 15
+          resources: {{ toYaml .Values.resources.anchorPlatform | nindent 12 }}
+      volumes:
+        # anchor-platform.yaml + assets.yaml are rendered per-anchor at provision time
+        # (Aurora endpoint, callback URL) and supplied as the `ap-config` ConfigMap.
+        - name: ap-config
+          configMap: { name: ap-config }
+        - name: ap-stellar
+          configMap: { name: ap-stellar-toml }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: anchor-platform
+  namespace: {{ include "anchor.namespace" . }}
+  labels: { app: anchor-platform }
+spec:
+  selector: { app: anchor-platform }
+  ports:
+    - { name: sep, port: 8080, targetPort: 8080 }
+    - { name: platform, port: 8085, targetPort: 8085 }   # internal only (biz → AP)

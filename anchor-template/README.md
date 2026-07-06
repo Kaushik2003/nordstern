@@ -52,7 +52,9 @@ docker compose up --build        # bring up db + anchor-platform + business-serv
   ([get one](https://dashboard.ngrok.com/get-started/your-authtoken)) and stop any host
   `ngrok` (`pkill ngrok`) before `up` — the reserved static domain in `PUBLIC_BASE_URL`
   allows one agent. DIDIT reports the KYC decision via a **webhook** to that public URL
-  (the source of truth); `localhost` can't receive it. `KYC_PROVIDER=mock` skips all this.
+  (the source of truth); `localhost` can't receive it. Real KYC is the **default** and
+  fails closed — for local dev without DIDIT, set `KYC_PROVIDER=mock ALLOW_MOCK_KYC=true`
+  (auto-approves everyone; dev-only; refused on mainnet) to skip the tunnel.
 - Verify: `curl http://localhost:8080/.well-known/stellar.toml` and
   `curl http://localhost:3000/health` (shows the treasury USDC float).
 - Smoke tests: `node scripts/test-handshake.mjs` (Phase A) and

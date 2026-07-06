@@ -28,7 +28,7 @@ export function Segmented<T extends string>({
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-[10px] border border-border-subtle bg-sunken p-0.5",
+        "inline-flex items-center gap-0.5 rounded-full border border-black/[0.05] bg-black/[0.04] p-0.5",
         className,
       )}
     >
@@ -39,17 +39,17 @@ export function Segmented<T extends string>({
             key={o.value}
             onClick={() => onChange(o.value)}
             className={cn(
-              "relative rounded-[7px] font-medium transition-colors duration-150",
+              "relative rounded-full font-medium transition-colors duration-150",
               h,
               pad,
-              active ? "text-text-primary" : "text-text-tertiary hover:text-text-secondary",
+              active ? "text-text-primary font-semibold" : "text-text-secondary hover:text-text-primary",
             )}
           >
             {active && (
               <motion.span
                 layoutId={layoutId}
                 transition={{ type: "spring", stiffness: 520, damping: 38 }}
-                className="absolute inset-0 rounded-[7px] border border-border-subtle bg-surface-2 shadow-sm"
+                className="absolute inset-0 rounded-full border border-black/[0.04] bg-white shadow-xs"
               />
             )}
             <span className="relative z-10">{o.label}</span>

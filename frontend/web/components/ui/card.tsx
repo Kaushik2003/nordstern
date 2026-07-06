@@ -14,15 +14,15 @@ export function Card({
   return (
     <div
       className={cn(
-        "relative rounded-[14px] border border-border-subtle bg-surface-1",
-        "transition-[border-color,background-color,transform] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
-        interactive && "cursor-pointer hover:-translate-y-0.5 hover:border-border-strong hover:bg-surface-hover",
+        "relative rounded-[20px] border border-border-subtle bg-surface-1 shadow-[0_1px_2px_rgba(24,22,54,0.04),0_10px_30px_-20px_rgba(24,22,54,0.16)]",
+        "transition-[border-color,background-color,transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        interactive && "cursor-pointer hover:-translate-y-0.5 hover:border-border-strong hover:bg-surface-hover hover:shadow-[0_2px_5px_rgba(24,22,54,0.05),0_22px_48px_-24px_rgba(34,24,78,0.24)]",
         className,
       )}
       {...props}
     >
       {glow && (
-        <div className="glow-brand-soft pointer-events-none absolute inset-0 rounded-[14px]" aria-hidden />
+        <div className="glow-brand-soft pointer-events-none absolute inset-0 rounded-[20px]" aria-hidden />
       )}
       {children}
     </div>

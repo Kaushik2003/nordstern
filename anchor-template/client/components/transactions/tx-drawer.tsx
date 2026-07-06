@@ -17,7 +17,54 @@ import type { Tx } from "@/lib/data/types";
 
 export function TxDrawer({ tx, open, onOpenChange }: { tx: Tx | null; open: boolean; onOpenChange: (v: boolean) => void }) {
   const [showJson, setShowJson] = useState(false);
+  const [loadingAction, setLoadingAction] = useState(false);
   if (!tx) return null;
+
+  const handleRetry = async () => {
+    setLoadingAction(true);
+    try {
+      const res = await fetch(`/biz/admin/transactions/${tx.id}/retry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actor: 'admin' })
+      });
+      if (res.ok) {
+        toast.success("Transaction force-completed", { description: `USDC released to counterparty wallet.` });
+        onOpenChange(false);
+      } else {
+        const data = await res.json();
+        toast.error("Failed to force-complete", { description: data.error || 'Server error' });
+      }
+    } catch (e) {
+      toast.error("Network error executing retry");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleRefund = async () => {
+    const reason = prompt("Enter reason for refund / termination:");
+    if (reason === null) return;
+    setLoadingAction(true);
+    try {
+      const res = await fetch(`/biz/admin/transactions/${tx.id}/refund`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actor: 'admin', reason })
+      });
+      if (res.ok) {
+        toast.success("Transaction marked as failed/refunded", { description: `Status changed in Platform DB.` });
+        onOpenChange(false);
+      } else {
+        toast.error("Failed to execute refund");
+      }
+    } catch (e) {
+      toast.error("Network error executing refund");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
   const hops = buildHops(tx);
   const inbound = tx.dir === "in";
 
@@ -117,6 +164,33 @@ export function TxDrawer({ tx, open, onOpenChange }: { tx: Tx | null; open: bool
           {tx.razorpayRef && (<><Div /><Row label="Razorpay ref"><Copyable value={tx.razorpayRef} /></Row></>)}
           {tx.utr && (<><Div /><Row label="UTR"><Copyable value={tx.utr} /></Row></>)}
         </div>
+
+        {/* Manual Intervention */}
+        {tx.status !== "settled" && (
+          <div className="mt-5 rounded-[12px] border border-crit/20 bg-crit-fill/5 p-4">
+            <div className="eyebrow mb-2.5 text-crit">Manual Intervention Tools</div>
+            <div className="flex gap-2">
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                disabled={loadingAction}
+                onClick={handleRetry}
+                leadingIcon={<RotateCcw className="size-3.5" />}
+              >
+                Force Complete
+              </Button>
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                disabled={loadingAction}
+                onClick={handleRefund}
+                leadingIcon={<X className="size-3.5" />}
+              >
+                Refund / Fail Tx
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Raw JSON */}
         <button onClick={() => setShowJson((s) => !s)} className="mt-5 flex w-full items-center justify-between rounded-[10px] px-1 py-2 text-[12.5px] text-text-secondary hover:text-text-primary">

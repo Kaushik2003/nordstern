@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { ArrowRight, ShieldCheck, Sparkles, FileText } from "lucide-react";
+import { ArrowRight, ShieldCheck, Sparkles, FileText, Landmark, Key, Power, RefreshCw } from "lucide-react";
 import { PageContainer, PageHeader } from "@/components/shell/page";
 import { Card, CardBody, CardHead } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { useApp } from "@/lib/providers";
 import { useCountUp, useSkeleton, useNow } from "@/lib/hooks";
 import { inr, inrCompact, groupIN, relTime, clockIST } from "@/lib/format";
 import { TREASURY } from "@/lib/data/store";
+import { toast } from "sonner";
 import type { WithdrawalRecord } from "@/lib/data/types";
 
 // API
@@ -36,7 +37,7 @@ export default function TreasuryPage() {
   const now = useNow(10_000);
 
   // Live Data
-  const { data: s, loading: sLoading } = useLive<Summary>('/admin/summary', 5000);
+  const { data: s, loading: sLoading } = useLive<any>('/admin/summary', 5000);
   const { data: tData, loading: tLoading } = useLive<{ transactions: ApiTx[] }>('/admin/transactions', 5000);
 
   const [withdrawOpen, setWithdrawOpen] = useState(false);
@@ -48,10 +49,69 @@ export default function TreasuryPage() {
     deployable: TREASURY.tiers.deployable.amount,
   });
 
+  const [sweeping, setSweeping] = useState(false);
+  const [pausing, setPausing] = useState(false);
+  const [emergencyStop, setEmergencyStop] = useState(false);
+
+  // Load initial emergencyStop state from strategy
+  useEffect(() => {
+    fetch('/biz/admin/strategy')
+      .then(res => res.json())
+      .then(data => setEmergencyStop(data.emergencyStop || false))
+      .catch(e => console.error(e));
+  }, []);
+
+  const handleSweep = async () => {
+    setSweeping(true);
+    try {
+      const res = await fetch('/biz/admin/treasury/sweep', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actor: 'admin' })
+      });
+      if (res.ok) {
+        toast.success("Sweep initiated", { description: "Merchant settlements swept into available corporate balances." });
+      } else {
+        toast.error("Failed to execute sweep");
+      }
+    } catch (e) {
+      toast.error("Network error during sweep");
+    } finally {
+      setSweeping(false);
+    }
+  };
+
+  const handlePause = async () => {
+    setPausing(true);
+    try {
+      const res = await fetch('/biz/admin/treasury/pause', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actor: 'admin' })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setEmergencyStop(data.emergencyStop);
+        if (data.emergencyStop) {
+          toast.warning("Platform paused", { description: "Emergency stop activated. Interactive flows suspended." });
+        } else {
+          toast.success("Platform resumed", { description: "Emergency stop deactivated. Flow restored." });
+        }
+      } else {
+        toast.error("Failed to toggle emergency stop");
+      }
+    } catch (e) {
+      toast.error("Network error toggling emergency stop");
+    } finally {
+      setPausing(false);
+    }
+  };
+
   // Derived Treasury from Live
   const TREASURY_LIVE = useMemo(() => {
+    const usdc = s?.treasury?.usdc ? parseFloat(s.treasury.usdc) : 0;
     return {
-      available: s ? parseFloat(s.treasury.usdc || "0") : 0,
+      available: usdc,
       ratio: 1.0, // Stablecoin backed 1:1
       tokensIssued: s ? parseFloat(s.volume.usdcDeposited || "0") - parseFloat(s.volume.usdcWithdrawn || "0") : 0,
       reserves: s ? parseFloat(s.treasury.usdc || "0") * parseFloat(s.rate.inrPerUsdc || "88.5") : 0,
@@ -70,7 +130,6 @@ export default function TreasuryPage() {
   }, []);
 
   const onComplete = (r: WithdrawResult) => {
-    // Optimistic local state for demo purposes until API catches up
     const rec: WithdrawalRecord = {
       id: r.utr,
       at: r.at,
@@ -94,7 +153,6 @@ export default function TreasuryPage() {
         status: t.status === "completed" ? "settled" : (t.status === "error" ? "failed" : "processing"),
       }));
     
-    // Combine local optimistic history with API history (deduping by ID)
     const combined = [...historyLocal];
     for (const apiRec of apiHistory) {
       if (!combined.find(c => c.id === apiRec.id)) {
@@ -158,6 +216,104 @@ export default function TreasuryPage() {
         <Kpi label="Total volume" info="Gross value moved through the anchor." value={s ? parseFloat(s.volume.inrCollected) + parseFloat(s.volume.inrPaidOut) : 0} render={(n) => inrCompact(n)} />
         <Kpi label="Earned · 30D" info="Your revenue: fees + spread + yield over the last 30 days." value={TREASURY.earned30d} render={(n) => inr(Math.round(n))} delta={TREASURY.earned30dDelta} accent="text-pos" />
       </div>
+
+      {/* Fiat vs Crypto Float details */}
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardBody className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Landmark className="size-4 text-brand" />
+              <CardHead label="Fiat Float (INR Account)" info="Bank balance reserves held in Razorpay/Cashfree merchant escrows." />
+            </div>
+            <div className="grid gap-3 grid-cols-2">
+              <div>
+                <div className="eyebrow">Bank Balance</div>
+                <div className="mt-1 font-mono text-[15px] font-semibold text-text-primary">{inr(parseFloat(s?.fiat?.bankBalance || "0"))}</div>
+              </div>
+              <div>
+                <div className="eyebrow">Pending Deposits</div>
+                <div className="mt-1 font-mono text-[15px] font-semibold text-text-primary">{inr(parseFloat(s?.fiat?.pendingDeposits || "0"))}</div>
+              </div>
+            </div>
+            <div className="grid gap-3 grid-cols-2">
+              <div>
+                <div className="eyebrow">Reserved Balance</div>
+                <div className="mt-1 font-mono text-[15px] font-semibold text-text-primary">{inr(parseFloat(s?.fiat?.reservedBalance || "0"))}</div>
+              </div>
+              <div>
+                <div className="eyebrow">Daily Inflow</div>
+                <div className="mt-1 font-mono text-[15px] font-semibold text-text-primary">{inr(parseFloat(s?.fiat?.dailyInflow || "0"))}</div>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardBody className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Key className="size-4 text-brand" />
+              <CardHead label="Crypto Float (Stellar Chain)" info="USDC floats and XLM native network fee reserves." />
+            </div>
+            <div className="grid gap-3 grid-cols-2">
+              <div>
+                <div className="eyebrow">USDC Float</div>
+                <div className="mt-1 font-mono text-[15px] font-semibold text-text-primary">{s?.treasury?.usdc || "0.00"} USDC</div>
+              </div>
+              <div>
+                <div className="eyebrow">XLM Network Reserve</div>
+                <div className="mt-1 font-mono text-[15px] font-semibold text-text-primary">{s?.treasury?.xlm || "0.00"} XLM</div>
+              </div>
+            </div>
+            <div className="grid gap-3 grid-cols-2">
+              <div>
+                <div className="eyebrow">Pending Mints</div>
+                <div className="mt-1 font-mono text-[15px] font-semibold text-text-primary">{s?.counts?.pending || 0} txs</div>
+              </div>
+              <div>
+                <div className="eyebrow">Settlement Health</div>
+                <div className="mt-1 flex items-center gap-1.5 font-mono text-[13px] font-medium text-pos">
+                  <span className="size-1.5 rounded-full bg-pos" /> Healthy
+                </div>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+
+      {/* Operational actions & sweeps */}
+      <Card className="mt-4">
+        <CardBody className="space-y-4">
+          <CardHead label="Operational Controls" info="Manage flows and manually sweep merchant collection assets." />
+          <div className="flex flex-wrap gap-2.5">
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              disabled={sweeping}
+              onClick={handleSweep}
+              leadingIcon={<RefreshCw className={`size-3.5 ${sweeping ? 'animate-spin' : ''}`} />}
+            >
+              {sweeping ? 'Sweeping...' : 'Sweep Merchant Funds'}
+            </Button>
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              disabled={pausing}
+              onClick={handlePause}
+              leadingIcon={<Power className="size-3.5" />}
+            >
+              {emergencyStop ? 'Resume Deposits' : 'Activate Emergency Pause'}
+            </Button>
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              onClick={() => setOptimizeOpen(true)}
+              leadingIcon={<Sparkles className="size-3.5" />}
+            >
+              Rebalance Reserve Tiers
+            </Button>
+          </div>
+        </CardBody>
+      </Card>
 
       {/* Reserve composition + tiers */}
       <div className="mt-4 grid gap-4 lg:grid-cols-2">

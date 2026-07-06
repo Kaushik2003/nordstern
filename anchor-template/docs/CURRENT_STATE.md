@@ -17,7 +17,7 @@
 
 ## 🟡 What is Stubbed / Incomplete
 
-- **KYC Verification:** The `business-server` contains a `SurepassKycProvider`, but by default, it uses a `MockKycProvider` that auto-approves all users. Real KYC credential gating and manual review flows are not yet wired.
+- **KYC Verification:** ✅ **Real by default and fails closed** (DEC-008) — `KYC_PROVIDER` defaults to `didit`; the server refuses to boot without a real provider, and mock (auto-approve) runs only behind an explicit `ALLOW_MOCK_KYC=true` (dev-only, forbidden on mainnet). The SEP-24 gate enforces DIDIT server-side. *Still incomplete:* the operator-facing manual-review / case-management UI for KYC decisions (Phase E).
 - **Fiat Collections (UPI):** The interactive deposit UI displays a generated QR code (via `qrcode` library), but it is not yet tied to a live Cashfree/Razorpay Payment Gateway link that actively listens for the user's payment. It is a simulated "click to confirm" step.
 - **Client Authentication:** The Next.js dashboard currently lacks a login screen. Anyone who can access Port 3001 can view the anchor's data.
 
@@ -28,7 +28,7 @@
 > [!CAUTION]
 > **This stack is strictly a Sandbox/Testnet environment.** Do NOT point it to Mainnet without addressing the following:
 
-- **Idempotency:** The `business-server` transfers USDC *before* successfully updating the Anchor Platform database. If the database update fails, the USDC is gone but the transaction is stuck.
+- **Idempotency:** ✅ **Addressed** by the Transfer-After-Commit outbox (`releases.ts`, DEC-007) — intent is durably recorded before the Stellar submit, the send is idempotent via an on-chain memo scan, and a reconciler self-heals crashes. **Live-verified on real testnet:** the on-chain linchpin (`scripts/test-idempotency.mjs`) and full crash-after-send recovery (`scripts/test-reconcile.mjs`). Remaining (lower risk): drive it through the real AP container with a literal mid-release process kill before mainnet.
 - **Secrets Management:** Keys are stored in local `.env` files.
 - **Infrastructure:** It is currently running in a local `docker-compose` setup. Production requires a robust orchestrator (Kubernetes/ECS), load balancing, and a managed PostgreSQL database (e.g., RDS).
 - **Legal/Compliance:** The exact banking relationship (Nodal vs Escrow) and custody model must be finalized by legal counsel before real money touches the system.

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "anchor.namespace" . }}
+  labels:
+    {{- include "anchor.labels" . | nindent 4 }}
+    pod-security.kubernetes.io/enforce: restricted

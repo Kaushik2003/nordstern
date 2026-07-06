@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-config
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: {{ .Values.global.repoURL | quote }}
+    targetRevision: {{ .Values.global.targetRevision | quote }}
+    path: anchor-template/infra/argocd/platform-config
+    helm:
+      values: |
+        global:
+          clusterName: {{ .Values.global.clusterName | quote }}
+          awsAccountId: {{ .Values.global.awsAccountId | quote }}
+          region: {{ .Values.global.region | quote }}
+          domain: {{ .Values.global.domain | quote }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

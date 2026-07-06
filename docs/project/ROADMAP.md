@@ -1,102 +1,71 @@
-# NordStern — Roadmap
+# NordStern — Project Roadmap
 
-Phased plan from **one working anchor** to **multi-anchor infrastructure**.
-Companion to `AGENTS.md` §10. Each phase assumes the seams built in earlier phases
-(see `ARCHITECTURE.md` §4). **Do not skip ahead** — finishing one real end-to-end
-flow beats scaffolding the whole SaaS.
+Phased plan from **one working anchor** to **multi-anchor infrastructure**. This roadmap reflects the prioritization pivot to establish a secure **Operator Platform** and the central **Aggregator Engine** before integrating live production banking rails.
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started.
 
 ---
 
 ## Phase 0 — Foundation: one anchor on testnet
-*Goal: a single anchor we operate, proving the SEP-24 loop, structured to
-generalize later.*
+*Goal: A single anchor we operate, proving the SEP-24 loop, structured to generalize later.*
 
 - ✅ Anchor Platform (SEP-1/10/12/24) running via Docker against testnet.
-- ✅ business-server implements Platform callbacks (`unique_address`, `fee`,
-  `customer`) and SEP-24 interactive UI.
-- ✅ Deposit mints `ANCH` to the user's Stellar wallet end-to-end.
-- ✅ Withdrawal: Observer detects the returned `ANCH` payment by memo.
-- ✅ control-plane skeleton (auth/tenants/config/admin) + Postgres.
-- ✅ Functional wallet + operator dashboard (`anchor-service/frontend`).
-- 🚧 KYC and fiat in/out are **mocked** — acceptable for Phase 0.
+- ✅ business-server implements Platform callbacks (`customer`, `rate`) and SEP-24 interactive UI.
+- ✅ Deposit mints `ANCH` (and testnet `USDC`) to the user's Stellar wallet end-to-end.
+- ✅ Withdrawal: Observer detects the returned payment by memo.
+- ✅ Functional wallet + basic operator dashboard (`anchor-template/client`).
+- ✅ Fail-closed KYC gates (DEC-008) and deposit idempotency outbox (DEC-007).
+- ✅ Withdrawal payout at-most-once safety logic (DEC-009).
 
-**Exit criteria:** deposit and withdrawal complete on testnet from a real wallet;
-decisions recorded in `anchor-service/docs/decision-log.md`.
+**Exit criteria:** Deposit and withdrawal complete on testnet; safety/idempotency guards verified.
 
 ---
 
-## Phase 1 — Real rails behind adapters (still sandbox/testnet)
-*Goal: replace mocks with real providers without letting vendors leak into core
-flow logic. Everything stays sandbox.*
+## Phase 1 — Cell Infrastructure & GitOps
+*Goal: Containerize the anchor stack and establish reproducible cell deployments.*
 
-- ⬜ Define adapter interfaces: `KycProvider`, `DepositProvider`, `PayoutProvider`
-  (mock impl remains the default).
-- ⬜ **KYC:** HyperVerge (or Signzy) behind `KycProvider`; wire SEP-12 to real
-  verification status; store the minimum PII (respect Q5).
-- ⬜ **UPI deposit:** `upi://pay` intent (mobile) + QR fallback (desktop) in the
-  SEP-24 webview; backend verification of payment before mint.
-- ⬜ **Fiat payout:** Cashfree Payouts / RazorpayX behind `PayoutProvider`
-  (sandbox); real **webhook signature verification** + backend re-verification;
-  release fiat on Observer match. Follow `frontend/.claude/skills/` + `AGENTS.md` §7.
-- ⬜ Fee/spread quoting in the `fee` callback (replace the `0` stub).
+- ✅ Multi-stage Dockerfiles (`infra/docker/`) for production-ready business-server and client console.
+- ✅ Terraform scripts mapping VPC, EKS cluster, RDS Aurora DB, and ECR.
+- ✅ Helm chart (`anchor-stack`) with default-deny NetworkPolicies and ServiceAccount templates.
+- ✅ ArgoCD App-of-Apps setup to bootstrap addons (ALB, cert-manager, external-secrets, Karpenter, Prometheus).
+- ✅ IAM role wiring linking EKS OIDC to AWS Secrets Manager.
 
-**Exit criteria:** a full deposit and withdrawal each run through real *sandbox*
-providers end-to-end, mock still selectable via config.
+**Exit criteria:** Chart validation lints pass, and cell configuration is ready to bootstrap.
 
 ---
 
-## Phase 2 — Operator productization
-*Goal: make the anchor operable by a real business.*
+## Phase 2 — Operator Platform (Highest Priority)
+*Goal: Turn the admin console into a complete, secure administration plane for anchor operators.*
 
-- ⬜ Converge the functional dashboard with the "Keel" console design
-  (`frontend/PRD.md`): treasury, money-in/money-out, KPIs — on **live** data.
-- ⬜ Operator-configurable spread/fees/limits (writes to config safely).
-- ⬜ Transaction operations: search, detail, retry/refund handling, reconciliation.
-- ⬜ Compliance/trust views: KYC status, reserves/backing, AML flags.
-- ⬜ Developer surface: API keys, webhook config, endpoint health.
+- ⬜ **Keel UI Convergence**: Migrate the premium dashboard layouts, bento screens, and styles from the `frontend/web/` prototypes.
+- ⬜ **Authentication & RBAC**: Integrate NextAuth/Auth.js with JWT rotation, session management, and operator role enforcement.
+- ⬜ **Strategy Engine**: Implement config-driven rule validations for fee cards, velocity limits, minimum/maximum limits, and operating hours.
+- ⬜ **KYC & Case Management Queue**: Interface for compliance officers to manually review, approve, or reject KYC files.
+- ⬜ **Treasury & Reserve Monitor**: Real-time tracking of reserve float (crypto vs. bank reserves) with low-balance warning alerts.
+- ⬜ **Audit Logs**: Database audit logs for tracking all operator interactions.
 
-**Exit criteria:** an operator can run day-to-day money movement from the console
-without touching the CLI.
-
----
-
-## Phase 3 — Multi-anchor infrastructure
-*Goal: promote the single anchor into a template others can be onboarded onto.*
-
-- ⬜ Real tenancy in `control-plane`: scope assets, keypairs, transactions, and
-  config by tenant id (the seam left in Phases 0–2).
-- ⬜ Per-anchor keypair provisioning and isolated config.
-- ⬜ Subdomain-based launch so anchors don't configure their own domain.
-- ⬜ Shared-KYC ("verify once, use across anchors") — **gated on Q5** in
-  `COMPLIANCE_OPEN_QUESTIONS.md`.
-- ⬜ We still onboard anchors deliberately (not instant public self-serve).
-
-**Exit criteria:** a second anchor can be stood up from the template with config
-only, no new bespoke code.
+**Exit criteria:** An operator can run day-to-day transaction approvals, review KYC, and alter fee strategies securely.
 
 ---
 
-## Phase 4 — Go-live hardening
-*Goal: real money, responsibly. Gated on legal resolution.*
+## Phase 3 — Aggregator Platform
+*Goal: Build the core NordStern middleware that connects client wallets to the best-performing anchors.*
 
-- ⬜ Legal prerequisites resolved with counsel (Q1–Q3, Q6:
-  `COMPLIANCE_OPEN_QUESTIONS.md`); FIU-IND handling in place (Q2).
-- ⬜ Banking/custody model chosen and implemented behind the banking seam (Q4).
-- ⬜ Mainnet config path validated; deliberate env swap, no hardcoded prod
-  endpoints; go-live checklist surfaced (`AGENTS.md` §7).
-- ⬜ Production infra: move off Docker Compose (k8s or similar), monitoring,
-  alerting, incident runbooks, key management/rotation.
+- ⬜ **Anchor Registry**: Capability registry mapping region, asset, and payment rail per anchor.
+- ⬜ **Telemetry Routing Engine**: Dynamically ranks anchors based on real-time success rates, speed, fee curves, and FX spreads.
+- ⬜ **Quote Multiplexer**: Multiplex SEP-38 FX quotes across eligible anchors.
+- ⬜ **Health & Telemetry Monitor**: Background synthetics checks on child anchor instances.
 
-**Exit criteria:** a real, licensed anchor moves real INR ↔ Stellar with counsel
-sign-off and operational safeguards.
+**Exit criteria:** Wallets can query the Aggregator API for optimal routing coordinates and handoff tokens.
 
 ---
 
-## Standing rules across all phases
-- Testnet/sandbox is the default; real money is a gated, deliberate act.
-- New external dependencies go behind adapters with mock defaults.
-- Keep the tenant seam even while there is one anchor.
-- This product is B2B anchor infrastructure — not an exchange, wallet, or token
-  sale (`AGENTS.md` §1).
+## Phase 4 — Production Banking & Real Rails
+*Goal: Wire live financial rails underneath the proven, secure platform.*
+
+- ⬜ **Razorpay UPI Collection**: Integrate real UPI Intent and QR collection APIs.
+- ⬜ **Cashfree Payouts Production**: Transition to live Cashfree Payout accounts.
+- ⬜ **Reconciliation & Settlement**: Build automated reconciliation routines to match bank statement reports with ledger transaction states.
+- ⬜ **Mainnet Config Swap**: Switch EKS cells to the public global Stellar network and Circle USDC issuer.
+
+**Exit criteria:** Real INR moves to Stellar mainnet under counsel-approved compliance structures.

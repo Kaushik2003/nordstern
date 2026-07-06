@@ -66,13 +66,20 @@ function summarizeDecision(decision: any): Record<string, unknown> | null {
   };
 }
 
+// A minimal queryable — the shared pool OR a checked-out client inside a transaction.
+// Lets persistDecision run either standalone (API poll) or inside applyWebhook's tx.
+interface Queryable { query: (text: string, params?: any[]) => Promise<any>; }
+
 // Persist a DIDIT session decision (from a webhook OR an API poll) → our KycStatus.
-// Extracted so both delivery paths converge on identical DB state.
+// Extracted so both delivery paths converge on identical DB state. `db` defaults to
+// the pool; the webhook path passes a transaction client so the dedupe insert and
+// this upsert commit atomically.
 async function persistDecision(
   account: string,
   diditStatus: string,
   sessionId: string | null,
   decision: any,
+  db: Queryable = pool,
 ): Promise<KycStatus> {
   const status = mapStatus(diditStatus);
   const summary = summarizeDecision(decision);
@@ -80,7 +87,7 @@ async function persistDecision(
   if (diditStatus === 'Approved') {
     const verifiedAt = new Date();
     const expiresAt  = new Date(verifiedAt.getTime() + KYC_REVERIFY_TTL_SECONDS * 1000);
-    await pool.query(
+    await db.query(
       `INSERT INTO nordstern.kyc_verifications
          (vendor_data, status, didit_session_id, decision_summary, verified_at, expires_at, updated_at)
        VALUES ($1, 'ACCEPTED', $2, $3, $4, $5, now())
@@ -92,14 +99,14 @@ async function persistDecision(
       [account, sessionId, summary, verifiedAt, expiresAt],
     );
   } else if (diditStatus === 'Kyc Expired') {
-    await pool.query(
+    await db.query(
       `UPDATE nordstern.kyc_verifications
          SET status = 'NEEDS_INFO', expires_at = now(), updated_at = now()
        WHERE vendor_data = $1`,
       [account],
     );
   } else {
-    await pool.query(
+    await db.query(
       `INSERT INTO nordstern.kyc_verifications (vendor_data, status, didit_session_id, decision_summary, updated_at)
        VALUES ($1, $2, $3, $4, now())
        ON CONFLICT (vendor_data) DO UPDATE SET
@@ -219,24 +226,41 @@ export async function applyWebhook(payload: any): Promise<void> {
     return;
   }
 
-  const eventId = payload?.event_id;
-  if (eventId) {
-    const dedupe = await pool.query(
-      'INSERT INTO nordstern.kyc_webhook_events (event_id) VALUES ($1) ON CONFLICT DO NOTHING RETURNING event_id',
-      [eventId],
-    );
-    if (dedupe.rowCount === 0) {
-      console.log(`[didit] duplicate webhook event ${eventId} — skipping`);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const eventId = payload?.event_id;
+    if (eventId) {
+      const dedupe = await client.query(
+        'INSERT INTO nordstern.kyc_webhook_events (event_id) VALUES ($1) ON CONFLICT DO NOTHING RETURNING event_id',
+        [eventId],
+      );
+      if (dedupe.rowCount === 0) {
+        console.log(`[didit] duplicate webhook event ${eventId} — skipping`);
+        await client.query('ROLLBACK');
+        return;
+      }
+    }
+
+    const account = payload?.vendor_data;
+    if (!account) {
+      console.warn('[didit] webhook missing vendor_data — ignoring');
+      await client.query('ROLLBACK');
       return;
     }
+
+    const diditStatus = String(payload.status ?? '');
+    const status = await persistDecision(account, diditStatus, payload.session_id ?? null, payload.decision, client);
+    await client.query('COMMIT');
+    console.log(`[didit] webhook applied for ${account}: ${diditStatus} → ${status}`);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[didit] webhook transaction failed, rolled back:', err);
+    throw err;
+  } finally {
+    client.release();
   }
-
-  const account = payload?.vendor_data;
-  if (!account) { console.warn('[didit] webhook missing vendor_data — ignoring'); return; }
-
-  const diditStatus = String(payload.status ?? '');
-  const status = await persistDecision(account, diditStatus, payload.session_id ?? null, payload.decision);
-  console.log(`[didit] webhook applied for ${account}: ${diditStatus} → ${status}`);
 }
 
 // ─── Thin SEP-12 provider (KYC_PROVIDER=didit) ──────────────────────────────────

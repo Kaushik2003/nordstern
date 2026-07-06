@@ -6,11 +6,6 @@ import { AppProvider } from "@/lib/providers";
 import { ScenarioProvider } from "@/lib/scenario";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
-import { CommandPalette } from "@/components/shell/command-palette";
-import { Sidebar, MobileTabBar } from "@/components/shell/sidebar";
-import { Topbar } from "@/components/shell/topbar";
-import { EnvHairline } from "@/components/shell/env-hairline";
-import { ScenarioOverlay } from "@/components/shell/scenario-overlay";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -49,17 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppProvider>
           <ScenarioProvider>
             <TooltipProvider>
-              <div className="flex min-h-dvh bg-base">
-                <EnvHairline />
-                <Sidebar />
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <Topbar />
-                  <main className="flex-1 pb-20 md:pb-6">{children}</main>
-                </div>
-                <MobileTabBar />
-                <ScenarioOverlay />
-              </div>
-              <CommandPalette />
+              {children}
               <Toaster />
             </TooltipProvider>
           </ScenarioProvider>

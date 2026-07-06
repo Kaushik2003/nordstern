@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { ASSET_CODE, IS_MAINNET, TREASURY_PUBLIC, assetId } from './config.js';
 import { fetchTransaction, patchTransaction } from './platform.js';
-import { generateMemo, sendUsdc, assertTreasuryReserve, hasUsdcTrustline } from './stellar.js';
+import { generateMemo, hasUsdcTrustline } from './stellar.js';
+import { executeRelease } from './releases.js';
 import { rate, deposit } from './adapters/index.js';
 import { getStatus, createSession } from './adapters/kyc/didit.js';
 import { verifyCheckout } from './adapters/deposit/razorpay.js';
@@ -359,19 +360,22 @@ export async function releaseDeposit(transactionId: string): Promise<ReleaseOutc
     inrAmount = (Number(usdcAmount) * Number(q.inrPerUsdc)).toFixed(2);
   }
 
+  // Hand the money-move to the durable, idempotent outbox. It writes intent BEFORE
+  // submitting to Stellar (crash-recoverable), attaches the deterministic memo so a
+  // landed transfer can be found on-chain, and atomically single-locks the release —
+  // the webview-return and webhook paths can never both send.
+  const memo = generateMemo(transactionId);
   try {
-    await assertTreasuryReserve(usdcAmount);   // reserve guardrail on the amount we'll actually send
-    await patchTransaction(transactionId, { status: 'pending_anchor' });
-    const hash = await sendUsdc(destination, usdcAmount);
-    await patchTransaction(transactionId, {
-      status: 'completed',
-      amount_in:  { amount: inrAmount,  asset: 'iso4217:INR' },
-      amount_out: { amount: usdcAmount, asset: assetId() },
-      amount_fee: { amount: '0',        asset: assetId() },
-      stellar_transactions: [{ id: hash }],
+    const outcome = await executeRelease({
+      transactionId, destination, usdcAmount, inrAmount, inrPerUsdc, rateSource, memo,
     });
-    if (deposit.markReleased) await deposit.markReleased(transactionId, hash);
-    return { kind: 'released', hash, usdcAmount, inrAmount, inrPerUsdc, rateSource };
+    if (outcome.kind === 'in_flight') {
+      return { kind: 'not_ready', message: 'This deposit is already being processed — it will complete shortly.' };
+    }
+    // released | already → keep the provider's own bookkeeping (Razorpay) in sync.
+    if (deposit.markReleased) await deposit.markReleased(transactionId, outcome.hash);
+    if (outcome.kind === 'already') return { kind: 'already' };
+    return { kind: 'released', hash: outcome.hash, usdcAmount, inrAmount, inrPerUsdc, rateSource };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (deposit.markReleaseFailed) await deposit.markReleaseFailed(transactionId, msg);
@@ -414,6 +418,18 @@ sep24Router.get('/interactive', async (req, res) => {
 
   const kind = tx.kind ?? 'deposit';
 
+  // ── Strategy config checks ──────────────────────────────────────────────────
+  const strategy = await pool.query('SELECT config FROM nordstern.strategy_config ORDER BY version DESC LIMIT 1').then(r => r.rows[0]?.config ?? null);
+  if (strategy && (strategy.emergencyStop || strategy.maintenanceMode)) {
+    res.type('html').send(page('Service Paused', `
+      <div class="center">
+        <div class="ring err"><svg viewBox="0 0 24 24" fill="none" stroke="#ff5a5a" stroke-width="2.2" stroke-linecap="round"><path d="M12 8v5M12 16.5v.5"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <h2>Service Paused</h2>
+        <p class="note" style="text-align:center">The service is temporarily suspended. Please try again later.</p>
+      </div>`));
+    return;
+  }
+
   // ── KYC gate ──────────────────────────────────────────────────────────────
   // No money screen until identity is verified. A returning, still-valid account
   // is ACCEPTED and skips straight through; anyone else gets the DIDIT flow.
@@ -435,6 +451,18 @@ sep24Router.get('/interactive', async (req, res) => {
     return;
   }
   const usdcAmount = rawAmount;
+  if (strategy) {
+    const amt = Number(usdcAmount);
+    if (amt < strategy.minDeposit || amt > strategy.maxDeposit) {
+      res.type('html').send(page('Limit Exceeded', `
+        <div class="center">
+          <div class="ring err"><svg viewBox="0 0 24 24" fill="none" stroke="#ff5a5a" stroke-width="2.2" stroke-linecap="round"><path d="M12 8v5M12 16.5v.5"/><circle cx="12" cy="12" r="9"/></svg></div>
+          <h2>Operational Limits Exceeded</h2>
+          <p class="note" style="text-align:center">This transaction amount (${amt} USDC) violates permitted operational bounds (Min: ${strategy.minDeposit} USDC, Max: ${strategy.maxDeposit} USDC).</p>
+        </div>`));
+      return;
+    }
+  }
   const memo = generateMemo(transaction_id);
 
   if (kind === 'withdrawal') {
@@ -537,6 +565,18 @@ sep24Router.post('/interactive/complete', async (req, res) => {
   try { tx = await fetchTransaction(transaction_id); }
   catch (err) { res.status(500).send(`<h3>Platform API error</h3><pre>${err}</pre>`); return; }
 
+  // ── Strategy config checks ──────────────────────────────────────────────────
+  const strategy = await pool.query('SELECT config FROM nordstern.strategy_config ORDER BY version DESC LIMIT 1').then(r => r.rows[0]?.config ?? null);
+  if (strategy && (strategy.emergencyStop || strategy.maintenanceMode)) {
+    res.status(503).type('html').send(page('Service Suspended', `
+      <div class="center">
+        <div class="ring err"><svg viewBox="0 0 24 24" fill="none" stroke="#ff5a5a" stroke-width="2.2" stroke-linecap="round"><path d="M12 8v5M12 16.5v.5"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <h2>Service Paused</h2>
+        <p class="note" style="text-align:center">The service is temporarily suspended. Please try again later.</p>
+      </div>`));
+    return;
+  }
+
   // ── KYC enforcement (money-affecting precondition) ──────────────────────────
   // The GET /interactive gate only controls DISPLAY. Money actually moves here, so
   // KYC must be enforced SERVER-SIDE — otherwise this endpoint can be POSTed
@@ -565,6 +605,18 @@ sep24Router.post('/interactive/complete', async (req, res) => {
     return;
   }
   const usdcAmount = rawAmount;
+  if (strategy) {
+    const amt = Number(usdcAmount);
+    if (amt < strategy.minDeposit || amt > strategy.maxDeposit) {
+      res.status(400).type('html').send(page('Limit Exceeded', `
+        <div class="center">
+          <div class="ring err"><svg viewBox="0 0 24 24" fill="none" stroke="#ff5a5a" stroke-width="2.2" stroke-linecap="round"><path d="M12 8v5M12 16.5v.5"/><circle cx="12" cy="12" r="9"/></svg></div>
+          <h2>Operational Limits Exceeded</h2>
+          <p class="note" style="text-align:center">This transaction amount (${amt} USDC) violates permitted operational bounds (Min: ${strategy.minDeposit} USDC, Max: ${strategy.maxDeposit} USDC).</p>
+        </div>`));
+      return;
+    }
+  }
   const memo = generateMemo(transaction_id);
 
   try {
@@ -698,7 +750,88 @@ sep24Router.get('/kyc/status', async (req, res) => {
   }
 });
 
-// more_info_url stub (config points the AP here). Real detail view: Phase E.
-sep24Router.get('/transaction', (req, res) => {
-  res.json({ id: req.query.transaction_id ?? null, note: 'more_info stub' });
+// ── more_info_url: user-facing transaction detail (wallets open this) ────────────
+// Renders the live Platform state for one transaction — status, amounts, memo,
+// destination, and the settling Stellar tx — in the same branded shell as the rest
+// of the interactive flow. Read-only. Auto-refreshes while the tx is non-terminal.
+
+// "10.00 USDC" / "₹885.00" from a Platform {amount, asset} object, or null.
+function fmtAmount(a: any): string | null {
+  if (!a || a.amount == null) return null;
+  const asset = String(a.asset ?? '');
+  if (asset.includes('INR')) return `₹${a.amount}`;
+  const code = asset.startsWith('stellar:') ? asset.split(':')[1] : (asset || ASSET_CODE);
+  return `${a.amount} ${code}`;
+}
+
+function fmtDate(iso?: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d.toUTCString().replace('GMT', 'UTC');
+}
+
+function statusPill(status: string): string {
+  const s = String(status || '');
+  let color = 'var(--tx3)', bg = 'var(--s3)';
+  if (s === 'completed') { color = 'var(--pos)'; bg = 'var(--pos-fill)'; }
+  else if (s === 'error' || s === 'expired') { color = 'var(--crit)'; bg = 'rgba(255,90,90,.14)'; }
+  else if (s.startsWith('pending') || s === 'incomplete') { color = 'var(--warn)'; bg = 'rgba(242,184,75,.14)'; }
+  return `<span style="display:inline-block;font-size:10.5px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:${color};background:${bg};border:1px solid color-mix(in srgb, ${color} 34%, transparent);padding:5px 11px;border-radius:999px">${s.replace(/_/g, ' ')}</span>`;
+}
+
+const detailCard = (label: string, value: string) =>
+  `<div class="card"><div class="label">${label}</div><div class="value">${value}</div></div>`;
+
+sep24Router.get('/transaction', async (req, res) => {
+  const transaction_id = (req.query.transaction_id ?? req.query.id) as string | undefined;
+  if (!transaction_id) {
+    res.status(400).type('html').send(page('Transaction', `<h3 class="err">Missing transaction_id</h3>`));
+    return;
+  }
+
+  let tx: Record<string, any>;
+  try {
+    tx = await fetchTransaction(transaction_id);
+  } catch {
+    res.status(404).type('html').send(page('Transaction not found', `
+      <div class="center">
+        <div class="ring err"><svg viewBox="0 0 24 24" fill="none" stroke="#ff5a5a" stroke-width="2.2" stroke-linecap="round"><path d="M12 8v5M12 16.5v.5"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <h2>Transaction not found</h2>
+        <p class="note" style="text-align:center">We couldn't find <code>${transaction_id}</code>.</p>
+      </div>`));
+    return;
+  }
+
+  const kind = tx.kind ?? 'deposit';
+  const isWithdraw = kind === 'withdrawal';
+  const title = isWithdraw ? 'Withdrawal' : 'Deposit';
+  const status = String(tx.status ?? 'unknown');
+  const terminal = status === 'completed' || status === 'error' || status === 'refunded';
+
+  const amtIn = fmtAmount(tx.amount_in) ?? fmtAmount(tx.amount_expected);
+  const amtOut = fmtAmount(tx.amount_out);
+  const hash = tx.stellar_transactions?.[0]?.id ?? null;
+  const net = IS_MAINNET ? 'public' : 'testnet';
+
+  const cards = [
+    amtOut ? `<div class="card hero"><div class="label">${isWithdraw ? 'You receive' : 'You receive'}</div>
+      <div class="value big recv">${amtOut}</div></div>` : '',
+    amtIn ? detailCard(isWithdraw ? 'You send' : 'You pay', amtIn) : '',
+    tx.memo ? detailCard(`Memo${tx.memo_type ? ` (${tx.memo_type})` : ''}`, String(tx.memo)) : '',
+    tx.destination_account ? detailCard(isWithdraw ? 'Treasury' : 'Destination', String(tx.destination_account)) : '',
+    hash ? `<div class="card"><div class="label">Stellar transaction</div>
+      <div class="value">${hash}</div>
+      <p style="margin-top:8px"><a class="link" href="https://stellar.expert/explorer/${net}/tx/${hash}" target="_blank" rel="noopener">View on Stellar Expert →</a></p></div>` : '',
+    fmtDate(tx.started_at) ? detailCard('Started', fmtDate(tx.started_at)!) : '',
+    fmtDate(tx.completed_at) ? detailCard('Completed', fmtDate(tx.completed_at)!) : '',
+  ].filter(Boolean).join('');
+
+  res.type('html').send(page(`${title} · ${transaction_id}`, `
+    <h2>${title}</h2>
+    <p class="sub">Transaction <code>${transaction_id}</code></p>
+    <div style="margin:2px 0 16px">${statusPill(status)}</div>
+    ${cards}
+    ${tx.message ? `<p class="note warn">${tx.message}</p>` : ''}
+    ${terminal ? '' : `<p class="status">This page refreshes automatically…</p>
+      <script>setTimeout(function(){location.reload()}, 8000)</script>`}`));
 });

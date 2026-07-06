@@ -62,9 +62,15 @@ export default function RegisterWizard() {
 
   const onSubmit = async (data: OnboardingFormValues) => {
     try {
-      // Simulate API submission
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log('Final Application Payload:', data);
+      const res = await fetch('/api/v1/applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Submission failed' }));
+        throw new Error(err.error || 'Submission failed');
+      }
       setIsSubmitted(true);
     } catch (error) {
       console.error(error);

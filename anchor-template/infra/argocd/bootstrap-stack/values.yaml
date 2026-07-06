@@ -1,0 +1,46 @@
+# Default values for bootstrap-stack.
+# These configure cluster addons and the primary tenant application deployment.
+
+global:
+  clusterName: "nordstern-dev"
+  awsAccountId: "123456789012"
+  region: "ap-south-1"
+  domain: "anchors.nordstern.io"
+  repoURL: "https://github.com/Kaushik2003/nordstern.git"
+  targetRevision: "HEAD"
+
+addons:
+  awsLoadBalancerController:
+    enabled: true
+    version: "1.8.1"
+  certManager:
+    enabled: true
+    version: "v1.15.1"
+  externalSecrets:
+    enabled: true
+    version: "0.9.20"
+  externalDns:
+    enabled: true
+    version: "1.14.5"
+  karpenter:
+    enabled: true
+    version: "0.37.0"
+  kubePrometheusStack:
+    enabled: true
+    version: "61.3.0"
+
+# Values injected into the primary tenant's anchor-stack Application deployment
+tenant:
+  slug: "acme"
+  network: "testnet"
+  dbHost: "nordstern-dev-anchordb.cluster-xxxxxx.ap-south-1.rds.amazonaws.com"
+  dbSecretName: "rds-db-credentials-secret-arn"
+  anchorSecretName: "nordstern/dev/anchor/acme"
+  images:
+    registry: "123456789012.dkr.ecr.ap-south-1.amazonaws.com"
+    businessServer:
+      repo: "nordstern/business-server"
+      tag: "0.1.0"
+    client:
+      repo: "nordstern/client"
+      tag: "0.1.0"

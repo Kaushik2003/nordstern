@@ -62,7 +62,7 @@ export function Modal({
                   exit={{ opacity: 0, scale: 0.97, y: 6 }}
                   transition={{ type: "spring", stiffness: 320, damping: 28 }}
                   className={cn(
-                    "relative w-full rounded-[16px] border border-border-default bg-surface-3 shadow-lg",
+                    "relative w-full rounded-[24px] border border-black/[0.06] bg-white shadow-[0_20px_60px_-15px_rgba(24,22,54,0.3)]",
                     widths[size],
                     className,
                   )}
@@ -122,7 +122,7 @@ export function Sheet({
                 exit={{ x: "100%" }}
                 transition={{ type: "spring", stiffness: 380, damping: 40 }}
                 style={{ width }}
-                className="fixed right-0 top-0 z-50 flex h-dvh max-w-[94vw] flex-col border-l border-border-default bg-surface-1 shadow-lg"
+                className="fixed right-0 top-0 z-50 flex h-dvh max-w-[94vw] flex-col border-l border-black/[0.06] bg-white shadow-[0_20px_60px_-15px_rgba(24,22,54,0.3)]"
               >
                 <VisuallyHidden>
                   <Dialog.Title>{title}</Dialog.Title>

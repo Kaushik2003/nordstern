@@ -30,6 +30,23 @@ entity** and who bears liability for pooled funds.
 - *Technical impact:* the banking/custody adapter and whether tenancy maps to real
   bank accounts. *Current assumption:* testnet only, single distribution account,
   **no real fiat custody**.
+- **Architectural direction (2026-07-06) — Model A (bring-your-own-rails):** each
+  anchor brings and **owns** its Razorpay/Cashfree accounts, its bank, and its USDC
+  treasury. NordStern stores the tenant's keys encrypted (per-tenant vault) and
+  **orchestrates on the anchor's behalf; money never flows through a NordStern
+  account.** The operator dashboard is a **control** surface (view balances, trigger
+  the anchor's *own* payouts via *its* keys) — never a **custody** surface. Intent:
+  keep NordStern *infrastructure*, not a regulated money-mover. Already reflected in
+  the code (per-anchor keys injected per stack; encrypted key vault).
+- **Model B (NordStern-managed rails) — FUTURE, counsel-gated, NOT built:**
+  NordStern's own master PSP/bank collects & settles, funds pool in a NordStern
+  account, and the anchor withdraws its balance. This most likely makes NordStern an
+  **RBI-authorized Payment Aggregator + custodian + the registered VDASP** — a
+  deliberate licensing step taken only with counsel.
+- **Still OPEN for counsel:** whether Model A (holding a tenant's keys + orchestrating
+  API calls on their behalf) truly keeps NordStern outside PA / custody / VDASP scope,
+  and what registration — if any — the orchestration itself requires. This records the
+  *architecture*, not a legal conclusion.
 
 ## Q2 — VDA / VDASP classification & FIU-IND registration 🔴
 Fiat-to-token on/off-ramps may be **Virtual Digital Asset Service Providers**,

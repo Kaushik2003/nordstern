@@ -1,0 +1,44 @@
+{{- if .Values.addons.externalDns.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: external-dns
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://kubernetes-sigs.github.io/external-dns/
+    chart: external-dns
+    targetRevision: {{ .Values.addons.externalDns.version | quote }}
+    helm:
+      values: |
+        provider: aws
+        env:
+          - name: AWS_DEFAULT_REGION
+            value: {{ .Values.global.region | quote }}
+        domainFilters:
+          - {{ .Values.global.domain | quote }}
+        policy: sync
+        sources:
+          - ingress
+          - service
+        txtOwnerId: {{ .Values.global.clusterName | quote }}
+        serviceAccount:
+          create: true
+          name: external-dns
+          annotations:
+            eks.amazonaws.com/role-arn: arn:aws:iam::{{ .Values.global.awsAccountId }}:role/{{ .Values.global.clusterName }}-external-dns
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: external-dns
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+{{- end }}

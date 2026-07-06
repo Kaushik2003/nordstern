@@ -44,7 +44,7 @@ export function Topbar() {
   };
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-border-subtle bg-base/80 px-3 backdrop-blur-xl sm:px-4">
+    <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-black/[0.05] bg-white/70 px-3 backdrop-blur-xl sm:px-4">
       {/* Brand on mobile (sidebar hidden) */}
       <Link href="/overview" className="md:hidden" aria-label="NordStern">
         <BrandMark size={24} />
@@ -53,7 +53,7 @@ export function Topbar() {
       {/* Search / ⌘K */}
       <button
         onClick={() => setCmdkOpen(true)}
-        className="group flex h-9 max-w-md flex-1 items-center gap-2.5 rounded-[10px] border border-border-subtle bg-surface-1 px-3 text-text-tertiary transition-colors hover:border-border-default hover:bg-surface-2"
+        className="group flex h-9 max-w-md flex-1 items-center gap-2.5 rounded-[10px] border border-black/[0.06] bg-white px-3 text-subtle transition-colors hover:border-black/[0.12]"
       >
         <Search className="size-4" />
         <span className="text-[13px]">Search transactions, users, actions…</span>
@@ -84,10 +84,10 @@ export function Topbar() {
           <button
             onClick={runDemo}
             className={cn(
-              "hidden h-8 items-center gap-1.5 rounded-[9px] border px-2.5 text-[12px] font-medium transition-colors lg:inline-flex",
+              "hidden h-9 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-colors lg:inline-flex shadow-xs",
               scenario.running
                 ? "border-brand/40 bg-brand-fill text-brand"
-                : "border-border-subtle text-text-secondary hover:bg-surface-2 hover:text-text-primary",
+                : "border-black/[0.06] bg-white text-muted hover:bg-surface-hover hover:text-ink",
             )}
           >
             {scenario.running ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
@@ -99,7 +99,7 @@ export function Topbar() {
         <Tip content={`Numbers: ${format === "full" ? "full" : "compact"} — click to toggle`}>
           <button
             onClick={toggleFormat}
-            className="inline-flex h-8 items-center gap-1 rounded-[9px] px-2 text-[12px] font-medium text-text-secondary transition-colors hover:bg-surface-2 hover:text-text-primary"
+            className="inline-flex h-9 items-center gap-1 rounded-full border border-black/[0.06] bg-white px-3 text-[12px] font-medium text-muted transition-colors hover:bg-surface-hover hover:text-ink shadow-xs"
           >
             <IndianRupee className="size-3.5" />
             <span className="hidden sm:inline">{format === "full" ? "Full" : "Compact"}</span>
@@ -111,7 +111,7 @@ export function Topbar() {
           <button
             onClick={toggleDensity}
             aria-label="Toggle density"
-            className="grid size-8 place-items-center rounded-[9px] text-text-secondary transition-colors hover:bg-surface-2 hover:text-text-primary"
+            className="grid size-9 place-items-center rounded-full border border-black/[0.06] bg-white text-muted transition-colors hover:bg-surface-hover hover:text-ink shadow-xs"
           >
             {density === "compact" ? <Rows3 className="size-4" /> : <Rows2 className="size-4" />}
           </button>
@@ -137,16 +137,16 @@ function Notifications() {
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
-        <button aria-label="Notifications" className="relative grid size-8 place-items-center rounded-[9px] text-text-secondary transition-colors hover:bg-surface-2 hover:text-text-primary">
+        <button aria-label="Notifications" className="relative grid size-9 place-items-center rounded-full border border-black/[0.06] bg-white text-muted transition-colors hover:bg-surface-hover hover:text-ink shadow-xs">
           <Bell className="size-[17px]" />
-          <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-warn ring-2 ring-base" />
+          <span className="absolute right-2 top-2 size-1.5 rounded-full bg-warn ring-2 ring-white" />
         </button>
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
           align="end"
           sideOffset={8}
-          className="z-50 w-[340px] origin-top-right rounded-[14px] border border-border-default bg-surface-3 p-1.5 shadow-lg data-[state=open]:animate-rise"
+          className="z-50 w-[340px] origin-top-right rounded-[16px] border border-black/[0.06] bg-white p-1.5 shadow-[0_10px_30px_rgba(24,22,54,0.16)] data-[state=open]:animate-rise"
         >
           <div className="flex items-center justify-between px-2.5 py-2">
             <span className="eyebrow">Alerts</span>
@@ -173,8 +173,8 @@ function OrgMenu() {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <button className="flex h-9 items-center gap-2 rounded-[10px] border border-border-subtle bg-surface-1 pl-1.5 pr-2 transition-colors hover:bg-surface-2">
-          <span className="grid size-6 place-items-center rounded-[7px] bg-brand-fill text-[11px] font-semibold text-brand">AP</span>
+        <button className="flex h-9 items-center gap-2 rounded-full border border-black/[0.06] bg-white pl-1.5 pr-2.5 transition-colors hover:bg-surface-hover shadow-xs">
+          <span className="grid size-6 place-items-center rounded-full bg-brand-fill text-[11px] font-semibold text-brand">AP</span>
           <span className="hidden text-[13px] font-medium text-text-primary sm:inline">Acme Pay</span>
           <ChevronDown className="size-3.5 text-text-tertiary" />
         </button>
@@ -183,7 +183,7 @@ function OrgMenu() {
         <DropdownMenu.Content
           align="end"
           sideOffset={8}
-          className="z-50 w-60 rounded-[14px] border border-border-default bg-surface-3 p-1.5 shadow-lg data-[state=open]:animate-rise"
+          className="z-50 w-60 rounded-[16px] border border-black/[0.06] bg-white p-1.5 shadow-[0_10px_30px_rgba(24,22,54,0.16)] data-[state=open]:animate-rise"
         >
           <div className="flex items-center gap-2.5 px-2.5 py-2">
             <span className="grid size-9 place-items-center rounded-[9px] bg-brand-fill text-[13px] font-semibold text-brand">AP</span>
@@ -205,7 +205,7 @@ function OrgMenu() {
 }
 
 function Sep() {
-  return <DropdownMenu.Separator className="my-1 h-px bg-border-subtle" />;
+  return <DropdownMenu.Separator className="my-1 h-px bg-black/[0.06]" />;
 }
 function Item({ icon: Icon, children, tone }: { icon: typeof Building2; children: React.ReactNode; tone?: "crit" }) {
   return (

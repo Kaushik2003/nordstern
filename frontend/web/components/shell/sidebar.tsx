@@ -21,15 +21,12 @@ function NavRow({ item, active, collapsed }: { item: NavItem; active: boolean; c
       className={cn(
         "group relative flex items-center gap-3 rounded-[10px] px-2.5 py-2 text-[13.5px] font-medium transition-colors",
         active
-          ? "bg-brand-fill text-text-primary"
-          : "text-text-secondary hover:bg-surface-2 hover:text-text-primary",
+          ? "bg-brand/[0.16] text-white ring-1 ring-inset ring-brand/20"
+          : "text-white/45 hover:bg-white/[0.06] hover:text-white/80",
         collapsed && "justify-center px-0",
       )}
     >
-      {active && (
-        <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand" />
-      )}
-      <Icon className={cn("size-[18px] shrink-0", active ? "text-brand" : "text-text-tertiary group-hover:text-text-secondary")} />
+      <Icon className={cn("size-[18px] shrink-0 transition-colors", active ? "text-white" : "text-white/45 group-hover:text-white/80")} />
       {!collapsed && <span className="truncate">{item.label}</span>}
     </Link>
   );
@@ -60,17 +57,17 @@ export function Sidebar() {
   return (
     <aside
       style={{ width: collapsed ? 68 : 244 }}
-      className="sticky top-0 z-30 hidden h-dvh shrink-0 flex-col border-r border-border-subtle bg-base/80 backdrop-blur-xl transition-[width] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] md:flex"
+      className="sticky top-0 z-30 hidden h-dvh shrink-0 flex-col border-r border-white/10 bg-[#161520] transition-[width] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] md:flex"
     >
-      <div className={cn("flex h-14 items-center border-b border-border-subtle", collapsed ? "justify-center px-0" : "justify-between px-4")}>
+      <div className={cn("flex h-14 items-center border-b border-white/10", collapsed ? "justify-center px-0" : "justify-between px-4")}>
         <Link href="/overview" aria-label="NordStern">
-          {collapsed ? <BrandMark size={26} /> : <Wordmark />}
+          {collapsed ? <BrandMark size={26} /> : <Wordmark textClassName="text-white" />}
         </Link>
         {!collapsed && (
           <button
             onClick={toggle}
             aria-label="Collapse sidebar"
-            className="grid size-7 place-items-center rounded-[8px] text-text-tertiary transition-colors hover:bg-surface-2 hover:text-text-primary"
+            className="grid size-7 place-items-center rounded-[8px] text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white/80"
           >
             <PanelLeftClose className="size-[17px]" />
           </button>
@@ -81,16 +78,16 @@ export function Sidebar() {
         {NAV_PRIMARY.map((item) => (
           <NavRow key={item.href} item={item} active={isActive(pathname, item.href)} collapsed={collapsed} />
         ))}
-        <div className={cn("my-2.5 border-t border-border-subtle", collapsed ? "mx-2" : "mx-1")} />
+        <div className={cn("my-2.5 border-t border-white/10", collapsed ? "mx-2" : "mx-1")} />
         {NAV_CONFIG.map((item) => (
           <NavRow key={item.href} item={item} active={isActive(pathname, item.href)} collapsed={collapsed} />
         ))}
       </nav>
 
-      <div className="border-t border-border-subtle p-3">
+      <div className="border-t border-white/10 p-3">
         {collapsed ? (
           <div className="flex flex-col items-center gap-3">
-            <button onClick={toggle} aria-label="Expand sidebar" className="grid size-7 place-items-center rounded-[8px] text-text-tertiary hover:bg-surface-2 hover:text-text-primary">
+            <button onClick={toggle} aria-label="Expand sidebar" className="grid size-7 place-items-center rounded-[8px] text-white/40 hover:bg-white/[0.06] hover:text-white/80">
               <PanelLeft className="size-[17px]" />
             </button>
             <Tip content="All systems operational" side="right">
@@ -103,7 +100,7 @@ export function Sidebar() {
         ) : (
           <Link
             href="/developer"
-            className="flex items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-[12px] text-text-secondary transition-colors hover:bg-surface-2"
+            className="flex items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-[12px] text-white/60 transition-colors hover:bg-white/[0.06]"
           >
             <span className="relative flex size-2">
               <span className="absolute inline-flex size-full animate-[dot-pulse_1.8s_ease-in-out_infinite] rounded-full bg-pos" />

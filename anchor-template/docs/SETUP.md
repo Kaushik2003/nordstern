@@ -9,10 +9,12 @@
 - Node.js 20+
 - Docker & Docker Compose
 - A basic understanding of Stellar concepts (Keypairs, Trustlines, Friendbot).
-- **For real KYC (`KYC_PROVIDER=didit`):** an [ngrok](https://ngrok.com) account with a
-  **reserved static domain** and an authtoken. The Dockerized `ngrok` service exposes the
-  business-server publicly so DIDIT can deliver its verification webhook. *(With
-  `KYC_PROVIDER=mock` you can skip ngrok entirely.)*
+- **KYC is real by default (`KYC_PROVIDER=didit`) and fails closed** — the stack will not
+  start without a real KYC provider configured. You need an [ngrok](https://ngrok.com)
+  account with a **reserved static domain** and an authtoken; the Dockerized `ngrok`
+  service exposes the business-server publicly so DIDIT can deliver its verification
+  webhook. *(For local dev without DIDIT you may set `KYC_PROVIDER=mock ALLOW_MOCK_KYC=true`
+  to skip ngrok — this auto-approves every user, is dev-only, and is refused on mainnet.)*
 
 ---
 
@@ -27,7 +29,12 @@ The repository relies on a `.env` file that contains your Stellar signing keys, 
    ```
 3. This creates a `.env` file (which is git-ignored) and populates `config/stellar.toml`.
 
-### DIDIT KYC (optional — only if `KYC_PROVIDER=didit`)
+### DIDIT KYC (required by default — `KYC_PROVIDER=didit`)
+
+> Real KYC is the default and the server refuses to boot without it. For a local smoke
+> run without DIDIT, set `KYC_PROVIDER=mock ALLOW_MOCK_KYC=true` in `.env` (dev-only;
+> auto-approves everyone; forbidden on mainnet) — otherwise the deposit/withdraw gate
+> will (correctly) block until identity is verified.
 
 The Dockerized `ngrok` service gives DIDIT a public HTTPS URL to reach the business-server.
 In `.env`:

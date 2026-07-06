@@ -315,3 +315,31 @@ export const provisioningJobsRelations = relations(provisioningJobs, ({ one }) =
   project: one(projects, { fields: [provisioningJobs.projectId], references: [projects.id] }),
   anchor: one(anchors, { fields: [provisioningJobs.anchorId], references: [anchors.id] }),
 }));
+
+// ── Applications (Step 1-4 Wizard submission data) ───────────────────────────
+export const applications = pgTable('applications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  profile: jsonb('profile').notNull(),
+  stellarCfg: jsonb('stellar_cfg').notNull(),
+  paymentRails: jsonb('payment_rails').notNull(),
+  compliance: jsonb('compliance').notNull(),
+  status: varchar('status', { length: 30 }).default('applied').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull().$onUpdate(() => new Date()),
+});
+
+// ── One-Time Cryptographic Invitations ───────────────────────────────────────
+export const anchorInvitations = pgTable('anchor_invitations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  applicationId: uuid('application_id').references(() => applications.id, { onDelete: 'cascade' }),
+  email: varchar('email', { length: 255 }).notNull(),
+  tokenHash: varchar('token_hash', { length: 64 }).notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull().$onUpdate(() => new Date()),
+}, (t) => [
+  uniqueIndex('anchor_invites_email_uq').on(t.email),
+  uniqueIndex('anchor_invites_token_uq').on(t.tokenHash),
+]);
+

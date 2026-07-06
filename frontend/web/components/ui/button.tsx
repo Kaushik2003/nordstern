@@ -9,17 +9,17 @@ type Size = "sm" | "md" | "lg";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-brand text-[#15131f] font-semibold hover:bg-brand-600 active:bg-brand-700 shadow-[0_2px_18px_-4px_rgba(171,159,242,0.5)]",
+    "bg-brand-700 text-white font-semibold hover:bg-brand-800 active:bg-brand-900 shadow-sm",
   secondary:
-    "bg-surface-2 text-text-primary border border-border-default hover:bg-surface-hover hover:border-border-strong",
+    "bg-white text-text-primary border border-black/[0.08] hover:bg-surface-2 hover:border-black/[0.15] shadow-xs",
   ghost: "text-text-secondary hover:text-text-primary hover:bg-surface-2",
-  destructive: "border border-crit/45 text-crit hover:bg-crit hover:text-white hover:border-crit",
+  destructive: "border border-neg/30 text-neg hover:bg-neg hover:text-white hover:border-neg",
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-3 text-[12.5px] gap-1.5 rounded-[9px]",
-  md: "h-[38px] px-4 text-[13px] gap-2 rounded-[10px]",
-  lg: "h-11 px-5 text-[14.5px] gap-2 rounded-[11px]",
+  sm: "h-8 px-3.5 text-[12px] gap-1.5 rounded-full",
+  md: "h-[38px] px-4 text-[13px] gap-2 rounded-full",
+  lg: "h-11 px-5.5 text-[14px] gap-2 rounded-full",
 };
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -75,9 +75,9 @@ export const IconButton = forwardRef<
       ref={ref}
       style={{ width: size, height: size }}
       className={cn(
-        "inline-grid place-items-center rounded-[10px] text-text-secondary transition-colors duration-150",
-        "hover:bg-surface-2 hover:text-text-primary",
-        active && "bg-brand-fill text-brand",
+        "inline-grid place-items-center rounded-full text-text-secondary transition-colors duration-150",
+        "hover:bg-surface-2 hover:text-text-primary border border-transparent hover:border-black/[0.04]",
+        active && "bg-brand-fill text-brand border-brand/20",
         className,
       )}
       {...props}

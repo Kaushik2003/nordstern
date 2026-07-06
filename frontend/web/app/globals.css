@@ -13,46 +13,46 @@
   --font-sans: var(--font-inter), "Inter", -apple-system, "Segoe UI", sans-serif;
   --font-mono: var(--font-jetbrains), "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
 
-  /* ---- Surfaces (dark, violet-tinted) ---- */
-  --color-base: #100f16;
-  --color-sunken: #0b0a10;
-  --color-surface-1: #181722;
-  --color-surface-2: #201f2d;
-  --color-surface-3: #29283a;
-  --color-surface-hover: #232234;
+  /* ---- Surfaces (light, spacious) ---- */
+  --color-base: #f4f4f8;
+  --color-sunken: #faf9ff;
+  --color-surface-1: #ffffff;
+  --color-surface-2: #f2f4f3;
+  --color-surface-3: #eaeeec;
+  --color-surface-hover: #faf9fe;
 
-  /* ---- Borders (faint violet) ---- */
-  --color-border-subtle: rgba(171, 159, 242, 0.08);
-  --color-border-default: rgba(171, 159, 242, 0.15);
-  --color-border-strong: rgba(171, 159, 242, 0.28);
+  /* ---- Borders (faint) ---- */
+  --color-border-subtle: rgba(28, 27, 38, 0.05);
+  --color-border-default: rgba(28, 27, 38, 0.08);
+  --color-border-strong: rgba(28, 27, 38, 0.15);
 
-  /* ---- Text ---- */
-  --color-text-primary: #f4f3f7;
-  --color-text-secondary: #a6a2b8;
-  --color-text-tertiary: #6e6a80;
+  /* ---- Text (deep charcoal) ---- */
+  --color-text-primary: #1c1b26;
+  --color-text-secondary: #5b5b5b;
+  --color-text-tertiary: #9a9a9a;
 
-  /* ---- Brand (Perano purple) — the single accent ---- */
-  --color-brand-50: #f5f2ff;
-  --color-brand-100: #e2dffe;
-  --color-brand-300: #c7bef7;
+  /* ---- Brand (NordStern purple) — the single accent ---- */
+  --color-brand-50: #f4f2fd;
+  --color-brand-100: #e9e5fb;
+  --color-brand-300: #bcb1f2;
   --color-brand: #ab9ff2;
-  --color-brand-600: #9b8dec;
-  --color-brand-700: #8b7ee0;
-  --color-brand-900: #3c315b;
-  --color-brand-fill: rgba(171, 159, 242, 0.14);
+  --color-brand-600: #8b7ee0;
+  --color-brand-700: #6f5fd6;
+  --color-brand-900: #4b3f9e;
+  --color-brand-fill: rgba(171, 159, 242, 0.12);
   --color-brand-fill-strong: rgba(171, 159, 242, 0.22);
 
   /* ---- Semantic / money direction ---- */
   --color-pos: #2ec08b; /* money in — emerald */
-  --color-pos-fill: rgba(46, 192, 139, 0.14);
-  --color-neg: #ff8c73; /* money out — coral */
-  --color-neg-fill: rgba(255, 140, 115, 0.14);
-  --color-warn: #f2b84b; /* pending / processing */
-  --color-warn-fill: rgba(242, 184, 75, 0.14);
-  --color-crit: #ff5a5a; /* failed / breach */
-  --color-crit-fill: rgba(255, 90, 90, 0.14);
+  --color-pos-fill: rgba(46, 192, 139, 0.1);
+  --color-neg: #f0654a; /* money out — coral */
+  --color-neg-fill: rgba(240, 101, 74, 0.1);
+  --color-warn: #c9992e; /* pending / processing */
+  --color-warn-fill: #f6eccf;
+  --color-crit: #f0654a; /* failed / breach */
+  --color-crit-fill: rgba(240, 101, 74, 0.1);
   --color-cool: #7db8f2; /* awaiting KYC / info */
-  --color-cool-fill: rgba(125, 184, 242, 0.14);
+  --color-cool-fill: rgba(125, 184, 242, 0.1);
 
   /* ---- Radius (institutional-modern: tighter than Phantom) ---- */
   --radius-xs: 6px;
@@ -63,10 +63,10 @@
   --radius-2xl: 28px;
   --radius-full: 999px;
 
-  /* ---- Shadows (near-black + violet glow) ---- */
-  --shadow-sm: 0 1px 2px rgba(8, 6, 16, 0.5);
-  --shadow-md: 0 10px 30px rgba(8, 6, 16, 0.55);
-  --shadow-lg: 0 28px 70px rgba(6, 4, 12, 0.7);
+  /* ---- Shadows (light-mode soft shadows) ---- */
+  --shadow-sm: 0 1px 2px rgba(24, 22, 54, 0.04);
+  --shadow-md: 0 10px 30px -20px rgba(24, 22, 54, 0.16);
+  --shadow-lg: 0 22px 48px -24px rgba(34, 24, 78, 0.24);
   --shadow-glow: 0 0 0 3px rgba(171, 159, 242, 0.3);
 
   /* ---- Motion ---- */
@@ -103,7 +103,7 @@
     border-color: var(--color-border-subtle);
   }
   html {
-    color-scheme: dark;
+    color-scheme: light;
     -webkit-text-size-adjust: 100%;
   }
   body {

@@ -43,6 +43,11 @@ export const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL ?? 'http://localhost:
 // for testing the re-verification path; raise to a real policy window for prod.
 export const KYC_REVERIFY_TTL_SECONDS = Number(process.env.KYC_REVERIFY_TTL_SECONDS ?? 300);
 
+// Mock KYC auto-approves EVERY user — it must never be the operating mode of a real
+// anchor. It is disabled unless explicitly acknowledged for local dev, and is
+// forbidden outright on mainnet (see makeKyc() in adapters/index.ts).
+export const ALLOW_MOCK_KYC = process.env.ALLOW_MOCK_KYC === 'true';
+
 // ─── Razorpay (fiat-in / deposit collection) ────────────────────────────────────
 // DEPOSIT_PROVIDER=razorpay collects the INR via Razorpay Checkout before USDC is
 // released. KEY_ID is public (shipped to the browser to open Checkout); KEY_SECRET
@@ -54,9 +59,13 @@ export const RAZORPAY_KEY_SECRET     = process.env.RAZORPAY_KEY_SECRET     ?? ''
 export const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET ?? '';
 export const RAZORPAY_BUSINESS_NAME  = process.env.RAZORPAY_BUSINESS_NAME  ?? 'NordStern';
 
-// Adapter selection (mock-first). Real vendors land behind these seams in Phase D.
+// Adapter selection. KYC defaults to REAL (didit) and fails closed — a money anchor
+// must never silently run on mock identity checks (see makeKyc()). The other seams
+// remain mock-first sandbox defaults until their credentials are provided.
 export const PROVIDERS = {
-  kyc:     process.env.KYC_PROVIDER     ?? 'mock',   // mock | surepass | didit
+  // `||` (not `??`) so an empty KYC_PROVIDER= still resolves to the real default
+  // rather than falling through to the fail-closed "unknown provider" error.
+  kyc:     process.env.KYC_PROVIDER     || 'didit',  // didit | surepass (real) · mock (dev-only, gated)
   deposit: process.env.DEPOSIT_PROVIDER ?? 'mock',
   payout:  process.env.PAYOUT_PROVIDER  ?? 'mock',
   fee:     process.env.FEE_PROVIDER     ?? 'mock',

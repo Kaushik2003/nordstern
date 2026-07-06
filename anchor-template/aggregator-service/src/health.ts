@@ -3,22 +3,24 @@ import { pool } from './db.js';
 export async function checkAnchorHealth(anchorId: string, apiUrl: string) {
   const start = Date.now();
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    
-    // Check against the /admin/summary endpoint we just enriched!
-    const res = await fetch(`${apiUrl}/admin/summary`, {
-      signal: controller.signal,
-      headers: { 'Cache-Control': 'no-store' }
-    });
-    
-    clearTimeout(timeout);
+    // Prefer the rich /admin/summary (anchor-template); fall back to /health, which
+    // EVERY anchor exposes (incl. the anchor-service/ANCH stack that the provisioner
+    // launches). Basic reachability drives availability; treasury is best-effort.
+    let res = await fetch(`${apiUrl}/admin/summary`, { signal: AbortSignal.timeout(5000), headers: { 'Cache-Control': 'no-store' } });
+    let summary: any = res.ok ? await res.json().catch(() => ({})) : {};
+    if (!res.ok) {
+      res = await fetch(`${apiUrl}/health`, { signal: AbortSignal.timeout(5000), headers: { 'Cache-Control': 'no-store' } });
+      summary = res.ok ? await res.json().catch(() => ({})) : {};
+    }
+
     const latency = Date.now() - start;
-    
+
     if (res.ok) {
-      const summary = await res.json().catch(() => ({}));
-      const horizonUp = summary.health?.horizonConnectivity === 'up';
-      const usdcCapacity = summary.treasury?.usdc ? parseFloat(summary.treasury.usdc) : 0;
+      const horizonUp = summary.health?.horizonConnectivity === 'up' || summary.status === 'ok';
+      // Unknown treasury (e.g. the ANCH anchor's /health) → don't block liquidity routing.
+      const usdcCapacity = summary.treasury?.usdc ? parseFloat(summary.treasury.usdc)
+        : summary.treasuryUsdc ? parseFloat(summary.treasuryUsdc)
+        : 1_000_000;
       
       // Log healthy metrics
       await pool.query(

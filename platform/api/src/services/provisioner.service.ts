@@ -102,7 +102,10 @@ export const provisionerService = {
         id: o.slug,
         name: orgName,
         domain: o.homeDomain,
-        api_url: `https://${o.homeDomain}`,               // real reachable endpoint (Traefik host)
+        // Container-reachable endpoint for the aggregator's health checks + handoff
+        // resolution (same nordstern-net). The public Traefik host (o.homeDomain) is
+        // for wallets; the aggregator lives beside the anchor, not on the internet.
+        api_url: `http://business-server-${o.slug}:3000`,
         status: 'active',
         regions: ['India'],
         capabilities: {

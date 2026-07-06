@@ -148,7 +148,7 @@ sdkRouter.post('/transactions/start', async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      'SELECT name, api_url FROM aggregator.anchors WHERE id = $1',
+      'SELECT name, api_url, domain FROM aggregator.anchors WHERE id = $1',
       [quote.anchor_id]
     );
     if (rows.length === 0) {
@@ -163,16 +163,19 @@ sdkRouter.post('/transactions/start', async (req, res) => {
     // transaction_id or an interactive URL on the user's behalf. So we resolve the
     // selected anchor's REAL SEP discovery (its stellar.toml) and hand the wallet the
     // genuine endpoints to drive SEP-10 → SEP-24 against. No fabricated ids.
-    const base = (anchor.api_url as string)?.replace(/\/$/, '') || `https://${anchor.domain}`;
-    let transferServer = `${base}/sep24`;
-    let webAuthEndpoint = `${base}/auth`;
+    // SEP endpoints live at the PUBLIC home_domain (Traefik → Anchor Platform SEP
+    // server) — NOT api_url, which is the internal business-server used for health.
+    // Derive from the domain, preferring the anchor's own stellar.toml when reachable.
+    const scheme = (anchor.domain as string).includes('localhost') ? 'http' : 'https';
+    let transferServer = `${scheme}://${anchor.domain}/sep24`;
+    let webAuthEndpoint = `${scheme}://${anchor.domain}/auth`;
     try {
-      const toml = await fetch(`https://${anchor.domain}/.well-known/stellar.toml`).then((r) => (r.ok ? r.text() : ''));
+      const toml = await fetch(`${scheme}://${anchor.domain}/.well-known/stellar.toml`).then((r) => (r.ok ? r.text() : ''));
       const ts = toml.match(/TRANSFER_SERVER_SEP0024\s*=\s*"([^"]+)"/)?.[1];
       const wa = toml.match(/WEB_AUTH_ENDPOINT\s*=\s*"([^"]+)"/)?.[1];
       if (ts) transferServer = ts;
       if (wa) webAuthEndpoint = wa;
-    } catch { /* fall back to derived endpoints */ }
+    } catch { /* fall back to domain-derived endpoints */ }
 
     res.json({
       success: true,

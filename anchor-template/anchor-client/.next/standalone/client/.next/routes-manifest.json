@@ -1,0 +1,124 @@
+{
+  "version": 3,
+  "pages404": true,
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [
+      {
+        "source": "/biz/:path*",
+        "destination": "http://localhost:3000/:path*",
+        "regex": "^/biz(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$"
+      },
+      {
+        "source": "/cp/:path*",
+        "destination": "http://localhost:3002/:path*",
+        "regex": "^/cp(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$"
+      }
+    ],
+    "fallback": []
+  },
+  "dynamicRoutes": [],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/anchor",
+      "regex": "^/anchor(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/anchor(?:/)?$"
+    },
+    {
+      "page": "/anchor/admin",
+      "regex": "^/anchor/admin(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/anchor/admin(?:/)?$"
+    },
+    {
+      "page": "/anchor/anchors",
+      "regex": "^/anchor/anchors(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/anchor/anchors(?:/)?$"
+    },
+    {
+      "page": "/anchor/dashboard",
+      "regex": "^/anchor/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/anchor/dashboard(?:/)?$"
+    },
+    {
+      "page": "/anchor/login",
+      "regex": "^/anchor/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/anchor/login(?:/)?$"
+    },
+    {
+      "page": "/anchor/onboarding",
+      "regex": "^/anchor/onboarding(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/anchor/onboarding(?:/)?$"
+    },
+    {
+      "page": "/anchor/rules",
+      "regex": "^/anchor/rules(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/anchor/rules(?:/)?$"
+    },
+    {
+      "page": "/anchor/settings",
+      "regex": "^/anchor/settings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/anchor/settings(?:/)?$"
+    },
+    {
+      "page": "/anchor/signup",
+      "regex": "^/anchor/signup(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/anchor/signup(?:/)?$"
+    },
+    {
+      "page": "/anchor/transactions",
+      "regex": "^/anchor/transactions(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/anchor/transactions(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSuffix": ".prefetch.rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments"
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

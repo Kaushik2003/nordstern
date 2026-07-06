@@ -155,7 +155,7 @@ export const anchorInvitationService = {
 
         // 1. Kick off the real control-plane lifecycle.
         const handle = await provisionerService.start({
-          name: payload.orgName,
+          name: payload.slug,
           adapters: { kyc: 'mock', deposit: 'mock', payout: 'mock', fee: 'mock' }, // testnet-safe defaults
         });
         const base = { cpAnchorId: handle.cpAnchorId, slug: handle.slug, homeDomain: handle.homeDomain };

@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/cn';
-import { LayoutDashboard, Users, Anchor, Settings, Code, Activity } from 'lucide-react';
+import { LayoutDashboard, Users, Anchor, Settings, Code, Activity, CreditCard } from 'lucide-react';
 import { useMe } from '@/lib/session';
 
 const navigation = [
   { name: 'Overview', href: '/overview', icon: LayoutDashboard },
   { name: 'Anchors', href: '/anchors', icon: Anchor },
+  { name: 'Wallet Sandbox', href: '/wallet', icon: CreditCard },
   { name: 'Transactions', href: '/transactions', icon: Activity },
   { name: 'Developers', href: '/developers', icon: Code },
   { name: 'Team', href: '/team', icon: Users },

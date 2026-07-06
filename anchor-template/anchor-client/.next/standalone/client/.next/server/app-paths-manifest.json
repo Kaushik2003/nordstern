@@ -1,0 +1,14 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/anchor/login/page": "app/anchor/login/page.js",
+  "/anchor/page": "app/anchor/page.js",
+  "/anchor/onboarding/page": "app/anchor/onboarding/page.js",
+  "/page": "app/page.js",
+  "/anchor/signup/page": "app/anchor/signup/page.js",
+  "/anchor/admin/page": "app/anchor/admin/page.js",
+  "/anchor/(app)/rules/page": "app/anchor/(app)/rules/page.js",
+  "/anchor/(app)/anchors/page": "app/anchor/(app)/anchors/page.js",
+  "/anchor/(app)/settings/page": "app/anchor/(app)/settings/page.js",
+  "/anchor/(app)/dashboard/page": "app/anchor/(app)/dashboard/page.js",
+  "/anchor/(app)/transactions/page": "app/anchor/(app)/transactions/page.js"
+}

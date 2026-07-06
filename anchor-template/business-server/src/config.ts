@@ -7,6 +7,7 @@ import { Networks } from '@stellar/stellar-sdk';
 
 export const PORT             = process.env.PORT             ?? 3000;
 export const PLATFORM_API_URL = process.env.PLATFORM_API_URL ?? 'http://anchor-platform:8085';
+export const SEP_SERVER_URL   = process.env.SEP_SERVER_URL   ?? PLATFORM_API_URL.replace('8085', '8080');
 
 // Treasury = the account that holds the USDC FLOAT. It is the source of USDC on
 // deposit and the destination users send USDC back to on withdrawal. Maps to the

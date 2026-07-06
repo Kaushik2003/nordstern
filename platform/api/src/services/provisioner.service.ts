@@ -101,7 +101,7 @@ export const provisionerService = {
       body: JSON.stringify({
         id: o.slug,
         name: orgName,
-        domain: o.homeDomain,
+        domain: `sep.${o.homeDomain}`,
         // Container-reachable endpoint for the aggregator's health checks + handoff
         // resolution (same nordstern-net). The public Traefik host (o.homeDomain) is
         // for wallets; the aggregator lives beside the anchor, not on the internet.

@@ -3,6 +3,7 @@ import { callbacksRouter } from './callbacks.js';
 import { sep24Router } from './sep24.js';
 import { adminRouter } from './admin.js';
 import { webhooksRouter } from './webhooks.js';
+import { walletRouter } from './walletApi.js';
 import { ASSET_CODE, TREASURY_PUBLIC } from './config.js';
 import { getTreasuryUsdcBalance } from './stellar.js';
 
@@ -22,6 +23,7 @@ export function createApp() {
   // AP v4.4.0 calls callbacks at the base_url root: /customer, /rate.
   app.use('/', callbacksRouter);
   app.use('/sep24', sep24Router);
+  app.use('/', walletRouter);
 
   // Operator dashboard API (read-only, live data).
   app.use('/admin', adminRouter);

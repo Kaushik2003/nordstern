@@ -159,7 +159,7 @@ async function runProvision(anchor: any): Promise<void> {
   const database = anchorDbName(slug);
   await generateAnchorConfig({
     slug,
-    homeDomain: home_domain,
+    homeDomain: `sep.${home_domain}`,
     database,
     assetCode,
     assetIssuer: kps.issuer.publicKey(),
@@ -175,7 +175,7 @@ async function runProvision(anchor: any): Promise<void> {
     `SELECT kyc_provider, deposit_provider, payout_provider, fee_provider FROM anchor_adapters WHERE tenant_id = $1`,
     [id],
   );
-  const { apId, bizId } = await createAnchorStack({
+  const { apId, bizId, clientId, consoleId } = await createAnchorStack({
     slug,
     homeDomain: home_domain,
     database,

@@ -1,0 +1,22 @@
+
+export PATH="$HOME/.local/bin:$PATH"
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+# Added by Antigravity IDE
+export PATH="/Users/manobendramandal/.antigravity-ide/antigravity-ide/bin:$PATH"
+
+eval "$(starship init zsh)"
+
+source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+# StacyVM Autocomplete
+export PATH="/Users/manobendramandal/.local/bin":$PATH
+if command -v stacyvm >/dev/null 2>&1; then
+  source <(stacyvm completion zsh)
+fi
+export ANTHROPIC_API_KEY="aero_live_HlPcqiDWA4Va7PX81C04d73_ov8jtz6oZ4UoL5Vag-U"
+
+
+
+
+

@@ -134,11 +134,12 @@ per anchor via `*_PROVIDER` env injected by the orchestrator.
 
 Multi-anchor is now real: the **control-plane is an orchestrator** that provisions
 an **isolated stack per anchor** — its own Anchor Platform container, business-server
-container, `<slug>.anchors.localhost` subdomain (Traefik), encrypted keypairs
-(DL-007), generated AP config (DL-008), and `anchordb_<slug>`. An operator owns many
-anchors and manages them from the console. The base `docker-compose.yml` runs only
-shared infra (db + traefik + control-plane + frontend); anchors are created at
-provision time via the Docker Engine API. Secrets are encrypted at rest, not
+container, `<slug>.anchors.127.0.0.1.sslip.io` subdomain (Traefik) for zero-config
+wildcard routing, encrypted keypairs (DL-007), generated AP config (DL-008), and
+`anchordb_<slug>`. An operator owns many anchors and manages them from the console.
+The base `docker-compose.platform.yml` runs only shared infra (db + traefik +
+control-plane + platform-api); anchors are created at provision time via the Docker
+Engine API. Secrets are encrypted at rest, not
 plaintext.
 
 Guidelines:

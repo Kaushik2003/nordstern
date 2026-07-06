@@ -75,7 +75,7 @@ services:
       BIZ_IMAGE: nordstern/business-server:dev
       ANCHOR_CONFIG_DIR: /anchor-configs
       ANCHOR_CONFIG_HOST_ROOT: ${ANCHOR_CONFIG_HOST_ROOT:?run anchor-service/scripts/setup-base.mjs and export ANCHOR_CONFIG_HOST_ROOT}
-      ANCHOR_DOMAIN_SUFFIX: anchors.localhost
+      ANCHOR_DOMAIN_SUFFIX: anchors.127.0.0.1.sslip.io
       HORIZON_URL: https://horizon-testnet.stellar.org
       NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
     volumes:

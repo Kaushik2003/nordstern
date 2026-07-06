@@ -14,6 +14,8 @@ const docker = new Docker(); // uses /var/run/docker.sock
 
 const AP_IMAGE   = process.env.AP_IMAGE   ?? 'stellar/anchor-platform:latest';
 const BIZ_IMAGE  = process.env.BIZ_IMAGE  ?? 'nordstern/business-server:dev';
+const CLIENT_IMAGE = process.env.CLIENT_IMAGE ?? 'nordstern/anchor-client:dev';
+const CONSOLE_IMAGE = process.env.CONSOLE_IMAGE ?? 'nordstern/operator-console:dev';
 const NETWORK    = process.env.DOCKER_NETWORK ?? 'anchor-service_default';
 const CONFIG_HOST_ROOT = process.env.ANCHOR_CONFIG_HOST_ROOT ?? '';
 const HORIZON_URL        = process.env.HORIZON_URL        ?? 'https://horizon-testnet.stellar.org';
@@ -24,6 +26,8 @@ const DB_PASSWORD = process.env.DB_PASSWORD ?? 'anchor';
 // ── Naming helpers (shared with config-gen / provision) ────────────────────────
 export const apName  = (slug: string) => `anchor-platform-${slug}`;
 export const bizName = (slug: string) => `business-server-${slug}`;
+export const clientName = (slug: string) => `anchor-client-${slug}`;
+export const consoleName = (slug: string) => `operator-console-${slug}`;
 export const anchorDbName = (slug: string) => `anchordb_${slug.replace(/-/g, '_')}`;
 
 const rand = () => randomBytes(24).toString('base64');
@@ -69,24 +73,45 @@ export async function dropAnchorDb(slug: string): Promise<void> {
 }
 
 // ── Container lifecycle ────────────────────────────────────────────────────────
-function labels(role: 'ap' | 'biz', slug: string, homeDomain: string): Record<string, string> {
+function labels(role: 'ap' | 'biz' | 'client' | 'console', slug: string, homeDomain: string): Record<string, string> {
   const router = `${role}-${slug}`;
-  if (role === 'ap') {
+  if (role === 'client') {
     return {
       'traefik.enable': 'true',
       [`traefik.http.routers.${router}.rule`]: `Host(\`${homeDomain}\`)`,
       [`traefik.http.routers.${router}.entrypoints`]: 'web',
       [`traefik.http.routers.${router}.priority`]: '1',
       [`traefik.http.routers.${router}.service`]: router,
+      [`traefik.http.services.${router}.loadbalancer.server.port`]: '3001',
+      'nordstern.anchor': slug,
+    };
+  }
+  if (role === 'console') {
+    return {
+      'traefik.enable': 'true',
+      [`traefik.http.routers.${router}.rule`]: `Host(\`console.${homeDomain}\`)`,
+      [`traefik.http.routers.${router}.entrypoints`]: 'web',
+      [`traefik.http.routers.${router}.priority`]: '1',
+      [`traefik.http.routers.${router}.service`]: router,
+      [`traefik.http.services.${router}.loadbalancer.server.port`]: '3001',
+      'nordstern.anchor': slug,
+    };
+  }
+  if (role === 'ap') {
+    return {
+      'traefik.enable': 'true',
+      [`traefik.http.routers.${router}.rule`]: `Host(\`sep.${homeDomain}\`)`,
+      [`traefik.http.routers.${router}.entrypoints`]: 'web',
+      [`traefik.http.routers.${router}.priority`]: '5',
+      [`traefik.http.routers.${router}.service`]: router,
       [`traefik.http.services.${router}.loadbalancer.server.port`]: '8080',
       'nordstern.anchor': slug,
     };
   }
-  // business-server: only the interactive webview is exposed publicly; higher
-  // priority so it wins over the AP catch-all for this path prefix.
+  // business-server (api.)
   return {
     'traefik.enable': 'true',
-    [`traefik.http.routers.${router}.rule`]: `Host(\`${homeDomain}\`) && PathPrefix(\`/sep24/interactive\`)`,
+    [`traefik.http.routers.${router}.rule`]: `Host(\`api.${homeDomain}\`)`,
     [`traefik.http.routers.${router}.entrypoints`]: 'web',
     [`traefik.http.routers.${router}.priority`]: '10',
     [`traefik.http.routers.${router}.service`]: router,
@@ -119,12 +144,14 @@ async function runContainer(opts: Docker.ContainerCreateOptions): Promise<string
   return container.id;
 }
 
-export async function createAnchorStack(p: StackParams): Promise<{ apId: string; bizId: string }> {
+export async function createAnchorStack(p: StackParams): Promise<{ apId: string; bizId: string; clientId: string; consoleId: string }> {
   if (!CONFIG_HOST_ROOT) throw new Error('ANCHOR_CONFIG_HOST_ROOT not set — cannot bind AP config.');
   const hostConfigDir = path.join(CONFIG_HOST_ROOT, p.slug);
 
   await ensureImage(AP_IMAGE);
   await ensureImage(BIZ_IMAGE);
+  await ensureImage(CLIENT_IMAGE);
+  await ensureImage(CONSOLE_IMAGE);
 
   const apEnv = [
     'STELLAR_ANCHOR_CONFIG=/config/anchor-platform.yaml',
@@ -150,6 +177,7 @@ export async function createAnchorStack(p: StackParams): Promise<{ apId: string;
     `DEPOSIT_PROVIDER=${p.adapters.deposit}`,
     `PAYOUT_PROVIDER=${p.adapters.payout}`,
     `FEE_PROVIDER=${p.adapters.fee}`,
+    'ALLOW_MOCK_KYC=true',
   ];
   if (p.surepass) {
     bizEnv.push(`SUREPASS_BASE_URL=${p.surepass.baseUrl}`, `SUREPASS_TOKEN=${p.surepass.token}`);
@@ -177,7 +205,39 @@ export async function createAnchorStack(p: StackParams): Promise<{ apId: string;
     },
   });
 
-  return { apId, bizId };
+  const clientEnv = [
+    'PORT=3001',
+    `BIZ_URL=http://${bizName(p.slug)}:3000`,
+    `NEXT_PUBLIC_ASSET_CODE=${p.assetCode}`,
+  ];
+
+  const clientId = await runContainer({
+    name: clientName(p.slug),
+    Image: CLIENT_IMAGE,
+    Env: clientEnv,
+    Labels: labels('client', p.slug, p.homeDomain),
+    HostConfig: {
+      NetworkMode: NETWORK,
+    },
+  });
+
+  const consoleEnv = [
+    'PORT=3001',
+    `BIZ_URL=http://${bizName(p.slug)}:3000`,
+    'CP_URL=http://control-plane:3002',
+  ];
+
+  const consoleId = await runContainer({
+    name: consoleName(p.slug),
+    Image: CONSOLE_IMAGE,
+    Env: consoleEnv,
+    Labels: labels('console', p.slug, p.homeDomain),
+    HostConfig: {
+      NetworkMode: NETWORK,
+    },
+  });
+
+  return { apId, bizId, clientId, consoleId };
 }
 
 /** Poll until the AP serves its SEP-1 toml and the business-server is healthy. */
@@ -204,4 +264,6 @@ async function removeByName(name: string): Promise<void> {
 export async function removeStack(slug: string): Promise<void> {
   await removeByName(apName(slug));
   await removeByName(bizName(slug));
+  await removeByName(clientName(slug));
+  await removeByName(consoleName(slug));
 }

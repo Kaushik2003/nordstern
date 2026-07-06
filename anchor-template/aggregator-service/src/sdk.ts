@@ -157,20 +157,37 @@ sdkRouter.post('/transactions/start', async (req, res) => {
     }
 
     const anchor = rows[0];
-    
-    // We generate the interactive redirect URL. 
-    // In production, the aggregator coordinates the transaction creation with the Anchor's SEP-24 endpoints.
-    // For local dev, we build a mock interactive redirect straight to the selected anchor's webview.
-    // We simulate a generated transaction ID and construct the handoff target.
-    const mockTxId = `agg-tx-${Math.random().toString(36).substring(2, 10)}`;
-    const interactiveUrl = `${anchor.api_url}/sep24/interactive?transaction_id=${mockTxId}&amount=${quote.fiat_amount}`;
+
+    // Real handoff. SEP-24 is WALLET-driven: SEP-10 authentication is signed by the
+    // user's Stellar key, which only the wallet holds — the aggregator cannot mint a
+    // transaction_id or an interactive URL on the user's behalf. So we resolve the
+    // selected anchor's REAL SEP discovery (its stellar.toml) and hand the wallet the
+    // genuine endpoints to drive SEP-10 → SEP-24 against. No fabricated ids.
+    const base = (anchor.api_url as string)?.replace(/\/$/, '') || `https://${anchor.domain}`;
+    let transferServer = `${base}/sep24`;
+    let webAuthEndpoint = `${base}/auth`;
+    try {
+      const toml = await fetch(`https://${anchor.domain}/.well-known/stellar.toml`).then((r) => (r.ok ? r.text() : ''));
+      const ts = toml.match(/TRANSFER_SERVER_SEP0024\s*=\s*"([^"]+)"/)?.[1];
+      const wa = toml.match(/WEB_AUTH_ENDPOINT\s*=\s*"([^"]+)"/)?.[1];
+      if (ts) transferServer = ts;
+      if (wa) webAuthEndpoint = wa;
+    } catch { /* fall back to derived endpoints */ }
 
     res.json({
       success: true,
       anchorId: quote.anchor_id,
       anchorName: anchor.name,
-      transactionId: mockTxId,
-      interactiveUrl
+      account,
+      quoteId,
+      handoff: {
+        homeDomain: anchor.domain,
+        webAuthEndpoint,       // SEP-10 — wallet signs the challenge here
+        transferServer,        // SEP-24 — wallet POSTs /transactions/deposit/interactive here
+        asset: quote.dest_asset,
+        amount: quote.fiat_amount,
+      },
+      next: 'Wallet performs SEP-10 auth against webAuthEndpoint, then POST {transferServer}/transactions/deposit/interactive with the SEP-10 JWT to obtain the real interactive URL. The aggregator does not hold the user key and cannot initiate SEP-24 server-side.',
     });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
@@ -180,7 +197,7 @@ sdkRouter.post('/transactions/start', async (req, res) => {
 // 8. POST /anchors
 // Registers or updates an anchor in the registry dynamically.
 sdkRouter.post('/anchors', async (req, res) => {
-  const { id, name, domain, status, regions, capabilities, limits, fee_config } = req.body;
+  const { id, name, domain, api_url, status, regions, capabilities, limits, fee_config } = req.body;
   if (!id || !name || !domain) {
     res.status(400).json({ error: 'Missing required parameters: id, name, domain' });
     return;
@@ -201,7 +218,9 @@ sdkRouter.post('/anchors', async (req, res) => {
         updated_at = now()
       RETURNING *
     `;
-    const apiUrl = `http://business-server-${id}:3000`; // internal docker/k8s dns template
+    // Prefer the real reachable endpoint the provisioner reports; fall back to the
+    // container-DNS template only if the caller didn't supply one.
+    const apiUrl = api_url || `http://business-server-${id}:3000`;
     const { rows } = await pool.query(query, [
       id,
       name,

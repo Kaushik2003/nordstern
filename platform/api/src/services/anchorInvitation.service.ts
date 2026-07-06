@@ -5,6 +5,7 @@ import { anchorInvitations, organizations, organizationSettings, users, membersh
 import { hashPassword } from '../lib/password.js';
 import { uniqueSlug } from '../lib/slug.js';
 import { badRequest, conflict } from '../lib/errors.js';
+import { provisionerService } from './provisioner.service.js';
 
 export const anchorInvitationService = {
   async verify(rawToken: string) {
@@ -131,78 +132,71 @@ export const anchorInvitationService = {
     };
   },
 
+  // Drives the REAL provisioner (anchor-service/control-plane) end-to-end. No more
+  // simulated stages: every progress update below reflects genuine execution reported
+  // by the control-plane (keygen → Friendbot + asset issuance → config → dockerode
+  // container stack → health), and on success the live anchor is registered with the
+  // Aggregator. Progress is persisted to `provisioning_jobs.result.stage` (Phase 6).
   async triggerProvisioningJob(jobId: string) {
     const jobRes = await db.query.provisioningJobs.findFirst({
       where: eq(provisioningJobs.id, jobId)
     });
     if (!jobRes) return;
-    
+
     const payload = jobRes.payload as any;
-    
-    const updateJobStatus = async (status: any) => {
-      await db.update(provisioningJobs)
-        .set({ status, updatedAt: new Date() })
-        .where(eq(provisioningJobs.id, jobId));
+
+    const setJob = async (fields: Record<string, unknown>) => {
+      await db.update(provisioningJobs).set({ ...fields, updatedAt: new Date() }).where(eq(provisioningJobs.id, jobId));
     };
 
-    // Run background worker asynchronously
     (async () => {
       try {
-        await updateJobStatus('running');
-        console.log(`[onboarding-worker] Job ${jobId} started provisioning database...`);
-        
-        // Stage 1: Provision DB
-        await new Promise(r => setTimeout(r, 2000));
-        console.log(`[onboarding-worker] Job ${jobId} database created.`);
-        
-        // Stage 2: Generate Keys & fund
-        await new Promise(r => setTimeout(r, 2000));
-        console.log(`[onboarding-worker] Job ${jobId} keys generated & funded.`);
-        
-        // Stage 3: Deploy Stack containers
-        await new Promise(r => setTimeout(r, 2000));
-        console.log(`[onboarding-worker] Job ${jobId} Docker container stack running.`);
-        
-        // Stage 4: Register with Aggregator
-        console.log(`[onboarding-worker] Job ${jobId} registering with Aggregator registry...`);
-        const aggUrl = process.env.AGGREGATOR_URL || 'http://localhost:3005';
-        await fetch(`${aggUrl}/anchors`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: payload.slug,
-            name: payload.orgName,
-            domain: `${payload.slug}.nordstern.live`,
-            status: 'active',
-            regions: ['India'],
-            capabilities: {
-              supportedAssets: ['USDC'],
-              supportedRails: ['UPI'],
-              supportedBanks: ['HDFC', 'ICICI'],
-              settlementModel: 'instant'
-            },
-            limits: {
-              min_amount: 1,
-              max_amount: 100000
-            },
-            fee_config: {
-              fixed: 10,
-              percent: 0.01
-            }
-          })
-        }).catch(err => {
-          console.warn(`[onboarding-worker] Aggregator registration call skipped or failed: ${err.message}`);
-        });
+        await setJob({ status: 'running', startedAt: new Date(), attempts: (jobRes.attempts ?? 0) + 1 });
 
-        await updateJobStatus('completed');
-        console.log(`[onboarding-worker] Job ${jobId} completed successfully!`);
+        // 1. Kick off the real control-plane lifecycle.
+        const handle = await provisionerService.start({
+          name: payload.orgName,
+          adapters: { kyc: 'mock', deposit: 'mock', payout: 'mock', fee: 'mock' }, // testnet-safe defaults
+        });
+        const base = { cpAnchorId: handle.cpAnchorId, slug: handle.slug, homeDomain: handle.homeDomain };
+        await setJob({ result: { ...base, stage: 'Provisioning started' } });
+
+        // 2. Poll real status; surface the control-plane's genuine progress strings.
+        const outcome = await provisionerService.waitUntilDone(handle, async (detail) => {
+          await setJob({ result: { ...base, stage: detail } });
+          console.log(`[provisioner] Job ${jobId}: ${detail}`);
+        });
+        if (outcome.status === 'error') throw new Error(`control-plane provisioning failed: ${outcome.detail}`);
+
+        // 3. Register the LIVE anchor with the Aggregator (real endpoint + asset).
+        await setJob({ result: { ...base, stage: 'Registering with Aggregator' } });
+        await provisionerService.registerWithAggregator(outcome, payload.orgName);
+
+        // 4. Mark the platform anchor active + the job completed.
+        if (jobRes.anchorId) {
+          await db.update(anchors).set({ status: 'active' }).where(eq(anchors.id, jobRes.anchorId));
+        }
+        await setJob({
+          status: 'completed',
+          finishedAt: new Date(),
+          result: { ...base, assetCode: outcome.assetCode, assetIssuer: outcome.assetIssuer, stage: 'Completed' },
+        });
+        console.log(`[provisioner] Job ${jobId} → anchor '${outcome.slug}' live at ${outcome.homeDomain}, registered with aggregator`);
 
       } catch (err: any) {
-        await db.update(provisioningJobs)
-          .set({ status: 'failed', error: err.message, updatedAt: new Date() })
-          .where(eq(provisioningJobs.id, jobId));
-        console.error(`[onboarding-worker] Job ${jobId} failed:`, err);
+        await setJob({ status: 'failed', error: err.message, finishedAt: new Date() });
+        console.error(`[provisioner] Job ${jobId} failed:`, err.message);
       }
     })();
+  },
+
+  // Retry a failed job (Phase 2 — "support retries"). Re-runs the real lifecycle;
+  // `attempts` is incremented by triggerProvisioningJob.
+  async retryProvisioningJob(jobId: string) {
+    const job = await db.query.provisioningJobs.findFirst({ where: eq(provisioningJobs.id, jobId) });
+    if (!job) throw badRequest('Provisioning job not found');
+    if (job.status === 'running') throw badRequest('Job is already running');
+    await db.update(provisioningJobs).set({ status: 'pending', error: null, updatedAt: new Date() }).where(eq(provisioningJobs.id, jobId));
+    return this.triggerProvisioningJob(jobId);
   }
 };

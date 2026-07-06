@@ -66,11 +66,77 @@ function summarizeDecision(decision: any): Record<string, unknown> | null {
   };
 }
 
+// Persist a DIDIT session decision (from a webhook OR an API poll) → our KycStatus.
+// Extracted so both delivery paths converge on identical DB state.
+async function persistDecision(
+  account: string,
+  diditStatus: string,
+  sessionId: string | null,
+  decision: any,
+): Promise<KycStatus> {
+  const status = mapStatus(diditStatus);
+  const summary = summarizeDecision(decision);
+
+  if (diditStatus === 'Approved') {
+    const verifiedAt = new Date();
+    const expiresAt  = new Date(verifiedAt.getTime() + KYC_REVERIFY_TTL_SECONDS * 1000);
+    await pool.query(
+      `INSERT INTO nordstern.kyc_verifications
+         (vendor_data, status, didit_session_id, decision_summary, verified_at, expires_at, updated_at)
+       VALUES ($1, 'ACCEPTED', $2, $3, $4, $5, now())
+       ON CONFLICT (vendor_data) DO UPDATE SET
+         status = 'ACCEPTED',
+         didit_session_id = COALESCE(EXCLUDED.didit_session_id, nordstern.kyc_verifications.didit_session_id),
+         decision_summary = EXCLUDED.decision_summary, verified_at = EXCLUDED.verified_at,
+         expires_at = EXCLUDED.expires_at, updated_at = now()`,
+      [account, sessionId, summary, verifiedAt, expiresAt],
+    );
+  } else if (diditStatus === 'Kyc Expired') {
+    await pool.query(
+      `UPDATE nordstern.kyc_verifications
+         SET status = 'NEEDS_INFO', expires_at = now(), updated_at = now()
+       WHERE vendor_data = $1`,
+      [account],
+    );
+  } else {
+    await pool.query(
+      `INSERT INTO nordstern.kyc_verifications (vendor_data, status, didit_session_id, decision_summary, updated_at)
+       VALUES ($1, $2, $3, $4, now())
+       ON CONFLICT (vendor_data) DO UPDATE SET
+         status = EXCLUDED.status,
+         didit_session_id = COALESCE(EXCLUDED.didit_session_id, nordstern.kyc_verifications.didit_session_id),
+         decision_summary = COALESCE(EXCLUDED.decision_summary, nordstern.kyc_verifications.decision_summary),
+         updated_at = now()`,
+      [account, status, sessionId, summary],
+    );
+  }
+  return status;
+}
+
+// Best-effort pull of a session's live status + decision from DIDIT's API. The
+// webhook is the intended source of truth, but this lets the gate resolve even when
+// the callback can't be delivered (e.g. a network that blocks the webhook). Returns
+// null on any error so callers fall back to the stored status.
+async function fetchSessionStatus(sessionId: string): Promise<{ status: string; decision: any } | null> {
+  try {
+    const res = await fetch(`${DIDIT_BASE}/v3/session/${sessionId}/decision/`, {
+      headers: { 'x-api-key': DIDIT_API_KEY },
+    });
+    if (!res.ok) { console.warn(`[didit] poll ${sessionId} → HTTP ${res.status}`); return null; }
+    const body: any = await res.json();
+    const status = body?.status ?? body?.session?.status;
+    return status ? { status: String(status), decision: body?.decision ?? body } : null;
+  } catch (e: any) {
+    console.warn(`[didit] poll ${sessionId} failed: ${e?.message ?? e}`);
+    return null;
+  }
+}
+
 // GET current verification status for an account, applying the TTL. An ACCEPTED
 // record whose expires_at has passed is reported NEEDS_INFO → the gate re-shows.
 export async function getStatus(account: string): Promise<KycStatus> {
   const { rows } = await pool.query(
-    'SELECT status, expires_at FROM nordstern.kyc_verifications WHERE vendor_data = $1',
+    'SELECT status, expires_at, didit_session_id FROM nordstern.kyc_verifications WHERE vendor_data = $1',
     [account],
   );
   if (rows.length === 0) return 'NEEDS_INFO';
@@ -79,6 +145,22 @@ export async function getStatus(account: string): Promise<KycStatus> {
     if (rec.expires_at && new Date(rec.expires_at).getTime() <= Date.now()) return 'NEEDS_INFO';
     return 'ACCEPTED';
   }
+
+  // PROCESSING → actively poll DIDIT so the gate resolves without depending on webhook
+  // delivery. Only persist when the session has advanced past "processing"
+  // (Approved/Declined/Expired); otherwise leave it PROCESSING and report as-is.
+  if (rec.status === 'PROCESSING' && rec.didit_session_id && DIDIT_API_KEY) {
+    const live = await fetchSessionStatus(rec.didit_session_id);
+    if (live) {
+      const mapped = mapStatus(live.status);
+      if (mapped !== 'PROCESSING') {
+        await persistDecision(account, live.status, rec.didit_session_id, live.decision);
+        console.log(`[didit] poll ${account}: ${live.status} → ${mapped}`);
+        return mapped;
+      }
+    }
+  }
+
   return rec.status as KycStatus;
 }
 
@@ -153,41 +235,7 @@ export async function applyWebhook(payload: any): Promise<void> {
   if (!account) { console.warn('[didit] webhook missing vendor_data — ignoring'); return; }
 
   const diditStatus = String(payload.status ?? '');
-  const status = mapStatus(diditStatus);
-  const summary = summarizeDecision(payload.decision);
-
-  if (diditStatus === 'Approved') {
-    const verifiedAt = new Date();
-    const expiresAt  = new Date(verifiedAt.getTime() + KYC_REVERIFY_TTL_SECONDS * 1000);
-    await pool.query(
-      `INSERT INTO nordstern.kyc_verifications
-         (vendor_data, status, didit_session_id, decision_summary, verified_at, expires_at, updated_at)
-       VALUES ($1, 'ACCEPTED', $2, $3, $4, $5, now())
-       ON CONFLICT (vendor_data) DO UPDATE SET
-         status = 'ACCEPTED', didit_session_id = EXCLUDED.didit_session_id,
-         decision_summary = EXCLUDED.decision_summary, verified_at = EXCLUDED.verified_at,
-         expires_at = EXCLUDED.expires_at, updated_at = now()`,
-      [account, payload.session_id ?? null, summary, verifiedAt, expiresAt],
-    );
-  } else if (diditStatus === 'Kyc Expired') {
-    await pool.query(
-      `UPDATE nordstern.kyc_verifications
-         SET status = 'NEEDS_INFO', expires_at = now(), updated_at = now()
-       WHERE vendor_data = $1`,
-      [account],
-    );
-  } else {
-    await pool.query(
-      `INSERT INTO nordstern.kyc_verifications (vendor_data, status, didit_session_id, decision_summary, updated_at)
-       VALUES ($1, $2, $3, $4, now())
-       ON CONFLICT (vendor_data) DO UPDATE SET
-         status = EXCLUDED.status, didit_session_id = EXCLUDED.didit_session_id,
-         decision_summary = COALESCE(EXCLUDED.decision_summary, nordstern.kyc_verifications.decision_summary),
-         updated_at = now()`,
-      [account, status, payload.session_id ?? null, summary],
-    );
-  }
-
+  const status = await persistDecision(account, diditStatus, payload.session_id ?? null, payload.decision);
   console.log(`[didit] webhook applied for ${account}: ${diditStatus} → ${status}`);
 }
 

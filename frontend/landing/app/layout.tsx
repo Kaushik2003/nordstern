@@ -78,9 +78,59 @@ const organizationJsonLd = {
   "@type": "Organization",
   name: siteConfig.name,
   url: siteConfig.url,
-  logo: `${siteConfig.url}/icon`,
+  logo: {
+    "@type": "ImageObject",
+    url: `${siteConfig.url}/icon`,
+    width: 512,
+    height: 512,
+  },
   description: siteConfig.description,
   sameAs: socialProfiles,
+  contactPoint: {
+    "@type": "ContactPoint",
+    contactType: "sales",
+    areaServed: "IN",
+    availableLanguage: ["English"],
+  },
+};
+
+/** WebSite schema enables Google Sitelinks search box. */
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: siteConfig.name,
+  url: siteConfig.url,
+  description: siteConfig.description,
+  inLanguage: "en-IN",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: `${siteConfig.url}/docs?q={search_term_string}`,
+    },
+    "query-input": "required name=search_term_string",
+  },
+};
+
+/** SoftwareApplication schema for the anchor platform product. */
+const softwareJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: siteConfig.name,
+  applicationCategory: "FinanceApplication",
+  operatingSystem: "Web",
+  url: siteConfig.url,
+  description: siteConfig.ogDescription,
+  offers: {
+    "@type": "Offer",
+    priceCurrency: "INR",
+    availability: "https://schema.org/InStock",
+  },
+  provider: {
+    "@type": "Organization",
+    name: siteConfig.name,
+    url: siteConfig.url,
+  },
 };
 
 export default function RootLayout({
@@ -88,7 +138,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
-      lang="en"
+      lang="en-IN"
       className={`${clearSansText.variable} ${clearSansDisplay.variable} h-full`}
     >
       <body className="min-h-full antialiased font-clear-display">
@@ -96,8 +146,15 @@ export default function RootLayout({
         {children}
         <script
           type="application/ld+json"
-          // JSON-LD is trusted, static, server-rendered content.
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareJsonLd) }}
         />
         <Analytics />
       </body>

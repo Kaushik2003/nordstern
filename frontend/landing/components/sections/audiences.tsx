@@ -13,6 +13,7 @@ export function Audiences() {
       <SectionHeader
         eyebrow={AUDIENCES.eyebrow}
         title={AUDIENCES.title}
+        lead={AUDIENCES.lead}
         className="max-w-2xl"
       />
 

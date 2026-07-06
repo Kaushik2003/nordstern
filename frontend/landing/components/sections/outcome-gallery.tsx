@@ -14,7 +14,7 @@ function ImageCard() {
   return (
     <Card 
       tone="outline" 
-      className="group relative overflow-hidden h-[600px] flex flex-col justify-between border-line/60 bg-cover bg-center p-8 text-white bg-[url('/stellar_bg.jpg')]"
+      className="group relative overflow-hidden h-[440px] sm:h-[520px] md:h-[600px] flex flex-col justify-between border-line/60 bg-cover bg-center p-8 text-white bg-[url('/stellar_bg.jpg')]"
     >
       {/* Dimming overlay layers that light up on hover */}
       <div className="absolute inset-0 bg-black/50 transition-opacity duration-500 group-hover:opacity-15 z-0" />
@@ -42,7 +42,7 @@ function NoirAlertCard() {
   return (
     <Card 
       tone="surface" 
-      className="relative overflow-hidden h-[600px] flex flex-col justify-between border-slate-800 bg-[#0B0D10] text-slate-300 p-8 shadow-2xl"
+      className="relative overflow-hidden min-h-[520px] sm:min-h-[560px] md:h-[600px] flex flex-col justify-between border-slate-800 bg-[#0B0D10] text-slate-300 p-8 shadow-2xl"
     >
       {/* Background radial glow */}
       <div className="absolute top-0 right-0 h-48 w-48 rounded-full bg-brand-500/5 blur-[80px] pointer-events-none" />
@@ -119,7 +119,7 @@ function NoirAlertCard() {
 // Card 3: Column 3 containing stacked Stat & Toggle cards
 function StackedRightCards() {
   return (
-    <div className="flex flex-col gap-6 h-[600px] justify-between">
+    <div className="flex flex-col gap-6 md:h-[600px] justify-between">
       {/* Top Card - Giant Stat Card */}
       <Card 
         tone="outline" 

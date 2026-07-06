@@ -33,7 +33,7 @@ function normalize(tx: Record<string, any>) {
 
 adminRouter.get('/transactions', async (_req, res) => {
   try {
-    const records = await listTransactions({ sep: '24' });
+    const records = await listTransactions({ sep: '24', order: 'desc' });
     const transactions = records
       .map(normalize)
       .sort((a, b) => (b.startedAt ?? '').localeCompare(a.startedAt ?? ''));
@@ -47,7 +47,7 @@ adminRouter.get('/summary', async (_req, res) => {
   try {
     const [balances, records, q] = await Promise.all([
       getTreasuryBalances(),
-      listTransactions({ sep: '24' }),
+      listTransactions({ sep: '24', order: 'desc' }),
       rate.quote(),
     ]);
     const txs = records.map(normalize);
@@ -84,7 +84,7 @@ adminRouter.get('/summary', async (_req, res) => {
 
 adminRouter.get('/users', async (_req, res) => {
   try {
-    const records = await listTransactions({ sep: '24' });
+    const records = await listTransactions({ sep: '24', order: 'desc' });
     
     // Group transactions by the authenticated user's Stellar account
     const usersMap = new Map<string, any>();

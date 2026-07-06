@@ -131,10 +131,10 @@ export function Navbar() {
 
           {/* right: actions */}
           <div className="hidden items-center gap-3 lg:flex">
-            <Link href="#build" className="rounded-full px-3 py-2 text-[14px] font-medium text-muted transition-colors hover:bg-surface hover:text-ink">
+            <Link id="nav-sandbox-link" href="#build" className="rounded-full px-3 py-2 text-[14px] font-medium text-muted transition-colors hover:bg-surface hover:text-ink">
               Sandbox
             </Link>
-            <Button href="#cta" variant="ghost" className="h-10 gap-1.5 pl-4 pr-3.5">
+            <Button id="nav-cta-button" href="#cta" variant="ghost" className="h-10 gap-1.5 pl-4 pr-3.5">
               Talk to us
               <ChevronRight className="text-subtle" />
             </Button>

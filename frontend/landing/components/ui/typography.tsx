@@ -36,7 +36,7 @@ const HEADING_SIZE = {
 export function Heading({
   children,
   className,
-  as: Tag = "h2",
+  as,
   size = "h2",
 }: {
   children: ReactNode;
@@ -44,6 +44,7 @@ export function Heading({
   as?: ElementType;
   size?: keyof typeof HEADING_SIZE;
 }) {
+  const Tag = as || (size === "display" ? "h2" : size);
   return (
     <Tag className={cn("text-balance", HEADING_SIZE[size], className)}>
       {children}

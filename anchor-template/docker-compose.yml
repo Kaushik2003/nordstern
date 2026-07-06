@@ -106,25 +106,22 @@ services:
       RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
       RAZORPAY_BUSINESS_NAME: ${RAZORPAY_BUSINESS_NAME:-NordStern}
 
-  # ── ngrok — public HTTPS tunnel to business-server ─────────────────────────────
-  # DIDIT delivers webhooks (the SOURCE OF TRUTH for a KYC result) and the hosted-
-  # flow redirect to a PUBLIC https URL, which localhost can't provide. This service
-  # publishes business-server:3000 on the RESERVED static domain in PUBLIC_BASE_URL,
-  # so that URL and the DIDIT webhook registration stay stable across restarts — no
-  # re-registering on every boot, and no separate `ngrok` process to run by hand.
-  # Set NGROK_AUTHTOKEN in .env. NOTE: a reserved domain permits ONE agent at a time
-  # — stop any host ngrok (`pkill ngrok`) before `docker compose up`.
-  # Inspector: http://localhost:4040
-  ngrok:
-    image: ngrok/ngrok:latest
+  # ── cloudflared — public HTTPS tunnel to business-server (Cloudflare Quick Tunnel) ─
+  # DIDIT delivers webhooks (the SOURCE OF TRUTH for a KYC result) and the hosted-flow
+  # redirect to a PUBLIC https URL, which localhost can't provide. A Cloudflare Quick
+  # Tunnel needs NO account or domain, and its encrypted transport isn't caught by ISPs
+  # that DPI-block ngrok. It prints a RANDOM https://<id>.trycloudflare.com URL on start
+  # that CHANGES on every restart — copy it into PUBLIC_BASE_URL (.env) AND the DIDIT
+  # dashboard webhook, then recreate business-server. Get the URL any time with:
+  #   docker compose logs cloudflared | grep trycloudflare
+  # For a STABLE hostname instead, use a named tunnel (needs a free Cloudflare account
+  # + a domain) with `--token`.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
     restart: unless-stopped
     depends_on:
       - business-server
-    command: ["http", "business-server:3000", "--url=${PUBLIC_BASE_URL}"]
-    environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:?set NGROK_AUTHTOKEN in .env — https://dashboard.ngrok.com/get-started/your-authtoken}
-    ports:
-      - "4040:4040"   # ngrok web inspector
+    command: ["tunnel", "--no-autoupdate", "--url", "http://business-server:3000"]
 
   # ── client — Next.js operator console / management frontend (live data) ────────
   client:

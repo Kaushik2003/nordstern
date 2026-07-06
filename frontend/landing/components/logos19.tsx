@@ -73,9 +73,9 @@ const Logos19 = (props: Props) => {
         className="group relative flex overflow-hidden"
         style={{
           maskImage:
-            "linear-gradient(to right, transparent, black 64px, black calc(100% - 64px), transparent)",
+            "linear-gradient(to right, transparent, black clamp(16px, 7vw, 64px), black calc(100% - clamp(16px, 7vw, 64px)), transparent)",
           WebkitMaskImage:
-            "linear-gradient(to right, transparent, black 64px, black calc(100% - 64px), transparent)",
+            "linear-gradient(to right, transparent, black clamp(16px, 7vw, 64px), black calc(100% - clamp(16px, 7vw, 64px)), transparent)",
         }}
       >
         {/* Two identical tracks; the animation shifts by exactly one track (-50%) for a seamless loop. */}

@@ -6,9 +6,9 @@ import { Outcomes } from "@/components/sections/outcomes";
 import { PrimitivesBento } from "@/components/sections/primitives-bento";
 import { BuildPaths } from "@/components/sections/build-paths";
 import { MobileApp } from "@/components/sections/mobile-app";
-import { Audiences } from "@/components/sections/audiences";
 import { Trust } from "@/components/sections/trust";
 import { Resources } from "@/components/sections/resources";
+import { Faq } from "@/components/sections/faq";
 import { FinalCTA } from "@/components/sections/final-cta";
 import { Footer } from "@/components/sections/footer";
 
@@ -16,7 +16,8 @@ export default function Home() {
   return (
     <>
       <Navbar />
-      <main id="top">
+      
+      <main className= "mx-auto" id="top">
         <Hero />
         <LogoStrip />
         <Mission />
@@ -24,9 +25,9 @@ export default function Home() {
         <BuildPaths />
         <MobileApp />
         <PrimitivesBento />
-        <Audiences />
         <Trust />
         <Resources />
+        <Faq />
         <FinalCTA />
       </main>
       <Footer />

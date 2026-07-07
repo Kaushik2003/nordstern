@@ -9,11 +9,9 @@ interface Step {
 }
 
 const steps: Step[] = [
-  { id: 1, title: 'Corporate Profile', subtitle: 'Entity & corridors' },
-  { id: 2, title: 'Stellar Asset', subtitle: 'On-chain identity' },
-  { id: 3, title: 'Settlement Rails', subtitle: 'Off-chain limits & fees' },
-  { id: 4, title: 'Compliance & KYC', subtitle: 'Licensing & vendor' },
-  { id: 5, title: 'Review & Launch', subtitle: 'Endpoint connection' },
+  { id: 1, title: 'Business Profile', subtitle: 'Who you are' },
+  { id: 2, title: 'Product & Rails', subtitle: 'Currency, limits & fees' },
+  { id: 3, title: 'Review & Submit', subtitle: 'Confirm & apply' },
 ];
 
 interface SidebarStepsProps {

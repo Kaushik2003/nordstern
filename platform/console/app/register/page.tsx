@@ -5,10 +5,8 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { onboardingSchema, OnboardingFormValues } from '@/lib/validations/onboarding';
 import { SidebarSteps } from '@/components/onboarding/SidebarSteps';
-import { CompanyProfile } from '@/components/onboarding/steps/CompanyProfile';
-import { StellarConfig } from '@/components/onboarding/steps/StellarConfig';
-import { PaymentRails } from '@/components/onboarding/steps/PaymentRails';
-import { Compliance } from '@/components/onboarding/steps/Compliance';
+import { BusinessProfile } from '@/components/onboarding/steps/BusinessProfile';
+import { ProductRails } from '@/components/onboarding/steps/ProductRails';
 import { ReviewSubmit } from '@/components/onboarding/steps/ReviewSubmit';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, CheckCircle2 } from 'lucide-react';
@@ -24,18 +22,13 @@ export default function RegisterWizard() {
     mode: 'onTouched',
     defaultValues: {
       companyProfile: {
-        targetCorridors: []
+        targetMarkets: [],
+        supportedFiat: '',
       },
-      stellarConfig: {
-        keyGenerationMode: 'auto',
-        hasBackedUpKeys: false
-      },
-      paymentRails: {
+      product: {
+        mode: 'test',
         supportedRails: [],
       },
-      compliance: {
-        verificationFields: []
-      }
     }
   });
 
@@ -46,14 +39,12 @@ export default function RegisterWizard() {
     
     switch (currentStep) {
       case 1: fieldsToValidate = ['companyProfile']; break;
-      case 2: fieldsToValidate = ['stellarConfig']; break;
-      case 3: fieldsToValidate = ['paymentRails']; break;
-      case 4: fieldsToValidate = ['compliance']; break;
+      case 2: fieldsToValidate = ['product']; break;
     }
 
     const isValid = await trigger(fieldsToValidate as any);
-    
-    if (isValid && currentStep < 5) {
+
+    if (isValid && currentStep < 3) {
       const nextStep = currentStep + 1;
       setCurrentStep(nextStep);
       if (nextStep > furthestStep) setFurthestStep(nextStep);
@@ -127,7 +118,7 @@ export default function RegisterWizard() {
               <ChevronLeft className="mr-2 h-4 w-4" /> Back
             </Button>
             <div className="text-sm font-medium text-brand bg-brand-50 px-3 py-1 rounded-full border border-brand-100">
-              Step {currentStep} of 5
+              Step {currentStep} of 3
             </div>
           </div>
 
@@ -138,16 +129,14 @@ export default function RegisterWizard() {
                 
                 {/* Step Content Rendering */}
                 <div className="flex-1">
-                  {currentStep === 1 && <CompanyProfile />}
-                  {currentStep === 2 && <StellarConfig />}
-                  {currentStep === 3 && <PaymentRails />}
-                  {currentStep === 4 && <Compliance />}
-                  {currentStep === 5 && <ReviewSubmit onEditStep={(step) => setCurrentStep(step)} />}
+                  {currentStep === 1 && <BusinessProfile />}
+                  {currentStep === 2 && <ProductRails />}
+                  {currentStep === 3 && <ReviewSubmit onEditStep={(step) => setCurrentStep(step)} />}
                 </div>
 
                 {/* Next/Submit Button Row */}
                 <div className="flex justify-end mt-16 pt-8 border-t border-line pb-8">
-                  {currentStep < 5 ? (
+                  {currentStep < 3 ? (
                     <Button 
                       type="button" 
                       onClick={validateAndProceed}

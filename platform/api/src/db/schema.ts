@@ -316,13 +316,15 @@ export const provisioningJobsRelations = relations(provisioningJobs, ({ one }) =
   anchor: one(anchors, { fields: [provisioningJobs.anchorId], references: [anchors.id] }),
 }));
 
-// ── Applications (Step 1-4 Wizard submission data) ───────────────────────────
+// ── Applications (onboarding wizard submission data) ─────────────────────────
+// `profile` = business identity (name, contact, email, country, fiat, markets,
+// optional registration). `product` = launch mode (test|production), rails, limits,
+// fees. No Stellar internals and no BYO-KYC vendor — NordStern owns both. Secret
+// payment-provider credentials are captured later, at invitation redemption.
 export const applications = pgTable('applications', {
   id: uuid('id').primaryKey().defaultRandom(),
   profile: jsonb('profile').notNull(),
-  stellarCfg: jsonb('stellar_cfg').notNull(),
-  paymentRails: jsonb('payment_rails').notNull(),
-  compliance: jsonb('compliance').notNull(),
+  product: jsonb('product').notNull(),
   status: varchar('status', { length: 30 }).default('applied').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull().$onUpdate(() => new Date()),

@@ -12,16 +12,12 @@ export const applicationsRouter = Router();
 applicationsRouter.post('/',
   validateBody(z.object({
     companyProfile: z.any(),
-    stellarConfig: z.any(),
-    paymentRails: z.any(),
-    compliance: z.any()
+    product: z.any()
   })),
   ah(async (req, res) => {
     const app = await applicationService.submit({
       profile: req.body.companyProfile,
-      stellarCfg: req.body.stellarConfig,
-      paymentRails: req.body.paymentRails,
-      compliance: req.body.compliance
+      product: req.body.product
     });
     res.status(201).json(app);
   })

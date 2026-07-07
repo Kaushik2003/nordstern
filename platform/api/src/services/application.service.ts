@@ -5,9 +5,7 @@ import { anchorInvitationsRepo } from '../repositories/anchorInvitations.repo.js
 export const applicationService = {
   async submit(data: {
     profile: any;
-    stellarCfg: any;
-    paymentRails: any;
-    compliance: any;
+    product: any;
   }) {
     return applicationsRepo.create(data);
   },

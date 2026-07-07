@@ -5,9 +5,7 @@ import { applications } from '../db/schema.js';
 export const applicationsRepo = {
   async create(data: {
     profile: any;
-    stellarCfg: any;
-    paymentRails: any;
-    compliance: any;
+    product: any;
   }) {
     const [app] = await db.insert(applications).values(data).returning();
     return app;

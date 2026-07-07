@@ -1,0 +1,46 @@
+name: DR
+
+# Backup & restore drill (R6 M5). Continuously proves the recovery path: on every PR
+# it seeds representative money + tenant data, backs it up with scripts/backup.sh,
+# DESTROYS it, restores with scripts/restore.sh, and asserts the money data returned
+# byte-for-byte. If backup or restore ever breaks, this fails — so we never migrate a
+# money database without a working, tested restore. Independent of ci.yml.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: dr-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  dr-drill:
+    name: dr-drill
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: pw
+          POSTGRES_DB: moneydb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # Run the drill inside a postgres:15 image so the client tools match the server
+      # exactly (pg_dump/pg_restore v15). --network host reaches the service DB.
+      - name: Backup → destroy → restore → verify
+        run: |
+          docker run --rm --network host -v "$PWD:/repo" -w /repo postgres:15 \
+            bash scripts/dr-drill.sh "postgres://postgres:pw@localhost:5432/moneydb"

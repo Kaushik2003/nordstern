@@ -16,6 +16,8 @@ Required checks (add each as it lands):
   required check even though the build matrix is path-filtered.
 - **`tests-required`** — money-flow test aggregation (M3); green only when the deposit,
   withdrawal, and SecretStore suites pass against real Testcontainers infra.
+- **`dr-drill`** — backup/restore drill (M5); green only when a seeded money database
+  can be backed up, destroyed, and restored byte-for-byte.
 
 `dependency-audit` (M2-b) and `drizzle-migrations`' drift step (M2-c) are
 **advisory / non-blocking** — do NOT add them as required.

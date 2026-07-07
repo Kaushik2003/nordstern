@@ -31,7 +31,8 @@
           { "context": "secret-scan" },
           { "context": "hygiene" },
           { "context": "docker-required" },
-          { "context": "tests-required" }
+          { "context": "tests-required" },
+          { "context": "dr-drill" }
         ]
       }
     }

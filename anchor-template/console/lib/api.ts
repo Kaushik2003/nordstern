@@ -56,3 +56,10 @@ export async function bizPost<T>(path: string, body?: unknown): Promise<T> {
   if (!res.ok) throw new ApiError(res.status, json?.error ?? 'biz_error', json?.error ?? `business-server ${res.status}`);
   return json as T;
 }
+
+export async function bizDelete<T>(path: string): Promise<T> {
+  const res = await fetch(`/biz${path}`, { method: 'DELETE', credentials: 'include' });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(res.status, json?.error ?? 'biz_error', json?.error ?? `business-server ${res.status}`);
+  return json as T;
+}

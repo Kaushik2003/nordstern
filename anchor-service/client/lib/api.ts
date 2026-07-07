@@ -96,6 +96,10 @@ export async function initiateSep24(
   kind: 'deposit' | 'withdraw',
   amount: string,
   jwt: string,
+  // The anchor's actual asset code (VEGA, USDC, …). Defaults to 'ANCH' to preserve the
+  // original signature; the customer app passes the per-anchor brand asset so SEP-24
+  // targets the right asset. The /sep/* endpoint contract is unchanged.
+  assetCode = 'ANCH',
 ): Promise<Sep24Result> {
   const ep = kind === 'deposit' ? '/sep/deposit' : '/sep/withdraw';
   const r = await fetch(`${B}${ep}`, {
@@ -104,7 +108,7 @@ export async function initiateSep24(
       Authorization: `Bearer ${jwt}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ asset_code: 'ANCH', amount }),
+    body: JSON.stringify({ asset_code: assetCode, amount }),
   });
   if (!r.ok) throw new Error(`SEP-24 failed: ${await r.text()}`);
   return r.json();

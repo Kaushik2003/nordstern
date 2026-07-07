@@ -16,7 +16,8 @@ const POLL_TIMEOUT_MS   = 10 * 60 * 1000; // real provisioning (image pull + tes
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export interface ProvisionSpec {
-  name: string;
+  name: string;          // slug-safe name (drives the control-plane slug + secret path)
+  displayName?: string;  // business name for per-anchor branding (client + console)
   adapters?: { kyc?: string; deposit?: string; payout?: string; fee?: string };
 }
 
@@ -58,7 +59,9 @@ export const provisionerService = {
 
     const createRes = await fetch(`${CP_URL}/anchors`, {
       method: 'POST', headers: auth,
-      body: JSON.stringify({ name: spec.name, adapters: spec.adapters }),
+      // legal_entity_name is the display/brand name; `name` stays slug-safe so the
+      // control-plane slug (and secret path) is stable.
+      body: JSON.stringify({ name: spec.name, legal_entity_name: spec.displayName, adapters: spec.adapters }),
     });
     if (!createRes.ok) throw new Error(`control-plane create anchor failed (${createRes.status}): ${await createRes.text()}`);
     const anchor = (await createRes.json()) as { id: string; slug: string; home_domain: string };

@@ -4,6 +4,11 @@ import { getBrand } from '@/lib/brand';
 import { BrandProvider } from '@/components/brand-context';
 import './globals.css';
 
+// Render per request so getBrand() reads the RUNTIME per-anchor env (ANCHOR_NAME,
+// ASSET_CODE, accent). Without this, Next would statically prerender at build time and
+// bake the default brand into every anchor's app.
+export const dynamic = 'force-dynamic';
+
 const inter = Inter({ variable: '--font-inter', subsets: ['latin'], display: 'swap' });
 const mono = JetBrains_Mono({ variable: '--font-mono', subsets: ['latin'], display: 'swap' });
 

@@ -132,7 +132,9 @@ anchorsRouter.post('/:id/provision', async (req: AuthedRequest, res: Response) =
 });
 
 async function runProvision(anchor: any): Promise<void> {
-  const { id, slug, name, home_domain } = anchor;
+  const { id, slug, name, home_domain, legal_entity_name } = anchor;
+  // Display/brand name for the provisioned surfaces; falls back to the slug-safe name.
+  const displayName = legal_entity_name || name;
 
   await setStatus(id, 'provisioning', 'Generating keypairs');
   const kps = generateKeypairs();
@@ -182,7 +184,7 @@ async function runProvision(anchor: any): Promise<void> {
   );
   const { apId, bizId, clientId, consoleId } = await createAnchorStack({
     slug,
-    name,
+    name: displayName,
     homeDomain: home_domain,
     database,
     assetCode,

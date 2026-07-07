@@ -238,6 +238,7 @@ export const anchorInvitationService = {
           ? await provisionerService.resume(prior.cpAnchorId)
           : await provisionerService.start({
               name: payload.slug,
+              displayName: payload.orgName, // business name → per-anchor branding
               adapters: payload.adapters ?? { kyc: 'mock', deposit: 'mock', payout: 'mock', fee: 'mock' },
             });
         const base = { cpAnchorId: handle.cpAnchorId, slug: handle.slug, homeDomain: handle.homeDomain };

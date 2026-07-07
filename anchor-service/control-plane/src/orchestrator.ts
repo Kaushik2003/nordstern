@@ -27,6 +27,8 @@ const DB_PASSWORD = process.env.DB_PASSWORD ?? 'anchor';
 // Same secret platform-api signs operator access tokens with — forwarded into each
 // business-server so its money-admin API can verify the operator session.
 const PLATFORM_JWT_ACCESS_SECRET = process.env.PLATFORM_JWT_ACCESS_SECRET ?? '';
+// Shared backend↔platform service secret (KYC propagation to the central customer).
+const SERVICE_SECRET = process.env.SERVICE_SECRET ?? '';
 
 // ── Naming helpers (shared with config-gen / provision) ────────────────────────
 export const apName  = (slug: string) => `anchor-platform-${slug}`;
@@ -229,6 +231,8 @@ export async function createAnchorStack(p: StackParams): Promise<{ apId: string;
     // operator: it delegates to GET /api/v1/anchors/resolve?slug=<slug>, which confirms
     // the caller is a member of THIS anchor's organization (not just any platform user).
     `NORDSTERN_API_URL=${PLATFORM_API_URL}`,
+    // Shared secret to propagate DIDIT KYC decisions into the central customer profile.
+    `SERVICE_SECRET=${SERVICE_SECRET}`,
   ];
   if (p.surepass) {
     bizEnv.push(`SUREPASS_BASE_URL=${p.surepass.baseUrl}`, `SUREPASS_TOKEN=${p.surepass.token}`);

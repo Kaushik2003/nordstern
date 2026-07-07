@@ -72,6 +72,9 @@ services:
       # below on platform-api). Forwarded into each business-server so its money-admin
       # API can verify the operator session (see anchor-template/business-server/adminAuth).
       PLATFORM_JWT_ACCESS_SECRET: ${PLATFORM_JWT_ACCESS_SECRET:-dev-access-secret-change-me}
+      # Same value as platform-api's SERVICE_SECRET — forwarded into each business-server so
+      # it can propagate DIDIT KYC decisions to the central customer profile.
+      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-to-service-secret}
       MASTER_KEK: ${MASTER_KEK:?run anchor-service/scripts/setup-base.mjs and export MASTER_KEK}
       DOCKER_NETWORK: nordstern-net
       AP_IMAGE: stellar/anchor-platform:latest
@@ -165,6 +168,10 @@ services:
       AGGREGATOR_URL: http://aggregator:3005
       CP_SERVICE_EMAIL: platform-service@nordstern.internal
       CP_SERVICE_PASSWORD: ${CP_SERVICE_PASSWORD:-dev-service-secret}
+      # Shared secret for backend→platform service calls (e.g. business-server propagating
+      # a DIDIT KYC decision into the central customer profile). Must match the value
+      # injected into each business-server (below, via control-plane).
+      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-to-service-secret}
       # SecretStore → LocalStack (prod: drop SECRETS_ENDPOINT, use IAM role via IRSA).
       SECRETS_BACKEND: aws
       SECRETS_PREFIX: nordstern

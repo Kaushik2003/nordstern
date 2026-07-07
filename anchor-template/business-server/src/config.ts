@@ -21,6 +21,10 @@ export const PLATFORM_JWT_ACCESS_SECRET = process.env.PLATFORM_JWT_ACCESS_SECRET
 // authenticated-operator check only.
 export const ANCHOR_SLUG      = process.env.ANCHOR_SLUG      ?? '';
 export const NORDSTERN_API_URL = process.env.NORDSTERN_API_URL ?? '';
+
+// Shared secret for server-to-server calls to platform-api (propagating a DIDIT KYC
+// decision into the central customer profile). Matches platform-api's SERVICE_SECRET.
+export const SERVICE_SECRET   = process.env.SERVICE_SECRET   ?? '';
 export const SEP_SERVER_URL   = process.env.SEP_SERVER_URL   ?? PLATFORM_API_URL.replace('8085', '8080');
 
 // Treasury = the account that holds the USDC FLOAT. It is the source of USDC on

@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { fetchTransaction, patchTransaction } from './platform.js';
 import { assetId, DIDIT_WEBHOOK_SECRET, RAZORPAY_WEBHOOK_SECRET } from './config.js';
 import { applyWebhook } from './adapters/kyc/didit.js';
+import { propagateKycToPlatform } from './kycPropagate.js';
 import { markPaidByOrder } from './adapters/deposit/razorpay.js';
 import { releaseDeposit } from './sep24.js';
 import { pool } from './db.js';
@@ -66,6 +67,9 @@ webhooksRouter.post(['/webhooks/didit', '/'], async (req, res) => {
   //    atomic DB transaction inside applyWebhook, ensuring crash consistency.
   try {
     await applyWebhook(req.body);
+    // Propagate the decision to the central customer profile (verify-once across anchors).
+    // Best-effort and non-blocking on the ack — the anchor already stored the truth.
+    await propagateKycToPlatform(req.body);
     res.status(200).send('ok');
   } catch (err) {
     console.error('[didit-webhook] apply error:', err instanceof Error ? err.message : err);

@@ -22,8 +22,12 @@ set +a
 
 # The orchestrator runs per-anchor containers from these images, so make sure
 # they exist locally before provisioning.
-echo "Building business-server image (nordstern/business-server:dev)…"
-docker build -t nordstern/business-server:dev ./business-server
+# The hardened business-server (M3 tests + M4 migrations + webhook HMAC + idempotent
+# money release) lives in anchor-template/business-server — that is the money runtime
+# the provisioner must launch. anchor-service/business-server is the older DB-less
+# server and is no longer built (kept for reference only).
+echo "Building business-server image (nordstern/business-server:dev) from anchor-template…"
+docker build -t nordstern/business-server:dev ../anchor-template/business-server
 
 echo "Pulling Anchor Platform image…"
 docker pull stellar/anchor-platform:latest

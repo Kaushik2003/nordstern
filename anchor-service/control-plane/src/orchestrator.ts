@@ -201,6 +201,11 @@ export async function createAnchorStack(p: StackParams): Promise<{ apId: string;
   const bizEnv = [
     'PORT=3000',
     `PLATFORM_API_URL=http://${apName(p.slug)}:8085`,
+    // The hardened business-server owns a per-anchor `nordstern.*` money schema and
+    // migrates-on-start into THIS anchor's already-created database (createAnchorDb →
+    // anchordb_<slug>). Without this the server falls back to the shared `anchordb`
+    // default and co-mingles every anchor's money tables. p.database == anchorDbName(slug).
+    `DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${p.database}`,
     `ASSET_CODE=${p.assetCode}`,
     `ASSET_ISSUER_PUBLIC=${p.assetIssuer}`,
     `DISTRIBUTION_PUBLIC=${p.distributionPublic}`,

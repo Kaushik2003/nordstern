@@ -7,8 +7,9 @@ name: nordstern-platform
 # ── PREREQUISITES (real provisioning genuinely needs these — see deploy/README.md) ──
 #   1. cd anchor-service && node scripts/setup-base.mjs
 #        → generates MASTER_KEK + the anchor-config host dir; export them (or use a .env here).
-#   2. Build the business-server image the provisioner launches per anchor:
-#        docker build -t nordstern/business-server:dev anchor-service/business-server
+#   2. Build the business-server image the provisioner launches per anchor
+#      (hardened money runtime — M3 tests + M4 migrations + webhook HMAC + idempotent release):
+#        docker build -t nordstern/business-server:dev anchor-template/business-server
 #   3. export MASTER_KEK=... ANCHOR_CONFIG_HOST_ROOT=/abs/path   (this file interpolates them)
 #
 #   Then:  docker compose -f docker-compose.platform.yml up --build

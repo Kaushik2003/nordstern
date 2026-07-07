@@ -273,6 +273,8 @@ export async function createAnchorStack(p: StackParams): Promise<{ apId: string;
         'PORT=3001',
         // Runtime BFF targets (read by the route-handler proxy, not baked).
         `BIZ_URL=http://${bizName(p.slug)}:3000`,
+        // Customer identity backend (email-OTP auth, profile, wallets) lives centrally.
+        `PLATFORM_API_URL=${PLATFORM_API_URL}`,
         'CP_URL=http://control-plane:3002',
         `NETWORK_PASSPHRASE=${NETWORK_PASSPHRASE}`,
         // Per-anchor branding (runtime — read server-side by getBrand). ANCHOR_ACCENT

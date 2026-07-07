@@ -25,10 +25,18 @@
   --color-muted: #5b5b5b;
   --color-faint: #9a9a9a;
 
-  /* Semantic */
-  --color-success: #10B981;
-  --color-warning: #F59E0B;
-  --color-danger:  #EF4444;
+  /* Text on the brand accent (readable on light purple) */
+  --color-brand-ink: #1a1530;
+
+  /* Semantic status palette (fills + tints) — one language across the app */
+  --color-success:    #059669;
+  --color-success-bg: #d1fae5;
+  --color-warning:    #b45309;
+  --color-warning-bg: #fef3c7;
+  --color-danger:     #dc2626;
+  --color-danger-bg:  #fee2e2;
+  --color-info:       #4f46e5;
+  --color-info-bg:    #e0e7ff;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace;

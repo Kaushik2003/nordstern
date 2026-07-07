@@ -20,11 +20,12 @@ accounts, and issues an asset on-chain. That requires:
 # 1. Generate the master key + anchor-config dir the provisioner needs
 cd anchor-service && node scripts/setup-base.mjs          # writes MASTER_KEK + config dir
 
-# 2. Build the business-server image the provisioner launches for each anchor.
-#    Source is anchor-template/business-server — the hardened money runtime that the
-#    M3 money-flow tests and M4 versioned migrations were written for (webhook HMAC
-#    verification + idempotent deposit-release outbox + per-anchor nordstern.* schema).
+# 2. Build the per-anchor images the provisioner launches. ALL canonical sources live
+#    under anchor-template/ (business-server, operator console, customer app). The older
+#    anchor-service/{business-server,client} copies are retired reference only.
 docker build -t nordstern/business-server:dev anchor-template/business-server
+docker build -t nordstern/operator-console:dev anchor-template/console
+docker build -t nordstern/anchor-client:dev    anchor-template/anchor-client
 
 # 3. Export the two vars the compose interpolates (from step 1's output)
 export MASTER_KEK=<value>

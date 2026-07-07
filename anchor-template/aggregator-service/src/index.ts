@@ -1,5 +1,6 @@
 import express from 'express';
-import { initSchema, writeAuditLog } from './db.js';
+import { writeAuditLog } from './db.js';
+import { runMigrations } from './migrate.js';
 import { PORT } from './config.js';
 import { sdkRouter } from './sdk.js';
 import { startBackgroundWorkers, stopBackgroundWorkers } from './workers.js';
@@ -20,8 +21,9 @@ app.use('/', sdkRouter);
 // Start Server
 async function start() {
   try {
-    // 1. Init Database Schema & Default Seeds
-    await initSchema();
+    // 1. Migrate-on-start (R6 M4.3) — replaces runtime initSchema() DDL. The idempotent
+    //    baseline is a no-op on existing aggregator DBs and creates fresh ones.
+    await runMigrations();
     
     // 2. Start Background Polling & Cleanup Workers
     startBackgroundWorkers();

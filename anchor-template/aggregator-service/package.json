@@ -8,10 +8,13 @@
     "start": "tsx src/index.ts",
     "build": "tsc",
     "start:prod": "node dist/index.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "tsx src/migrate.ts up",
+    "db:migrate:down": "tsx src/migrate.ts down"
   },
   "dependencies": {
     "express": "^4.18.0",
+    "node-pg-migrate": "^7.9.1",
     "pg": "^8.13.0"
   },
   "devDependencies": {

@@ -127,16 +127,54 @@ jobs:
           fi
           echo "✅ no runtime DDL in src/ — migrations are the single source of schema truth"
 
+  # anchor-template/aggregator-service — node-pg-migrate (R6 M4.3)
+  aggregator:
+    name: aggregator-migrations
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env: { POSTGRES_PASSWORD: pw, POSTGRES_DB: anchordb }
+        ports: ['5435:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:pw@localhost:5435/anchordb
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with: { workspace: anchor-template/aggregator-service }
+      - name: Migrations apply cleanly (fresh DB)
+        working-directory: anchor-template/aggregator-service
+        run: npm run db:migrate
+      - name: Idempotency (re-run is a no-op)
+        working-directory: anchor-template/aggregator-service
+        run: |
+          OUT="$(npm run db:migrate 2>&1)"; echo "$OUT"
+          echo "$OUT" | grep -qi "No migrations to run" \
+            || { echo "::error::second migrate was not a no-op — not idempotent"; exit 1; }
+      - name: No un-versioned runtime DDL (drift guard)
+        working-directory: anchor-template/aggregator-service
+        run: |
+          HITS="$(grep -rniE 'CREATE TABLE|ALTER TABLE|CREATE INDEX' src/ || true)"
+          if [ -n "$HITS" ]; then
+            echo "::error title=Un-versioned schema change::runtime DDL found in src/ — move it to a migration"
+            echo "$HITS"; exit 1
+          fi
+          echo "✅ no runtime DDL in src/ — migrations are the single source of schema truth"
+
   # Single deadlock-safe required check across all DB-owning services.
   db-required:
     name: db-required
     if: always()
-    needs: [platform-api, control-plane, business-server]
+    needs: [platform-api, control-plane, business-server, aggregator]
     runs-on: ubuntu-latest
     steps:
       - run: |
-          echo "platform-api=${{ needs.platform-api.result }} control-plane=${{ needs.control-plane.result }} business-server=${{ needs.business-server.result }}"
-          if [ "${{ needs.platform-api.result }}" != "success" ] || [ "${{ needs.control-plane.result }}" != "success" ] || [ "${{ needs.business-server.result }}" != "success" ]; then
+          r_pa="${{ needs.platform-api.result }}"; r_cp="${{ needs.control-plane.result }}"
+          r_bs="${{ needs.business-server.result }}"; r_ag="${{ needs.aggregator.result }}"
+          echo "platform-api=$r_pa control-plane=$r_cp business-server=$r_bs aggregator=$r_ag"
+          if [ "$r_pa" != "success" ] || [ "$r_cp" != "success" ] || [ "$r_bs" != "success" ] || [ "$r_ag" != "success" ]; then
             echo "::error::a database migration check failed"; exit 1
           fi
           echo "All database migration checks passed"

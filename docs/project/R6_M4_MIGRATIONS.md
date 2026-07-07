@@ -71,8 +71,26 @@ Order and rationale unchanged from the M2-c roadmap. Each is its own reviewable 
 - **CI (`db.yml` `business-server-migrations`):** apply + idempotency + no-runtime-DDL guard
   (blocking, under `db-required`). Additive-only; no destructive change/data rewrite/behaviour change.
 
-### M4.3 — aggregator-service (`aggregator`) — lowest risk
-- Baseline from live `aggregator` schema; migrate-on-start; idempotent initial-anchors seed.
+### M4.3 — aggregator-service (`aggregator`) ✅ (done — M4 CLOSED)
+- **Baseline** (`migrations/1719800000000_baseline.cjs`) reproduces the exact `initSchema()`
+  6-table schema + both seed sets (2 demo anchors + balanced routing policy), idempotent
+  (`IF NOT EXISTS` + `DO`-block "seed only if empty" guards). `runMigrations()` on start;
+  `initSchema()` removed (runtime `writeAuditLog` helper kept).
+- **Verified against real Postgres:** schema byte-for-byte identical + seed content identical
+  (anchors 2, routing_policies 1); **existing DB** with runtime data (quote/health/decision/
+  audit) → quote row byte-identical after adoption, seeds not duplicated, idempotent; **fresh
+  boot** → migrate-on-start + engines functioning (registration ✅, health polling ✅,
+  registry read ✅, quote/route engines run + health-filter as before).
+- **CI (`db.yml` `aggregator-migrations`):** apply + idempotency + no-runtime-DDL guard, under `db-required`.
+- No routing/quote algorithm change, no API change, additive-only.
+
+---
+
+## ✅ M4 CLOSED — every NordStern service on versioned, CI-enforced migrations
+platform/api (Drizzle) · control-plane · business-server · aggregator-service — all four
+DB-owning services now run migrate-on-start (no runtime schema creation), validated by the
+blocking **`db-required`** check (apply-on-fresh-DB + idempotency + drift/no-runtime-DDL per
+service). Original placeholder note below retained for history.
 - Single instance → simplest rollout; independent of the money path.
 
 ### Cross-cutting

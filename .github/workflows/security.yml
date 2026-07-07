@@ -1,0 +1,132 @@
+name: Security
+
+# Lightweight, repository-level security validation (R6 M2-b). Prevents obvious
+# mistakes from reaching the repo — NOT a full DevSecOps platform. Three checks:
+#   1. secret-scan  — gitleaks over the PR range (blocking on NEW secrets)
+#   2. hygiene      — fail if generated build artifacts get committed (blocking)
+#   3. dependency-audit — npm audit, report-only (non-blocking, visibility)
+# Image vulnerability scanning is intentionally deferred to a later milestone.
+# Does not modify ci.yml.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # 1) Secret scanning — scan only the PR range (base..head), not full history.
+  #    Blocking: a genuine new secret fails the check. Known false positives are
+  #    narrowly allowlisted in .gitleaks.toml (build output + a few historical mocks).
+  secret-scan:
+    name: secret-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # need the base commit present to diff the PR range
+
+      - name: Gitleaks (PR range)
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+            HEAD="${{ github.sha }}"
+          fi
+          # New branch / missing base → scan just the latest commit (avoid full history).
+          if [ -z "${BASE}" ] || echo "${BASE}" | grep -qE '^0+$'; then
+            RANGE="-1 ${HEAD}"
+          else
+            RANGE="${BASE}..${HEAD}"
+          fi
+          echo "Scanning commit range: ${RANGE}"
+          docker run --rm -v "${PWD}:/repo" -w /repo ghcr.io/gitleaks/gitleaks:v8.21.2 \
+            detect --source . --log-opts "${RANGE}" -c .gitleaks.toml --redact -v
+
+  # 2) Repository hygiene — reuse the M1 rules; fail if generated/build artifacts
+  #    are tracked. Blocking. Keeps the clean baseline enforced forever.
+  hygiene:
+    name: hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail on committed build artifacts
+        run: |
+          set -euo pipefail
+          # Mirror of M1 / root .gitignore. `build/` is intentionally omitted to avoid
+          # false positives on legitimate route/dir names; .next/dist/out cover our stacks.
+          PATTERN='(^|/)(node_modules|\.next|\.turbo|\.cache|coverage|dist|out)/|\.tsbuildinfo$'
+          HITS="$(git ls-files | grep -E "${PATTERN}" || true)"
+          if [ -n "${HITS}" ]; then
+            echo "::error::Committed build artifacts / generated files detected (violates M1 hygiene rules)."
+            while IFS= read -r f; do
+              echo "::error file=${f}::tracked generated file: ${f}"
+            done <<< "${HITS}"
+            echo ""
+            echo "Tracked generated files:"
+            echo "${HITS}"
+            echo ""
+            echo "Remediation:"
+            echo "  git rm -r --cached <path>      # untrack, keep locally"
+            echo "  # ensure the path is covered by .gitignore, then commit"
+            exit 1
+          fi
+          echo "No committed build artifacts — hygiene clean."
+
+  # 3) Dependency audit — report-only. Never blocks a merge; purpose is visibility.
+  #    Runs from the lockfile alone (no install needed).
+  dependency-audit:
+    name: dependency-audit
+    runs-on: ubuntu-latest
+    continue-on-error: true   # advisory; the step also always exits 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: npm audit (advisory)
+        run: |
+          set +e
+          WORKSPACES="platform/api platform/console \
+            anchor-service/business-server anchor-service/control-plane anchor-service/client \
+            anchor-template/aggregator-service anchor-template/business-server \
+            anchor-template/anchor-client anchor-template/client anchor-template/console \
+            frontend/landing frontend/web docs-website"
+          {
+            echo "## Dependency audit (advisory — non-blocking)"
+            echo ""
+            echo "| Workspace | Critical | High | Moderate | Low | Total |"
+            echo "|---|---:|---:|---:|---:|---:|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          TOTAL_CRIT=0; TOTAL_HIGH=0
+          for ws in $WORKSPACES; do
+            json="$(cd "$ws" && npm audit --json 2>/dev/null)"
+            read -r crit high row <<< "$(printf '%s' "$json" | node -e '
+              let d={};try{d=JSON.parse(require("fs").readFileSync(0,"utf8"))}catch{}
+              const v=(d.metadata&&d.metadata.vulnerabilities)||null;
+              const ws=process.argv[1];
+              if(!v){process.stdout.write(`0 0 | ${ws} | ? | ? | ? | ? | n/a |`);}
+              else{process.stdout.write(`${v.critical||0} ${v.high||0} | ${ws} | ${v.critical||0} | ${v.high||0} | ${v.moderate||0} | ${v.low||0} | ${v.total||0} |`);}
+            ' "$ws")"
+            echo "$row" >> "$GITHUB_STEP_SUMMARY"
+            TOTAL_CRIT=$((TOTAL_CRIT + crit)); TOTAL_HIGH=$((TOTAL_HIGH + high))
+          done
+          {
+            echo ""
+            echo "**Totals across workspaces — critical: ${TOTAL_CRIT}, high: ${TOTAL_HIGH}.**"
+            echo ""
+            echo "_Advisory only. Remediate with \`npm audit fix\` (or a scoped upgrade) in the affected workspace. Does not block merges in M2-b._"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Dependency audit complete (advisory). Critical=${TOTAL_CRIT} High=${TOTAL_HIGH}"
+          exit 0

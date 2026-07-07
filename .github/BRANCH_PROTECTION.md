@@ -6,10 +6,13 @@ once (so the check name `ci-required` is registered as selectable).
 
 ## Required status check
 
-The single required check is **`ci-required`** — the aggregation job in `ci.yml`
-that is green only when every *blocking* workspace passes. (`docs-website` is
-non-blocking and cannot fail it.) As more workflows land (security, db, docker),
-add their required checks here too — e.g. `gitleaks`, `artifact-guard`.
+Required checks (add each as it lands):
+- **`ci-required`** — aggregation job in `ci.yml`; green only when every *blocking*
+  workspace passes (`docs-website` is non-blocking and cannot fail it).
+- **`secret-scan`** — gitleaks (M2-b); blocks on a genuine new secret in the PR range.
+- **`hygiene`** — committed-build-artifact guard (M2-b); blocks on tracked generated files.
+
+`dependency-audit` (M2-b) is **advisory / non-blocking** — do NOT add it as required.
 
 ## Option A — GitHub UI
 Settings → Rules → Rulesets → New branch ruleset, target `main`:

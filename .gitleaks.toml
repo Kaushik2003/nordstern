@@ -1,0 +1,38 @@
+# Gitleaks configuration for NordStern (R6 M2-b).
+#
+# Extends the built-in ruleset (GitHub tokens, AWS keys, private keys, JWTs,
+# generic API keys, DB passwords, env files, etc.). The allowlist below excludes
+# only VERIFIED false positives — generated build output and a few known,
+# non-actionable historical strings. It does NOT relax detection of real secrets
+# (a planted GitHub PAT / AWS key is still caught).
+
+title = "NordStern gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Verified false positives only (build output + known historical mocks)."
+
+paths = [
+  # Generated build output: entropy in these files produces false positives, and
+  # committing them is independently blocked by the security.yml hygiene job — so
+  # the secret scanner does not need to descend into generated artifacts.
+  '''(^|/)\.next/''',
+  '''(^|/)\.turbo/''',
+  '''(^|/)dist/''',
+  '''(^|/)out/''',
+  '''(^|/)coverage/''',
+  # Retired disposable/community key (see memory: security-finding-triage).
+  '''frontend/landing/\.zshrc''',
+]
+
+regexes = [
+  # Retired disposable/community key value.
+  '''aero_live_HlPcqiDWA4Va7PX81C04d73_ov8jtz6oZ4UoL5Vag-U''',
+  # Historical MOCK seed values from an earlier anchor-template/business-server/src/db.ts
+  # (obvious placeholders, already removed from HEAD). Exact values only — NOT a
+  # prefix pattern, so real ns_live_/ns_test_ keys would still be caught.
+  '''ns_live_abc123xyz7890pqrstuvw''',
+  '''ns_test_def456uvw1234lmnopoqr''',
+]

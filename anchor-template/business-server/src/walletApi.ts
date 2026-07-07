@@ -3,6 +3,7 @@ import {
   Keypair, Horizon, Memo, TransactionBuilder, BASE_FEE, Operation, Asset,
 } from '@stellar/stellar-sdk';
 import { ASSET_CODE, ASSET_ISSUER_PUBLIC, HORIZON_URL, NET_PASS, SEP_SERVER_URL } from './config.js';
+import { rate } from './adapters/index.js';
 
 // ─── Browser helper API + SEP proxy ────────────────────────────────────────────
 // Lets the (same-origin) wallet UI do Stellar ops without bundling the SDK, and
@@ -10,6 +11,27 @@ import { ASSET_CODE, ASSET_ISSUER_PUBLIC, HORIZON_URL, NET_PASS, SEP_SERVER_URL 
 // convenience; end users in the factory hit <slug>.anchors.localhost via Traefik.
 
 export const walletRouter = Router();
+
+// Public price quote for the customer app's Buy/Sell amount screen. Read-only, no money
+// movement — just the live INR↔asset rate so the UI can show "you pay ₹X / you get Y".
+walletRouter.get('/api/quote', async (req, res) => {
+  try {
+    const q = await rate.quote();
+    const inrPerUnit = Number(q.inrPerUsdc);
+    const amount = Number(req.query.amount);
+    const side = (req.query.side as string) === 'sell' ? 'sell' : 'buy';
+    const body: Record<string, unknown> = { assetCode: ASSET_CODE, inrPerUnit: inrPerUnit.toFixed(2), source: q.source };
+    if (Number.isFinite(amount) && amount > 0) {
+      // buy: enter asset amount → INR to pay. sell: enter asset amount → INR received.
+      body.assetAmount = amount.toFixed(2);
+      body.inrAmount = (amount * inrPerUnit).toFixed(2);
+      body.side = side;
+    }
+    res.json(body);
+  } catch (err) {
+    res.status(502).json({ error: (err as Error).message });
+  }
+});
 
 walletRouter.get('/api/account/:address', async (req, res) => {
   const r = await fetch(`${HORIZON_URL}/accounts/${req.params.address}`);

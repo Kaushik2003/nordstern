@@ -138,6 +138,11 @@ async function runProvision(anchor: any): Promise<void> {
   const kps = generateKeypairs();
   const assetCode = assetCodeFromSlug(slug);
 
+  // Idempotent re-provision (retry after a failed attempt): clear any partial state
+  // from a prior run so re-inserting keypairs can't collide. Keys are regenerated
+  // above, so dropping the old rows is safe.
+  await pool.query(`DELETE FROM anchor_secrets WHERE tenant_id = $1`, [id]);
+
   // Encrypt + store secrets (public key stays in the clear).
   for (const [role, kp] of [['signing', kps.signing], ['distribution', kps.distribution], ['issuer', kps.issuer]] as const) {
     const sealed = encryptSecret(kp.secret());

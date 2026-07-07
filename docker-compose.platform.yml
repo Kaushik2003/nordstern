@@ -102,6 +102,10 @@ services:
     environment:
       SERVICES: secretsmanager
       DEBUG: "0"
+      # NOTE: LocalStack community is EPHEMERAL — a container restart wipes secrets
+      # (PERSISTENCE is a Pro feature). Prod AWS Secrets Manager is durable, so this is
+      # a local-dev artifact only. Don't restart this service mid-test and expect creds
+      # to survive; re-provision writes them fresh.
     ports: ["4566:4566"]
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:4566/_localstack/health || exit 1"]

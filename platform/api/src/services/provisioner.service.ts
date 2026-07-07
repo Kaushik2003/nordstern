@@ -69,6 +69,23 @@ export const provisionerService = {
     return { cpAnchorId: anchor.id, slug: anchor.slug, homeDomain: anchor.home_domain, token };
   },
 
+  // Resume the EXISTING control-plane anchor (retry after a failed attempt). Re-uses
+  // the same cpAnchorId + slug so the secret path still matches and no orphan anchor
+  // is created. The control-plane's runProvision is idempotent (clears partial state).
+  async resume(cpAnchorId: string): Promise<ProvisionHandle> {
+    const token = await controlPlaneToken();
+    const auth = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+    const detRes = await fetch(`${CP_URL}/anchors/${cpAnchorId}`, { headers: auth });
+    if (!detRes.ok) throw new Error(`control-plane fetch anchor failed (${detRes.status}): ${await detRes.text()}`);
+    const anchor = (await detRes.json()) as { id: string; slug: string; home_domain: string };
+
+    const provRes = await fetch(`${CP_URL}/anchors/${cpAnchorId}/provision`, { method: 'POST', headers: auth });
+    if (!provRes.ok) throw new Error(`control-plane re-provision failed (${provRes.status}): ${await provRes.text()}`);
+
+    return { cpAnchorId: anchor.id, slug: anchor.slug, homeDomain: anchor.home_domain, token };
+  },
+
   // Poll the control-plane's real status until terminal. `onProgress` receives the
   // genuine status_detail string ("Generating keypairs", "Funding accounts…", etc.).
   async waitUntilDone(h: ProvisionHandle, onProgress: (detail: string) => Promise<void> | void): Promise<ProvisionOutcome> {

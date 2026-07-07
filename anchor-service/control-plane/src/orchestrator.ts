@@ -134,6 +134,15 @@ async function ensureImage(image: string): Promise<void> {
   });
 }
 
+// For OPTIONAL images (customer client, operator console): present locally? We do NOT
+// pull these — they're locally-built dev images. A missing one is not fatal; the anchor
+// core (AP + business-server) still provisions and we skip the optional surface. This
+// keeps a stack launchable before those images exist (the console has no source yet — R3).
+async function imageAvailableLocally(image: string): Promise<boolean> {
+  const imgs = await docker.listImages({ filters: { reference: [image] } });
+  return imgs.length > 0;
+}
+
 async function runContainer(opts: Docker.ContainerCreateOptions): Promise<string> {
   // Remove any stale container with the same name (idempotent re-provision).
   try {
@@ -145,14 +154,17 @@ async function runContainer(opts: Docker.ContainerCreateOptions): Promise<string
   return container.id;
 }
 
-export async function createAnchorStack(p: StackParams): Promise<{ apId: string; bizId: string; clientId: string; consoleId: string }> {
+export async function createAnchorStack(p: StackParams): Promise<{ apId: string; bizId: string; clientId: string | null; consoleId: string | null }> {
   if (!CONFIG_HOST_ROOT) throw new Error('ANCHOR_CONFIG_HOST_ROOT not set — cannot bind AP config.');
   const hostConfigDir = path.join(CONFIG_HOST_ROOT, p.slug);
 
   await ensureImage(AP_IMAGE);
   await ensureImage(BIZ_IMAGE);
-  await ensureImage(CLIENT_IMAGE);
-  await ensureImage(CONSOLE_IMAGE);
+  // Optional surfaces — launched only if their images are built locally.
+  const haveClient  = await imageAvailableLocally(CLIENT_IMAGE);
+  const haveConsole = await imageAvailableLocally(CONSOLE_IMAGE);
+  if (!haveClient)  console.warn(`[orchestrator] ${CLIENT_IMAGE} not built — skipping customer client for ${p.slug} (build it to enable the customer URL).`);
+  if (!haveConsole) console.warn(`[orchestrator] ${CONSOLE_IMAGE} not built — skipping operator console for ${p.slug} (R3: no source yet).`);
 
   const apEnv = [
     'STELLAR_ANCHOR_CONFIG=/config/anchor-platform.yaml',
@@ -214,37 +226,35 @@ export async function createAnchorStack(p: StackParams): Promise<{ apId: string;
     },
   });
 
-  const clientEnv = [
-    'PORT=3001',
-    `BIZ_URL=http://${bizName(p.slug)}:3000`,
-    `NEXT_PUBLIC_ASSET_CODE=${p.assetCode}`,
-  ];
+  let clientId: string | null = null;
+  if (haveClient) {
+    clientId = await runContainer({
+      name: clientName(p.slug),
+      Image: CLIENT_IMAGE,
+      Env: [
+        'PORT=3001',
+        `BIZ_URL=http://${bizName(p.slug)}:3000`,
+        `NEXT_PUBLIC_ASSET_CODE=${p.assetCode}`,
+      ],
+      Labels: labels('client', p.slug, p.homeDomain),
+      HostConfig: { NetworkMode: NETWORK },
+    });
+  }
 
-  const clientId = await runContainer({
-    name: clientName(p.slug),
-    Image: CLIENT_IMAGE,
-    Env: clientEnv,
-    Labels: labels('client', p.slug, p.homeDomain),
-    HostConfig: {
-      NetworkMode: NETWORK,
-    },
-  });
-
-  const consoleEnv = [
-    'PORT=3001',
-    `BIZ_URL=http://${bizName(p.slug)}:3000`,
-    'CP_URL=http://control-plane:3002',
-  ];
-
-  const consoleId = await runContainer({
-    name: consoleName(p.slug),
-    Image: CONSOLE_IMAGE,
-    Env: consoleEnv,
-    Labels: labels('console', p.slug, p.homeDomain),
-    HostConfig: {
-      NetworkMode: NETWORK,
-    },
-  });
+  let consoleId: string | null = null;
+  if (haveConsole) {
+    consoleId = await runContainer({
+      name: consoleName(p.slug),
+      Image: CONSOLE_IMAGE,
+      Env: [
+        'PORT=3001',
+        `BIZ_URL=http://${bizName(p.slug)}:3000`,
+        'CP_URL=http://control-plane:3002',
+      ],
+      Labels: labels('console', p.slug, p.homeDomain),
+      HostConfig: { NetworkMode: NETWORK },
+    });
+  }
 
   return { apId, bizId, clientId, consoleId };
 }

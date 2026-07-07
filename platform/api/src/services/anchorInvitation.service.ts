@@ -224,12 +224,16 @@ export const anchorInvitationService = {
       try {
         await setJob({ status: 'running', startedAt: new Date(), attempts: (jobRes.attempts ?? 0) + 1 });
 
-        // 1. Kick off the real control-plane lifecycle with the adapters resolved at
-        // redemption (real rails where creds were supplied; mock otherwise).
-        const handle = await provisionerService.start({
-          name: payload.slug,
-          adapters: payload.adapters ?? { kyc: 'mock', deposit: 'mock', payout: 'mock', fee: 'mock' },
-        });
+        // 1. Kick off the real control-plane lifecycle. On RETRY (a prior attempt
+        // already created the control-plane anchor), RESUME that same anchor so the
+        // slug — and therefore the secret path — stays stable and no orphan is left.
+        const prior = (jobRes.result ?? {}) as any;
+        const handle = prior.cpAnchorId
+          ? await provisionerService.resume(prior.cpAnchorId)
+          : await provisionerService.start({
+              name: payload.slug,
+              adapters: payload.adapters ?? { kyc: 'mock', deposit: 'mock', payout: 'mock', fee: 'mock' },
+            });
         const base = { cpAnchorId: handle.cpAnchorId, slug: handle.slug, homeDomain: handle.homeDomain };
         await setJob({ result: { ...base, stage: 'Provisioning started' } });
 

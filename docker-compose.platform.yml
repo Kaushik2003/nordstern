@@ -58,8 +58,6 @@ services:
   control-plane:
     build: ./anchor-service/control-plane
     restart: unless-stopped
-    depends_on:
-      db: { condition: service_healthy }
     ports: ["3002:3002"]
     environment:
       PORT: 3002
@@ -78,6 +76,17 @@ services:
       ANCHOR_DOMAIN_SUFFIX: anchors.127.0.0.1.sslip.io
       HORIZON_URL: https://horizon-testnet.stellar.org
       NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+      # SecretStore reader — pulls each anchor's PSP creds at container launch and
+      # injects them (mirrors External Secrets Operator in prod). Same path as platform-api.
+      SECRETS_PREFIX: nordstern
+      SECRETS_ENV: testnet
+      AWS_REGION: us-east-1
+      SECRETS_ENDPOINT: http://secrets:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    depends_on:
+      db: { condition: service_healthy }
+      secrets: { condition: service_healthy }
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock        # dockerode spins up anchor stacks
       - ${ANCHOR_CONFIG_HOST_ROOT}:/anchor-configs

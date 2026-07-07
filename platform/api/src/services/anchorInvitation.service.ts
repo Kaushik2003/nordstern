@@ -1,11 +1,33 @@
 import crypto from 'crypto';
 import { db } from '../db/index.js';
 import { eq, and } from 'drizzle-orm';
-import { anchorInvitations, organizations, organizationSettings, users, memberships, projects, anchors, provisioningJobs } from '../db/schema.js';
+import { anchorInvitations, organizations, organizationSettings, users, memberships, projects, anchors, provisioningJobs, applications, secretRefs } from '../db/schema.js';
 import { hashPassword } from '../lib/password.js';
 import { uniqueSlug } from '../lib/slug.js';
 import { badRequest, conflict } from '../lib/errors.js';
 import { provisionerService } from './provisioner.service.js';
+import { secretStore } from '../lib/secrets/index.js';
+import type { Credentials } from '../lib/secrets/index.js';
+
+// Credentials an invitee may bring at redemption (post-approval). Optional — Test
+// Mode works entirely on mock rails. Values go straight to the SecretStore; the DB
+// only ever sees a reference (DL-010).
+export interface RedemptionCredentials {
+  razorpay?: Credentials;
+  cashfree?: Credentials;
+}
+
+// Map the application's launch mode + supplied credentials to concrete adapters.
+// Real rails only turn on when their credentials are actually present; identity is
+// platform-owned (didit) for production, mock in test (until the Identity Service).
+function resolveAdapters(mode: 'test' | 'production', creds: RedemptionCredentials) {
+  return {
+    kyc: mode === 'production' ? 'didit' : 'mock',
+    deposit: creds.razorpay ? 'razorpay' : 'mock',
+    payout: creds.cashfree ? 'cashfree' : 'mock',
+    fee: 'mock',
+  };
+}
 
 export const anchorInvitationService = {
   async verify(rawToken: string) {
@@ -26,9 +48,19 @@ export const anchorInvitationService = {
     subdomain: string;
     fullName: string;
     password: string;
+    credentials?: RedemptionCredentials;
   }) {
     const invitation = await this.verify(input.rawToken);
-    
+
+    // Load the vetted application to learn the chosen launch mode + product config.
+    const application = invitation.applicationId
+      ? await db.query.applications.findFirst({ where: eq(applications.id, invitation.applicationId) })
+      : null;
+    const product = (application?.product ?? {}) as any;
+    const mode: 'test' | 'production' = product.mode === 'production' ? 'production' : 'test';
+    const creds = input.credentials ?? {};
+    const adapters = resolveAdapters(mode, creds);
+
     // Check slug collision
     const slug = input.subdomain.toLowerCase().replace(/[^a-z0-9]/g, '');
     const slugClash = await db.query.organizations.findFirst({
@@ -106,7 +138,9 @@ export const anchorInvitationService = {
           slug,
           orgName: org.name,
           email: invitation.email,
-          environment: 'sandbox'
+          environment: mode === 'production' ? 'production' : 'sandbox',
+          mode,
+          adapters,
         }
       }).returning();
 
@@ -118,18 +152,55 @@ export const anchorInvitationService = {
       return { user, org, anchor, job };
     });
 
-    // In a real production setup, we trigger the background worker saga here.
-    // For local dev, we run it asynchronously or resolve it.
-    this.triggerProvisioningJob(result.job.id).catch(err => {
-      console.error(`[onboarding-worker] Failed to trigger provisioning job ${result.job.id}:`, err);
-    });
+    // Persist any supplied PSP credentials to the SecretStore BEFORE provisioning —
+    // the control-plane reads them by the anchor's path when it launches the
+    // business-server. Only a reference is written to the DB (DL-010).
+    await this.storeCredentials(result.org.id, result.anchor.id, slug, creds);
+
+    // Trigger provisioning ONLY for Test Mode. Production is a deliberate,
+    // counsel-gated act (§7): the records + secret refs are created, but the job
+    // stays pending for manual go-live review rather than auto-provisioning mainnet.
+    if (mode === 'test') {
+      this.triggerProvisioningJob(result.job.id).catch(err => {
+        console.error(`[onboarding-worker] Failed to trigger provisioning job ${result.job.id}:`, err);
+      });
+    } else {
+      await db.update(provisioningJobs)
+        .set({ result: { stage: 'Awaiting production go-live review' }, updatedAt: new Date() })
+        .where(eq(provisioningJobs.id, result.job.id));
+    }
 
     return {
       success: true,
       organizationId: result.org.id,
       anchorId: result.anchor.id,
-      jobId: result.job.id
+      jobId: result.job.id,
+      mode,
+      provisioning: mode === 'test' ? 'started' : 'gated',
     };
+  },
+
+  // Write each supplied provider's credentials to the SecretStore and record only a
+  // reference row. Shared by redemption; operators later add/rotate via credentials.service.
+  async storeCredentials(orgId: string, anchorId: string, slug: string, creds: RedemptionCredentials) {
+    for (const provider of ['razorpay', 'cashfree'] as const) {
+      const values = creds[provider];
+      if (!values || Object.keys(values).length === 0) continue;
+      const ref = await secretStore.put(slug, provider, values);
+      await db.insert(secretRefs).values({
+        organizationId: orgId,
+        anchorId,
+        slug,
+        provider: ref.provider,
+        secretProvider: ref.secretProvider,
+        secretPath: ref.secretPath,
+        keyNames: ref.keyNames,
+        lastRotatedAt: new Date(),
+      }).onConflictDoUpdate({
+        target: [secretRefs.slug, secretRefs.provider],
+        set: { keyNames: ref.keyNames, secretPath: ref.secretPath, secretProvider: ref.secretProvider, lastRotatedAt: new Date(), updatedAt: new Date() },
+      });
+    }
   },
 
   // Drives the REAL provisioner (anchor-service/control-plane) end-to-end. No more
@@ -153,10 +224,11 @@ export const anchorInvitationService = {
       try {
         await setJob({ status: 'running', startedAt: new Date(), attempts: (jobRes.attempts ?? 0) + 1 });
 
-        // 1. Kick off the real control-plane lifecycle.
+        // 1. Kick off the real control-plane lifecycle with the adapters resolved at
+        // redemption (real rails where creds were supplied; mock otherwise).
         const handle = await provisionerService.start({
           name: payload.slug,
-          adapters: { kyc: 'mock', deposit: 'mock', payout: 'mock', fee: 'mock' }, // testnet-safe defaults
+          adapters: payload.adapters ?? { kyc: 'mock', deposit: 'mock', payout: 'mock', fee: 'mock' },
         });
         const base = { cpAnchorId: handle.cpAnchorId, slug: handle.slug, homeDomain: handle.homeDomain };
         await setJob({ result: { ...base, stage: 'Provisioning started' } });

@@ -16,10 +16,12 @@ anchorInvitationsRouter.get('/verify', ah(async (req, res) => {
   res.json({ email: inv.email, valid: true });
 }));
 
-// POST /anchor-invitations/redeem — create org/anchor + start real provisioning
+// POST /anchor-invitations/redeem — create org/anchor + start real provisioning.
+// `credentials` (optional) carries the business's PSP keys; they go straight to the
+// SecretStore and are never echoed back.
 anchorInvitationsRouter.post('/redeem', ah(async (req, res) => {
-  const { token, subdomain, fullName, password } = (req.body ?? {}) as Record<string, string>;
-  const result = await anchorInvitationService.redeem({ rawToken: token, subdomain, fullName, password });
+  const { token, subdomain, fullName, password, credentials } = (req.body ?? {}) as any;
+  const result = await anchorInvitationService.redeem({ rawToken: token, subdomain, fullName, password, credentials });
   res.status(201).json(result);
 }));
 

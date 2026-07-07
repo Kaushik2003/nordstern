@@ -2,6 +2,7 @@ import Docker from 'dockerode';
 import { randomBytes } from 'crypto';
 import path from 'path';
 import { pool } from './db.js';
+import { readAnchorSecrets } from './secrets.js';
 
 // ─── Orchestrator (DL-006) ─────────────────────────────────────────────────────
 // Spins up an isolated stack per anchor via the Docker Engine API: one Anchor
@@ -182,6 +183,14 @@ export async function createAnchorStack(p: StackParams): Promise<{ apId: string;
   if (p.surepass) {
     bizEnv.push(`SUREPASS_BASE_URL=${p.surepass.baseUrl}`, `SUREPASS_TOKEN=${p.surepass.token}`);
   }
+
+  // Pull this anchor's PSP/banking credentials from the SecretStore and inject them
+  // wholesale (DL-010). In prod this is what External Secrets Operator does via
+  // envFrom; here the provisioner does it directly. Values never touch our DB and
+  // never transit the platform→control-plane HTTP call — the provisioner reads them
+  // straight from the store by the anchor's path. Empty for a mock/testnet anchor.
+  const injected = await readAnchorSecrets(p.slug);
+  for (const [k, v] of Object.entries(injected)) bizEnv.push(`${k}=${v}`);
 
   const apId = await runContainer({
     name: apName(p.slug),

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2, ShieldCheck, Clock } from 'lucide-react';
 
 const schema = z.object({
   token: z.string().min(1, 'Token is required'),
@@ -19,64 +19,67 @@ const schema = z.object({
     .max(63, 'Maximum 63 characters')
     .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$/, 'Only lowercase letters, numbers, and hyphens'),
   fullName: z.string().min(2, 'Name is required'),
-  password: z.string().min(8, 'Password must be at least 8 characters')
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  // Optional PSP credentials — go straight to the secret store, never shown again.
+  razorpayKeyId: z.string().optional(),
+  razorpayKeySecret: z.string().optional(),
+  cashfreeAppId: z.string().optional(),
+  cashfreeSecretKey: z.string().optional(),
 });
 
 type Form = z.infer<typeof schema>;
-
-const STAGES = [
-  { key: 'queued', label: 'Queuing Provisioning Job' },
-  { key: 'provisioning_database', label: 'Creating Postgres Database Schema' },
-  { key: 'generating_keys', label: 'Generating Stellar Keypairs' },
-  { key: 'funding_testnet', label: 'Funding Accounts via Friendbot' },
-  { key: 'generating_config', label: 'Generating Platform Configurations' },
-  { key: 'starting_services', label: 'Spinning up isolated Docker Containers' },
-  { key: 'registering_aggregator', label: 'Registering Capabilities with Aggregator' },
-  { key: 'active', label: 'Anchor Active & Ready!' }
-];
 
 export default function RedeemPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState('');
-  const [stageIndex, setStageIndex] = useState(-1);
+  const [stage, setStage] = useState<string | null>(null);   // real control-plane progress
+  const [provisioning, setProvisioning] = useState(false);
+  const [gated, setGated] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      token: searchParams.get('token') || '',
-      subdomain: '',
-      fullName: '',
-      password: ''
-    }
+    defaultValues: { token: searchParams.get('token') || '', subdomain: '', fullName: '', password: '' },
   });
 
   useEffect(() => {
     const token = searchParams.get('token');
-    if (token) {
-      setValue('token', token);
-    }
+    if (token) setValue('token', token);
   }, [searchParams, setValue]);
+
+  // Poll the REAL provisioning status endpoint until terminal.
+  async function pollStatus(jobId: string) {
+    try {
+      const s = await api.get(`/anchor-invitations/status/${jobId}`) as any;
+      setStage(s.stage ?? 'Working…');
+      if (s.status === 'completed') { setSuccess(true); return; }
+      if (s.status === 'failed') { setError(s.error || 'Provisioning failed'); setProvisioning(false); return; }
+      setTimeout(() => pollStatus(jobId), 3000);
+    } catch {
+      setTimeout(() => pollStatus(jobId), 3000);
+    }
+  }
 
   async function onSubmit(v: Form) {
     setError('');
+    const credentials: Record<string, Record<string, string>> = {};
+    if (v.razorpayKeyId && v.razorpayKeySecret) {
+      credentials.razorpay = { RAZORPAY_KEY_ID: v.razorpayKeyId, RAZORPAY_KEY_SECRET: v.razorpayKeySecret };
+    }
+    if (v.cashfreeAppId && v.cashfreeSecretKey) {
+      credentials.cashfree = { CASHFREE_APP_ID: v.cashfreeAppId, CASHFREE_SECRET_KEY: v.cashfreeSecretKey };
+    }
     try {
-      const res = await api.post('/anchor-invitations/redeem', v) as any;
-      
-      // Begin simulated live status tracking loop (for the MVP/demo)
-      setStageIndex(0);
-      let idx = 0;
-      const interval = setInterval(() => {
-        idx++;
-        if (idx < STAGES.length) {
-          setStageIndex(idx);
-        } else {
-          clearInterval(interval);
-          setSuccess(true);
-        }
-      }, 2000);
+      const res = await api.post('/anchor-invitations/redeem', {
+        token: v.token, subdomain: v.subdomain, fullName: v.fullName, password: v.password,
+        ...(Object.keys(credentials).length ? { credentials } : {}),
+      }) as any;
 
+      if (res.provisioning === 'gated') { setGated(true); return; }
+      setProvisioning(true);
+      setStage('Queued');
+      pollStatus(res.jobId);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Something went wrong');
     }
@@ -86,48 +89,50 @@ export default function RedeemPage() {
     return (
       <Card className="w-full max-w-lg mx-auto">
         <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <CheckCircle2 className="h-16 w-16 text-brand" />
-          </div>
+          <div className="flex justify-center mb-4"><CheckCircle2 className="h-16 w-16 text-brand" /></div>
           <CardTitle>Anchor Provisioned Successfully!</CardTitle>
-          <CardDescription>Your tenant console is ready and routing is live.</CardDescription>
+          <CardDescription>Your isolated stack is live and routing is up.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            You can now access your operator dashboard at your dedicated domain.
-          </p>
-          <Button onClick={() => router.push('/login')} className="w-full">
-            Proceed to Login
-          </Button>
+          <p className="text-sm text-muted-foreground">Sign in to your operator console to manage treasury, pricing, and credentials.</p>
+          <Button onClick={() => router.push('/login')} className="w-full">Proceed to Login</Button>
         </CardContent>
       </Card>
     );
   }
 
-  if (stageIndex >= 0) {
+  if (gated) {
+    return (
+      <Card className="w-full max-w-lg mx-auto">
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4"><Clock className="h-16 w-16 text-brand" /></div>
+          <CardTitle>Application Received — Production Review</CardTitle>
+          <CardDescription>Your account and credentials are saved securely.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            Production anchors move real money and are provisioned only after a go-live review of your
+            regulatory standing. We&apos;ll be in touch. You can sign in now to complete setup.
+          </p>
+          <Button onClick={() => router.push('/login')} className="w-full">Proceed to Login</Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (provisioning) {
     return (
       <Card className="w-full max-w-lg mx-auto">
         <CardHeader className="text-center">
           <CardTitle>Provisioning your Anchor</CardTitle>
-          <CardDescription>Please wait while we launch your dedicated infrastructure.</CardDescription>
+          <CardDescription>Launching your dedicated infrastructure on Stellar testnet.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            {STAGES.map((s, idx) => {
-              const isPast = idx < stageIndex;
-              const isCurrent = idx === stageIndex;
-              return (
-                <div key={s.key} className="flex items-center gap-3 text-sm">
-                  {isPast && <CheckCircle2 className="h-5 w-5 text-brand shrink-0" />}
-                  {isCurrent && <Loader2 className="h-5 w-5 text-brand animate-spin shrink-0" />}
-                  {!isPast && !isCurrent && <div className="h-5 w-5 rounded-full border border-muted shrink-0" />}
-                  <span className={isCurrent ? 'font-medium text-foreground' : 'text-muted-foreground'}>
-                    {s.label}
-                  </span>
-                </div>
-              );
-            })}
+        <CardContent>
+          <div className="flex items-center gap-3 rounded-lg border border-line bg-surface p-4 text-sm">
+            <Loader2 className="h-5 w-5 text-brand animate-spin shrink-0" />
+            <span className="font-medium text-foreground">{stage}</span>
           </div>
+          {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
         </CardContent>
       </Card>
     );
@@ -137,7 +142,7 @@ export default function RedeemPage() {
     <Card className="w-full max-w-lg mx-auto">
       <CardHeader>
         <CardTitle>Redeem Invitation</CardTitle>
-        <CardDescription>Configure your admin account and choose your subdomain.</CardDescription>
+        <CardDescription>Set up your operator account and (optionally) connect your payment rails.</CardDescription>
       </CardHeader>
       <CardContent>
         {error && <div className="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
@@ -150,7 +155,7 @@ export default function RedeemPage() {
 
           <div className="space-y-2">
             <Label htmlFor="fullName">Full Name</Label>
-            <Input id="fullName" placeholder="e.g. John Doe" {...register('fullName')} />
+            <Input id="fullName" placeholder="e.g. Priya Sharma" {...register('fullName')} />
             {errors.fullName && <p className="text-xs text-destructive">{errors.fullName.message}</p>}
           </div>
 
@@ -159,7 +164,7 @@ export default function RedeemPage() {
             <div className="flex items-center border rounded-md px-3 bg-background">
               <input
                 id="subdomain"
-                placeholder="globex"
+                placeholder="mizupay"
                 {...register('subdomain')}
                 className="flex h-10 w-full bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground"
               />
@@ -169,10 +174,40 @@ export default function RedeemPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Admin Password</Label>
+            <Label htmlFor="password">Operator Password</Label>
             <Input id="password" type="password" {...register('password')} />
             {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
           </div>
+
+          {/* Optional PSP credentials — encrypted in the secret store, never displayed again */}
+          <div className="space-y-4 rounded-lg border border-line bg-surface p-4">
+              <div className="flex items-start gap-2">
+                <ShieldCheck className="h-4 w-4 text-brand mt-0.5 shrink-0" />
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">Payment credentials (optional).</span> Stored in our
+                  secret store — never in a database, never shown again. Leave blank to launch on mock rails and add
+                  them later from your console.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Razorpay Key ID</Label>
+                  <Input placeholder="rzp_test_…" {...register('razorpayKeyId')} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Razorpay Key Secret</Label>
+                  <Input type="password" placeholder="••••••••" {...register('razorpayKeySecret')} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Cashfree App ID</Label>
+                  <Input placeholder="CF…" {...register('cashfreeAppId')} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Cashfree Secret Key</Label>
+                  <Input type="password" placeholder="••••••••" {...register('cashfreeSecretKey')} />
+                </div>
+              </div>
+            </div>
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? 'Verifying Invite…' : 'Accept Invitation & Launch'}

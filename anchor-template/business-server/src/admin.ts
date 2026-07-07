@@ -105,71 +105,50 @@ adminRouter.get('/summary', async (_req, res) => {
   }
 });
 
+// Customers, derived from REAL transaction activity only. A "customer" is a Stellar
+// account that has transacted with this anchor. We report only what we genuinely know:
+// account, transaction count, completed volume, and first/last activity. KYC identity
+// (email/phone/name), risk tier, and account-freeze have no real source on the money
+// server yet — they are omitted rather than fabricated (see kyc_verifications gap in
+// docs/project/OPERATOR_CONSOLE_AUDIT.md). Per-account KYC status is joined from the
+// real kyc_verifications table when a linkage exists.
 adminRouter.get('/users', async (_req, res) => {
   try {
     const records = await listTransactions({ sep: '24', order: 'desc' });
-    
-    // Group transactions by the authenticated user's Stellar account
-    const usersMap = new Map<string, any>();
 
+    // Real KYC status by account, when the SEP-12 record keys on the Stellar account.
+    const kycByAccount = new Map<string, string>();
+    try {
+      const { rows } = await pool.query('SELECT vendor_data, status FROM nordstern.kyc_verifications');
+      for (const r of rows) kycByAccount.set(r.vendor_data, r.status);
+    } catch { /* table reachable but empty is fine */ }
+
+    const map = new Map<string, any>();
     for (const tx of records) {
-      // Find the best identifier for the user (SEP-10 account, sender, or destination)
       const account = tx.sep10_account ?? tx.customers?.sender?.account ?? tx.destination_account;
       if (!account) continue;
+      const amount = Number(tx.amount_expected?.amount ?? tx.amount_in?.amount ?? tx.amount_out?.amount ?? 0);
+      const at = tx.started_at ? new Date(tx.started_at).getTime() : Date.now();
 
-      const txAmount = Number(tx.amount_expected?.amount ?? tx.amount_in?.amount ?? tx.amount_out?.amount ?? 0);
-      const isCompleted = tx.status === 'completed';
-
-      if (!usersMap.has(account)) {
-        usersMap.set(account, {
+      if (!map.has(account)) {
+        map.set(account, {
           id: account,
-          name: `User ${account.slice(0, 4)}...${account.slice(-4)}`,
-          initials: 'U',
-          email: `${account.slice(0, 8)}@example.com`,
-          phone: '+91 ••••• ••••',
-          city: 'Unknown',
-          state: 'Unknown',
-          lat: 0,
-          lng: 0,
-          status: 'verified', // Mock KYC status
-          tier: 'T1', // Mock tier
-          risk: 'low',
-          riskFactors: [],
-          lifetimeVolume: 0,
+          account,
           txCount: 0,
-          lastSeen: tx.started_at ? new Date(tx.started_at).getTime() : Date.now(),
-          joined: tx.started_at ? new Date(tx.started_at).getTime() : Date.now(),
-          address: 'Stellar Network',
-          matchScore: 98,
-          source: 'Testnet',
-          verifiedAcross: 1,
+          completedVolume: 0,
+          firstSeen: at,
+          lastSeen: at,
+          kycStatus: kycByAccount.get(account) ?? null, // null = unknown (not fabricated)
         });
       }
-
-      const user = usersMap.get(account);
-      user.txCount += 1;
-      
-      if (isCompleted) {
-        user.lifetimeVolume += txAmount;
-      }
-      
-      // Update lastSeen if this tx is newer
-      const txTime = tx.started_at ? new Date(tx.started_at).getTime() : Date.now();
-      if (txTime > user.lastSeen) {
-        user.lastSeen = txTime;
-      }
-
-      // Dynamically adjust mock tier and risk based on volume for visual variety
-      if (user.lifetimeVolume > 5000) {
-        user.tier = 'T2';
-      }
-      if (user.lifetimeVolume > 15000) {
-        user.risk = 'med';
-      }
+      const u = map.get(account);
+      u.txCount += 1;
+      if (tx.status === 'completed') u.completedVolume += amount;
+      u.lastSeen = Math.max(u.lastSeen, at);
+      u.firstSeen = Math.min(u.firstSeen, at);
     }
 
-    const users = Array.from(usersMap.values()).sort((a, b) => b.lastSeen - a.lastSeen);
-
+    const users = Array.from(map.values()).sort((a, b) => b.lastSeen - a.lastSeen);
     res.json({ users });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
@@ -205,25 +184,24 @@ async function writeAuditLog(action: string, detail: string, actor: string): Pro
 adminRouter.get('/compliance/cases', async (_req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM nordstern.compliance_cases ORDER BY created_at DESC');
+    // Real case fields only. email/phone were synthesized fakes and are removed — the
+    // money server does not hold customer contact identity (see audit doc).
     res.json({ cases: rows.map(c => ({
       id: c.id,
       user: {
         id: c.user_id,
         name: c.user_name,
         initials: c.user_initials,
-        email: `${c.user_id.slice(0, 8)}@example.com`,
-        phone: '+91 ••••• ••••',
         status: c.status === 'cleared' ? 'verified' : 'flagged',
         risk: c.severity === 'high' ? 'high' : c.severity === 'med' ? 'med' : 'low',
         txCount: c.related_tx,
-        lifetimeVolume: parseFloat(c.amount) / 100
       },
       reason: c.reason,
       severity: c.severity,
       assignee: c.assignee,
       status: c.status,
       at: new Date(c.created_at).getTime(),
-      amount: parseFloat(c.amount) / 100,
+      amount: parseFloat(c.amount),
       relatedTx: c.related_tx,
       note: c.note
     })) });
@@ -274,15 +252,16 @@ adminRouter.get('/compliance/audit', async (_req, res) => {
 adminRouter.get('/developer/keys', async (_req, res) => {
   try {
     const { rows } = await pool.query('SELECT id, name, secret, scopes, live, created_at as created, last_used_at as "lastUsed" FROM nordstern.api_keys ORDER BY created_at DESC');
+    // Never return plaintext on list — only a masked preview. The full secret is shown
+    // exactly once, at create/roll time.
     res.json({ keys: rows.map(k => ({
       id: k.id,
       name: k.name,
-      secret: k.secret,
       masked: `${k.secret.slice(0, 11)}${"•".repeat(18)}${k.secret.slice(-4)}`,
       scopes: k.scopes,
       live: k.live,
       created: new Date(k.created).getTime(),
-      lastUsed: new Date(k.lastUsed).getTime()
+      lastUsed: k.lastUsed ? new Date(k.lastUsed).getTime() : null
     })) });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
@@ -348,14 +327,15 @@ adminRouter.post('/developer/keys/:id/roll', async (req, res) => {
 });
 
 // ─── Phase E: Webhook Deliveries ──────────────────────────────────────────────
+// Real webhook delivery log from nordstern.webhook_deliveries. NOTE: recording deliveries
+// into this table from the inbound webhook path is not yet wired, so it is currently empty
+// — the UI shows an honest empty state rather than fabricated deliveries (see audit doc).
 adminRouter.get('/developer/webhooks/deliveries', async (_req, res) => {
   try {
-    const mockDeliveries = [
-      { id: 'wh_1', event: 'deposit.initiated', status: 200, at: Date.now() - 3600000, attempts: 1, ms: 142 },
-      { id: 'wh_2', event: 'kyc.approved', status: 200, at: Date.now() - 7200000, attempts: 1, ms: 98 },
-      { id: 'wh_3', event: 'withdrawal.completed', status: 200, at: Date.now() - 14400000, attempts: 1, ms: 120 }
-    ];
-    res.json({ deliveries: mockDeliveries });
+    const { rows } = await pool.query(
+      'SELECT id, event, status, attempts, ms, created_at as at FROM nordstern.webhook_deliveries ORDER BY created_at DESC LIMIT 100',
+    );
+    res.json({ deliveries: rows.map(r => ({ ...r, at: new Date(r.at).getTime() })) });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }

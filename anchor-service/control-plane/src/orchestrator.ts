@@ -18,6 +18,7 @@ const BIZ_IMAGE  = process.env.BIZ_IMAGE  ?? 'nordstern/business-server:dev';
 const CLIENT_IMAGE = process.env.CLIENT_IMAGE ?? 'nordstern/anchor-client:dev';
 const CONSOLE_IMAGE = process.env.CONSOLE_IMAGE ?? 'nordstern/operator-console:dev';
 const NETWORK    = process.env.DOCKER_NETWORK ?? 'anchor-service_default';
+const PLATFORM_API_URL = process.env.PLATFORM_API_URL ?? 'http://platform-api:4000';
 const CONFIG_HOST_ROOT = process.env.ANCHOR_CONFIG_HOST_ROOT ?? '';
 const HORIZON_URL        = process.env.HORIZON_URL        ?? 'https://horizon-testnet.stellar.org';
 const NETWORK_PASSPHRASE = process.env.NETWORK_PASSPHRASE ?? 'Test SDF Network ; September 2015';
@@ -43,6 +44,7 @@ export interface AdapterSelection {
 
 export interface StackParams {
   slug: string;
+  name: string;                 // display name for per-anchor console branding
   homeDomain: string;
   database: string;
   assetCode: string;
@@ -248,8 +250,14 @@ export async function createAnchorStack(p: StackParams): Promise<{ apId: string;
       Image: CONSOLE_IMAGE,
       Env: [
         'PORT=3001',
+        // BFF targets: platform-api (auth + R2a credentials) and this anchor's biz-server.
         `BIZ_URL=http://${bizName(p.slug)}:3000`,
+        `PLATFORM_API_URL=${PLATFORM_API_URL}`,
         'CP_URL=http://control-plane:3002',
+        // Per-anchor branding (read server-side at request time — one image, N anchors).
+        `ANCHOR_NAME=${p.name}`,
+        `ANCHOR_SLUG=${p.slug}`,
+        `ASSET_CODE=${p.assetCode}`,
       ],
       Labels: labels('console', p.slug, p.homeDomain),
       HostConfig: { NetworkMode: NETWORK },

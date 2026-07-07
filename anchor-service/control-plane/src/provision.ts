@@ -182,6 +182,7 @@ async function runProvision(anchor: any): Promise<void> {
   );
   const { apId, bizId, clientId, consoleId } = await createAnchorStack({
     slug,
+    name,
     homeDomain: home_domain,
     database,
     assetCode,

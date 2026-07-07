@@ -373,3 +373,52 @@ export const anchorInvitations = pgTable('anchor_invitations', {
   uniqueIndex('anchor_invites_token_uq').on(t.tokenHash),
 ]);
 
+
+// ════════════════════════════════════════════════════════════════════════════
+// Customer identity (end-users of anchors) — CENTRAL & distinct from operator `users`.
+// A customer's primary identity is their EMAIL; auth is email + OTP only (no passwords).
+// Wallets are secondary attachments (0..N). KYC (DIDIT) is stored here so it can be
+// reused across anchors ("verify once"). The account owns profile/KYC/wallets/prefs —
+// never the wallet itself. No custody assumption: the wallet layer is swappable.
+// ════════════════════════════════════════════════════════════════════════════
+export const customerKycStatus = pgEnum('customer_kyc_status', ['unverified', 'pending', 'approved', 'declined']);
+
+export const customers = pgTable('customers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: varchar('email', { length: 255 }).notNull(),            // stored lower-cased
+  fullName: varchar('full_name', { length: 255 }),
+  kycStatus: customerKycStatus('kyc_status').default('unverified').notNull(),
+  diditSessionId: varchar('didit_session_id', { length: 128 }),
+  diditVerifiedAt: timestamp('didit_verified_at', { withTimezone: true }),
+  preferences: jsonb('preferences').$type<Record<string, unknown>>().default({}).notNull(),
+  lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+  ...timestamps,
+}, (t) => [uniqueIndex('customers_email_uq').on(t.email)]);
+
+// Email OTP challenge (pre- and post-account). Only the hash is stored.
+export const customerOtps = pgTable('customer_otps', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: varchar('email', { length: 255 }).notNull(),
+  codeHash: varchar('code_hash', { length: 64 }).notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  consumedAt: timestamp('consumed_at', { withTimezone: true }),
+  attempts: integer('attempts').default(0).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [index('customer_otps_email_idx').on(t.email)]);
+
+// A Stellar wallet linked to a customer account (secondary identity, 0..N per customer).
+export const customerWallets = pgTable('customer_wallets', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id').notNull().references(() => customers.id, { onDelete: 'cascade' }),
+  address: varchar('address', { length: 64 }).notNull(),         // Stellar public key (G...)
+  label: varchar('label', { length: 100 }),
+  network: network('network').default('testnet').notNull(),
+  ...timestamps,
+}, (t) => [uniqueIndex('customer_wallets_uq').on(t.customerId, t.address)]);
+
+export const customersRelations = relations(customers, ({ many }) => ({
+  wallets: many(customerWallets),
+}));
+export const customerWalletsRelations = relations(customerWallets, ({ one }) => ({
+  customer: one(customers, { fields: [customerWallets.customerId], references: [customers.id] }),
+}));

@@ -1,6 +1,6 @@
 import type { Response } from 'express';
 import { env } from '../config/env.js';
-import { COOKIE_ACCESS, COOKIE_REFRESH } from '../config/constants.js';
+import { COOKIE_ACCESS, COOKIE_REFRESH, COOKIE_CUSTOMER } from '../config/constants.js';
 
 // Omit `domain` when COOKIE_DOMAIN is empty → HOST-ONLY cookies. This is what lets a
 // per-anchor operator console at console.<slug>.<suffix> authenticate: it proxies
@@ -24,4 +24,12 @@ export function setAuthCookies(res: Response, accessToken: string, refreshToken:
 export function clearAuthCookies(res: Response) {
   res.clearCookie(COOKIE_ACCESS, base);
   res.clearCookie(COOKIE_REFRESH, base);
+}
+
+// Customer (email-OTP) session — a single host-only httpOnly cookie, no refresh pair.
+export function setCustomerCookie(res: Response, token: string) {
+  res.cookie(COOKIE_CUSTOMER, token, { ...base, maxAge: env.CUSTOMER_TOKEN_TTL * 1000 });
+}
+export function clearCustomerCookie(res: Response) {
+  res.clearCookie(COOKIE_CUSTOMER, base);
 }

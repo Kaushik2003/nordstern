@@ -29,6 +29,14 @@ export async function sendPasswordResetEmail(to: string, link: string) {
   });
 }
 
+export async function sendOtpEmail(to: string, code: string) {
+  await mailer.send({
+    to,
+    subject: `${code} is your NordStern sign-in code`,
+    html: `<p>Your sign-in code is:</p><p style="font-size:28px;font-weight:700;letter-spacing:4px">${code}</p><p>It expires in 10 minutes. If you didn't request it, you can ignore this email.</p>`,
+  });
+}
+
 export async function sendInvitationEmail(to: string, orgName: string, link: string) {
   await mailer.send({
     to,

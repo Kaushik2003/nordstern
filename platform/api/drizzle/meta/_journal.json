@@ -29,6 +29,13 @@
       "when": 1783422136860,
       "tag": "0003_add_application_product",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783432508129,
+      "tag": "0004_customer_identity",
+      "breakpoints": true
     }
   ]
 }

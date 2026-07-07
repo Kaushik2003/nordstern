@@ -13,22 +13,6 @@ if (!env.RESEND_API_KEY) {
   logger.warn('RESEND_API_KEY not set — verification/reset emails will be logged to the console (dev)');
 }
 
-export async function sendVerificationEmail(to: string, link: string) {
-  await mailer.send({
-    to,
-    subject: 'Verify your NordStern email',
-    html: `<p>Welcome to NordStern.</p><p>Confirm your email to activate your account:</p><p><a href="${link}">Verify email</a></p><p>${link}</p>`,
-  });
-}
-
-export async function sendPasswordResetEmail(to: string, link: string) {
-  await mailer.send({
-    to,
-    subject: 'Reset your NordStern password',
-    html: `<p>We received a request to reset your password.</p><p><a href="${link}">Reset password</a></p><p>${link}</p><p>If you didn't request this, ignore this email.</p>`,
-  });
-}
-
 export async function sendOtpEmail(to: string, code: string) {
   await mailer.send({
     to,

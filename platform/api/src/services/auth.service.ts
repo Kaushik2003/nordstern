@@ -1,21 +1,18 @@
 import { usersRepo } from '../repositories/users.repo.js';
 import { sessionsRepo } from '../repositories/sessions.repo.js';
-import { verificationRepo, resetRepo } from '../repositories/tokens.repo.js';
+import { otpsRepo } from '../repositories/otps.repo.js';
 import { organizationsRepo } from '../repositories/organizations.repo.js';
-import { hashPassword, verifyPassword } from '../lib/password.js';
+import { generateOtp, otpMatches } from '../lib/otp.js';
 import { signAccessToken } from '../lib/jwt.js';
 import { generateToken, hashToken } from '../lib/tokens.js';
-import { sendVerificationEmail, sendPasswordResetEmail } from '../lib/mailer/index.js';
+import { sendOtpEmail } from '../lib/mailer/index.js';
 import { env } from '../config/env.js';
-import { VERIFY_TOKEN_TTL_MS, RESET_TOKEN_TTL_MS } from '../config/constants.js';
-import { badRequest, conflict, unauthorized } from '../lib/errors.js';
+import { OTP_TTL_MS, OTP_MAX_ATTEMPTS } from '../config/constants.js';
+import { badRequest, unauthorized } from '../lib/errors.js';
 import { logger } from '../lib/logger.js';
 
-// Email delivery is best-effort at request time (should move to a queue/worker).
-// A provider hiccup must not fail account creation — the token is already stored.
-async function trySend(fn: Promise<void>, ctx: string) {
-  try { await fn; } catch (err) { logger.warn({ err }, `email send failed: ${ctx}`); }
-}
+// Operator/founder authentication — email + OTP only. No passwords, no verification/reset.
+// Session handling (access + rotating refresh, sessions table, cookies) is unchanged.
 
 export interface SessionMeta { userAgent?: string; ip?: string }
 
@@ -34,34 +31,38 @@ async function issueTokens(userId: string, meta: SessionMeta, organizationId?: s
 }
 
 export const authService = {
-  async register(input: { fullName: string; email: string; password: string }) {
-    if (await usersRepo.findByEmail(input.email)) throw conflict('An account with this email already exists');
-    const user = await usersRepo.create({
-      email: input.email,
-      fullName: input.fullName,
-      passwordHash: await hashPassword(input.password),
-    });
-    const t = generateToken();
-    await verificationRepo.create(user.id, t.hash, new Date(Date.now() + VERIFY_TOKEN_TTL_MS));
-    await trySend(sendVerificationEmail(user.email, `${env.APP_URL}/verify-email?token=${t.raw}`), 'verification');
-    return user;
+  // Email a one-time code. Always succeeds (never leaks whether an account exists).
+  async requestOtp(rawEmail: string): Promise<void> {
+    const email = rawEmail.trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw badRequest('Enter a valid email address');
+    const { code, hash } = generateOtp();
+    await otpsRepo.create(email, 'operator', hash, new Date(Date.now() + OTP_TTL_MS));
+    try { await sendOtpEmail(email, code); }
+    catch (err) { logger.warn({ err }, 'operator OTP email send failed'); }
   },
 
-  async verifyEmail(rawToken: string) {
-    const row = await verificationRepo.findByHash(hashToken(rawToken));
-    if (!row || row.consumedAt || row.expiresAt < new Date()) throw badRequest('Invalid or expired verification token');
-    await verificationRepo.consume(row.id);
-    await usersRepo.markVerified(row.userId);
-    return row.userId;
-  },
+  // Verify the code → find-or-create the operator → issue a session. `fullName` is used
+  // only when the account is first created (founder registration).
+  async verifyOtp(rawEmail: string, code: string, fullName: string | undefined, meta: SessionMeta) {
+    const email = rawEmail.trim().toLowerCase();
+    const otp = await otpsRepo.latestValid(email, 'operator');
+    if (!otp) throw unauthorized('Code expired or not found — request a new one');
+    if (otp.attempts >= OTP_MAX_ATTEMPTS) throw unauthorized('Too many attempts — request a new code');
+    if (!otpMatches(code.trim(), otp.codeHash)) {
+      await otpsRepo.incrementAttempts(otp.id);
+      throw unauthorized('Incorrect code');
+    }
+    await otpsRepo.consume(otp.id);
 
-  async login(input: { email: string; password: string }, meta: SessionMeta) {
-    const user = await usersRepo.findByEmail(input.email);
-    if (!user || !(await verifyPassword(input.password, user.passwordHash))) throw unauthorized('Invalid email or password');
+    let user = await usersRepo.findByEmail(email);
+    const isNew = !user;
+    if (!user) user = await usersRepo.create({ email, fullName: fullName?.trim() || null });
+    else if (fullName?.trim() && !user.fullName) await usersRepo.setFullName(user.id, fullName.trim());
     if (user.status !== 'active') throw unauthorized('Account is suspended');
     await usersRepo.updateLastLogin(user.id);
+
     const tokens = await issueTokens(user.id, meta);
-    return { user, ...tokens };
+    return { user, isNew, ...tokens };
   },
 
   async refresh(rawRefresh: string, meta: SessionMeta) {
@@ -78,27 +79,11 @@ export const authService = {
     if (current && !current.revokedAt) await sessionsRepo.revoke(current.id);
   },
 
-  async requestPasswordReset(email: string) {
-    const user = await usersRepo.findByEmail(email);
-    if (!user) return; // don't leak account existence
-    const t = generateToken();
-    await resetRepo.create(user.id, t.hash, new Date(Date.now() + RESET_TOKEN_TTL_MS));
-    await trySend(sendPasswordResetEmail(user.email, `${env.APP_URL}/reset-password?token=${t.raw}`), 'password-reset');
-  },
-
-  async resetPassword(rawToken: string, newPassword: string) {
-    const row = await resetRepo.findByHash(hashToken(rawToken));
-    if (!row || row.consumedAt || row.expiresAt < new Date()) throw badRequest('Invalid or expired reset token');
-    await resetRepo.consume(row.id);
-    await usersRepo.updatePassword(row.userId, await hashPassword(newPassword));
-    await sessionsRepo.revokeAllForUser(row.userId); // force re-login everywhere
-  },
-
   async getMe(userId: string) {
     const user = await usersRepo.findById(userId);
     if (!user) throw unauthorized();
     return {
-      user: { id: user.id, email: user.email, fullName: user.fullName, emailVerifiedAt: user.emailVerifiedAt },
+      user: { id: user.id, email: user.email, fullName: user.fullName },
       organizations: await organizationsRepo.listForUser(userId),
     };
   },

@@ -31,12 +31,12 @@ const timestamps = {
 };
 
 // ── Identity (global) ────────────────────────────────────────────────────────
+// Operators/founders. Auth is email + OTP only — no passwords. Email is inherently
+// verified on first OTP login, so there is no separate verification/reset flow.
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: varchar('email', { length: 255 }).notNull(),          // stored lower-cased
-  fullName: varchar('full_name', { length: 255 }).notNull(),
-  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
-  emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
+  fullName: varchar('full_name', { length: 255 }),             // set at registration; may be blank pre-name
   lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
   status: userStatus('status').default('active').notNull(),
   ...timestamps,
@@ -58,24 +58,6 @@ export const sessions = pgTable('sessions', {
   uniqueIndex('sessions_refresh_uq').on(t.refreshTokenHash),
   index('sessions_user_idx').on(t.userId),
 ]);
-
-export const emailVerificationTokens = pgTable('email_verification_tokens', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  tokenHash: varchar('token_hash', { length: 255 }).notNull(),
-  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-  consumedAt: timestamp('consumed_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-}, (t) => [uniqueIndex('evt_token_uq').on(t.tokenHash), index('evt_user_idx').on(t.userId)]);
-
-export const passwordResetTokens = pgTable('password_reset_tokens', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  tokenHash: varchar('token_hash', { length: 255 }).notNull(),
-  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-  consumedAt: timestamp('consumed_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-}, (t) => [uniqueIndex('prt_token_uq').on(t.tokenHash), index('prt_user_idx').on(t.userId)]);
 
 // ── Tenancy ──────────────────────────────────────────────────────────────────
 export const organizations = pgTable('organizations', {
@@ -395,16 +377,20 @@ export const customers = pgTable('customers', {
   ...timestamps,
 }, (t) => [uniqueIndex('customers_email_uq').on(t.email)]);
 
-// Email OTP challenge (pre- and post-account). Only the hash is stored.
-export const customerOtps = pgTable('customer_otps', {
+// Shared email-OTP challenge for BOTH audiences. `audience` scopes a code to an identity
+// domain so an operator code can never sign a customer in (or vice versa) — authentication
+// is unified, authorization stays separate. Only the hash is stored.
+export const otpAudience = pgEnum('otp_audience', ['customer', 'operator']);
+export const otps = pgTable('otps', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: varchar('email', { length: 255 }).notNull(),
+  audience: otpAudience('audience').notNull(),
   codeHash: varchar('code_hash', { length: 64 }).notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   consumedAt: timestamp('consumed_at', { withTimezone: true }),
   attempts: integer('attempts').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-}, (t) => [index('customer_otps_email_idx').on(t.email)]);
+}, (t) => [index('otps_email_audience_idx').on(t.email, t.audience)]);
 
 // A Stellar wallet linked to a customer account (secondary identity, 0..N per customer).
 export const customerWallets = pgTable('customer_wallets', {

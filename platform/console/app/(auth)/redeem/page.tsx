@@ -19,7 +19,6 @@ const schema = z.object({
     .max(63, 'Maximum 63 characters')
     .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$/, 'Only lowercase letters, numbers, and hyphens'),
   fullName: z.string().min(2, 'Name is required'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
   // Brand identity — powers the customer app + operator console. All optional; sensible
   // defaults (NordStern purple + monogram) apply when omitted.
   displayName: z.string().optional(),
@@ -47,7 +46,7 @@ function RedeemForm() {
 
   const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(schema),
-    defaultValues: { token: searchParams.get('token') || '', subdomain: '', fullName: '', password: '' },
+    defaultValues: { token: searchParams.get('token') || '', subdomain: '', fullName: '' },
   });
   const accentValue = watch('accent');
 
@@ -86,7 +85,7 @@ function RedeemForm() {
     if (v.websiteUrl) branding.websiteUrl = v.websiteUrl;
     try {
       const res = await api.post('/anchor-invitations/redeem', {
-        token: v.token, subdomain: v.subdomain, fullName: v.fullName, password: v.password,
+        token: v.token, subdomain: v.subdomain, fullName: v.fullName,
         ...(Object.keys(credentials).length ? { credentials } : {}),
         ...(Object.keys(branding).length ? { branding } : {}),
       }) as any;
@@ -186,12 +185,6 @@ function RedeemForm() {
               <span className="text-sm text-muted-foreground">.nordstern.live</span>
             </div>
             {errors.subdomain && <p className="text-xs text-destructive">{errors.subdomain.message}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Operator Password</Label>
-            <Input id="password" type="password" {...register('password')} />
-            {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
           </div>
 
           {/* Brand identity — applied to the customer app + operator console. Optional. */}

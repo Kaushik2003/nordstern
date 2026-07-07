@@ -10,32 +10,27 @@ import { authLimiter } from '../../middleware/rateLimit.js';
 import { ah, meta } from '../../lib/asyncHandler.js';
 import { unauthorized } from '../../lib/errors.js';
 
+// Operator/founder auth — email + OTP only. No passwords, no verification/reset.
 export const authRouter = Router();
 authRouter.use(authLimiter);
 
-authRouter.post('/register',
-  validateBody(z.object({ fullName: z.string().min(1), email: z.email(), password: z.string().min(8) })),
+// Request a one-time code. Always 200 — never leaks whether an account exists.
+authRouter.post('/otp/request',
+  validateBody(z.object({ email: z.email() })),
   ah(async (req, res) => {
-    const user = await authService.register(req.body);
-    await recordAudit({ action: 'user.registered', actorType: 'user', actorUserId: user.id, requestId: String(req.id), ip: req.ip });
-    res.status(201).json({ id: user.id, email: user.email });
-  }));
-
-authRouter.post('/verify-email',
-  validateBody(z.object({ token: z.string().min(1) })),
-  ah(async (req, res) => {
-    const userId = await authService.verifyEmail(req.body.token);
-    await recordAudit({ action: 'user.email_verified', actorType: 'user', actorUserId: userId, requestId: String(req.id) });
+    await authService.requestOtp(req.body.email);
     res.json({ ok: true });
   }));
 
-authRouter.post('/login',
-  validateBody(z.object({ email: z.email(), password: z.string().min(1) })),
+// Verify the code → sign in (creating the account on first use). `fullName` is optional,
+// used only when the account is first created (founder registration).
+authRouter.post('/otp/verify',
+  validateBody(z.object({ email: z.email(), code: z.string().min(4).max(8), fullName: z.string().min(1).max(255).optional() })),
   ah(async (req, res) => {
-    const { user, accessToken, refreshToken } = await authService.login(req.body, meta(req));
+    const { user, isNew, accessToken, refreshToken } = await authService.verifyOtp(req.body.email, req.body.code, req.body.fullName, meta(req));
     setAuthCookies(res, accessToken, refreshToken);
-    await recordAudit({ action: 'user.login', actorType: 'user', actorUserId: user.id, requestId: String(req.id), ip: req.ip });
-    res.json({ id: user.id, email: user.email, fullName: user.fullName });
+    await recordAudit({ action: isNew ? 'user.registered' : 'user.login', actorType: 'user', actorUserId: user.id, requestId: String(req.id), ip: req.ip });
+    res.json({ id: user.id, email: user.email, fullName: user.fullName, isNew });
   }));
 
 authRouter.post('/refresh', ah(async (req, res) => {
@@ -51,20 +46,6 @@ authRouter.post('/logout', ah(async (req, res) => {
   clearAuthCookies(res);
   res.json({ ok: true });
 }));
-
-authRouter.post('/forgot-password',
-  validateBody(z.object({ email: z.email() })),
-  ah(async (req, res) => {
-    await authService.requestPasswordReset(req.body.email);
-    res.json({ ok: true }); // always ok — no account enumeration
-  }));
-
-authRouter.post('/reset-password',
-  validateBody(z.object({ token: z.string().min(1), password: z.string().min(8) })),
-  ah(async (req, res) => {
-    await authService.resetPassword(req.body.token, req.body.password);
-    res.json({ ok: true });
-  }));
 
 authRouter.get('/me', requireAuth, ah(async (req, res) => {
   res.json(await authService.getMe(req.user!.id));

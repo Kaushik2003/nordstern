@@ -2,7 +2,6 @@ import crypto from 'crypto';
 import { db } from '../db/index.js';
 import { eq, and } from 'drizzle-orm';
 import { anchorInvitations, organizations, organizationSettings, users, memberships, projects, anchors, provisioningJobs, applications, secretRefs } from '../db/schema.js';
-import { hashPassword } from '../lib/password.js';
 import { uniqueSlug } from '../lib/slug.js';
 import { badRequest, conflict } from '../lib/errors.js';
 import { provisionerService } from './provisioner.service.js';
@@ -79,7 +78,6 @@ export const anchorInvitationService = {
     rawToken: string;
     subdomain: string;
     fullName: string;
-    password: string;
     credentials?: RedemptionCredentials;
     branding?: Branding;
   }) {
@@ -102,8 +100,6 @@ export const anchorInvitationService = {
     });
     if (slugClash) throw conflict('Subdomain slug is already taken');
 
-    const passwordHash = await hashPassword(input.password);
-
     // The org IS the business — name it after the vetted legal entity (from the
     // application), so the operator console and every surface brand as the real
     // business, not a generated placeholder. Fall back if the profile lacks a name.
@@ -116,8 +112,6 @@ export const anchorInvitationService = {
       const [user] = await tx.insert(users).values({
         email: invitation.email.toLowerCase(),
         fullName: input.fullName,
-        passwordHash,
-        emailVerifiedAt: new Date(),
         status: 'active'
       }).returning();
 

@@ -35,6 +35,9 @@ const SERVICE_SECRET = process.env.SERVICE_SECRET ?? '';
 // *.<suffix> wildcard cert with no per-anchor cert work.
 const PUBLIC_ENTRYPOINT = process.env.ANCHOR_TRAEFIK_ENTRYPOINT ?? 'web';
 const CERT_RESOLVER = process.env.ANCHOR_TRAEFIK_CERTRESOLVER ?? '';
+// Public URL scheme for anchor-facing URLs injected into the business-server
+// (PUBLIC_BASE_URL). http locally; https in prod (matches config-gen's ANCHOR_PUBLIC_SCHEME).
+const PUBLIC_SCHEME = (process.env.ANCHOR_PUBLIC_SCHEME ?? 'http').toLowerCase();
 
 // ── Naming helpers (shared with config-gen / provision) ────────────────────────
 export const apName  = (slug: string) => `anchor-platform-${slug}`;
@@ -225,8 +228,18 @@ export async function createAnchorStack(p: StackParams): Promise<{ apId: string;
     `DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${p.database}`,
     `ASSET_CODE=${p.assetCode}`,
     `ASSET_ISSUER_PUBLIC=${p.assetIssuer}`,
+    // Treasury = the asset's distribution account (holds the float, sends tokens on
+    // deposit). The business-server reads TREASURY_PUBLIC/TREASURY_SECRET — inject under
+    // THOSE names. Previously mis-named DISTRIBUTION_*, so every release failed with
+    // "treasury has no trustline". Aliases kept for any external reference.
+    `TREASURY_PUBLIC=${p.distributionPublic}`,
+    `TREASURY_SECRET=${p.distributionSecret}`,
     `DISTRIBUTION_PUBLIC=${p.distributionPublic}`,
     `DISTRIBUTION_SECRET=${p.distributionSecret}`,
+    // Public base URL = this anchor's bare host (DIDIT return URLs, PSP webhooks) —
+    // was defaulting to localhost:3000. SEP_SERVER_URL = the AP, container-to-container.
+    `PUBLIC_BASE_URL=${PUBLIC_SCHEME}://${p.homeDomain}`,
+    `SEP_SERVER_URL=http://${apName(p.slug)}:8080`,
     `HORIZON_URL=${HORIZON_URL}`,
     `NETWORK_PASSPHRASE=${NETWORK_PASSPHRASE}`,
     `KYC_PROVIDER=${p.adapters.kyc}`,

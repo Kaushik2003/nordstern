@@ -170,7 +170,10 @@ async function runProvision(anchor: any): Promise<void> {
   const database = anchorDbName(slug);
   await generateAnchorConfig({
     slug,
-    homeDomain: `sep.${home_domain}`,
+    // The anchor's SEP endpoints, stellar.toml, and SEP-10 home_domains must advertise
+    // the SAME bare host that Traefik now routes (config-gen path-routes SEP on it).
+    // (Was `sep.${home_domain}` under the old subdomain scheme — removed.)
+    homeDomain: home_domain,
     database,
     assetCode,
     assetIssuer: kps.issuer.publicKey(),

@@ -16,6 +16,10 @@ const ANCHOR_CONFIG_DIR   = process.env.ANCHOR_CONFIG_DIR   ?? '/anchor-configs'
 const NETWORK             = (process.env.STELLAR_NETWORK    ?? 'TESTNET').toUpperCase();
 const HORIZON_URL         = process.env.HORIZON_URL         ?? 'https://horizon-testnet.stellar.org';
 const NETWORK_PASSPHRASE  = process.env.NETWORK_PASSPHRASE  ?? 'Test SDF Network ; September 2015';
+// Public URL scheme for the anchor's SEP endpoints in stellar.toml / AP config. Local
+// dev is plain http; prod sets ANCHOR_PUBLIC_SCHEME=https so wallets get valid TLS URLs
+// (real wallets reject non-HTTPS SEP endpoints).
+const PUBLIC_SCHEME       = (process.env.ANCHOR_PUBLIC_SCHEME ?? 'http').toLowerCase();
 
 export interface AnchorConfigInput {
   slug: string;
@@ -67,10 +71,10 @@ sep12:
 sep24:
   enabled: true
   interactive_url:
-    base_url: http://${a.homeDomain}/sep24/interactive
+    base_url: ${PUBLIC_SCHEME}://${a.homeDomain}/sep24/interactive
     jwt_expiration: 3600
   more_info_url:
-    base_url: http://${a.homeDomain}/sep24/transaction
+    base_url: ${PUBLIC_SCHEME}://${a.homeDomain}/sep24/transaction
     jwt_expiration: 3600
 
 # SEP-6/31/38 enabled only to satisfy the AP bean requirements alongside SEP-24.
@@ -80,7 +84,7 @@ sep6:
     account_creation: false
     claimable_balances: false
   more_info_url:
-    base_url: http://${a.homeDomain}/sep6/transaction
+    base_url: ${PUBLIC_SCHEME}://${a.homeDomain}/sep6/transaction
     jwt_expiration: 3600
 
 sep31:
@@ -110,13 +114,13 @@ assets:
 
 function stellarToml(a: AnchorConfigInput): string {
   return `NETWORK_PASSPHRASE="${NETWORK_PASSPHRASE}"
-TRANSFER_SERVER_SEP0024="http://${a.homeDomain}/sep24"
-WEB_AUTH_ENDPOINT="http://${a.homeDomain}/auth"
+TRANSFER_SERVER_SEP0024="${PUBLIC_SCHEME}://${a.homeDomain}/sep24"
+WEB_AUTH_ENDPOINT="${PUBLIC_SCHEME}://${a.homeDomain}/auth"
 SIGNING_KEY="${a.signingPublic}"
 
 [DOCUMENTATION]
 ORG_NAME="${a.orgName}"
-ORG_URL="http://${a.homeDomain}"
+ORG_URL="${PUBLIC_SCHEME}://${a.homeDomain}"
 ORG_DESCRIPTION="NordStern-managed Stellar anchor (${a.slug})"
 
 [[CURRENCIES]]

@@ -29,6 +29,12 @@ const DB_PASSWORD = process.env.DB_PASSWORD ?? 'anchor';
 const PLATFORM_JWT_ACCESS_SECRET = process.env.PLATFORM_JWT_ACCESS_SECRET ?? '';
 // Shared backend↔platform service secret (KYC propagation to the central customer).
 const SERVICE_SECRET = process.env.SERVICE_SECRET ?? '';
+// Traefik entrypoint + TLS for the PUBLIC anchor hosts. Local dev routes plain HTTP on
+// the 'web' entrypoint; prod sets ANCHOR_TRAEFIK_ENTRYPOINT=websecure and
+// ANCHOR_TRAEFIK_CERTRESOLVER=<resolver> so every anchor is served under the
+// *.<suffix> wildcard cert with no per-anchor cert work.
+const PUBLIC_ENTRYPOINT = process.env.ANCHOR_TRAEFIK_ENTRYPOINT ?? 'web';
+const CERT_RESOLVER = process.env.ANCHOR_TRAEFIK_CERTRESOLVER ?? '';
 
 // ── Naming helpers (shared with config-gen / provision) ────────────────────────
 export const apName  = (slug: string) => `anchor-platform-${slug}`;
@@ -100,55 +106,56 @@ export async function dropAnchorDb(slug: string): Promise<void> {
 }
 
 // ── Container lifecycle ────────────────────────────────────────────────────────
-function labels(role: 'ap' | 'biz' | 'client' | 'console', slug: string, homeDomain: string): Record<string, string> {
-  const router = `${role}-${slug}`;
-  if (role === 'client') {
-    return {
-      'traefik.enable': 'true',
-      [`traefik.http.routers.${router}.rule`]: `Host(\`${homeDomain}\`)`,
-      [`traefik.http.routers.${router}.entrypoints`]: 'web',
-      [`traefik.http.routers.${router}.priority`]: '1',
-      [`traefik.http.routers.${router}.service`]: router,
-      [`traefik.http.services.${router}.loadbalancer.server.port`]: '3001',
-      'nordstern.anchor': slug,
-    };
-  }
-  if (role === 'console') {
-    return {
-      'traefik.enable': 'true',
-      [`traefik.http.routers.${router}.rule`]: `Host(\`console.${homeDomain}\`)`,
-      [`traefik.http.routers.${router}.entrypoints`]: 'web',
-      [`traefik.http.routers.${router}.priority`]: '1',
-      [`traefik.http.routers.${router}.service`]: router,
-      [`traefik.http.services.${router}.loadbalancer.server.port`]: '3001',
-      'nordstern.anchor': slug,
-    };
-  }
-  if (role === 'ap') {
-    return {
-      'traefik.enable': 'true',
-      [`traefik.http.routers.${router}.rule`]: `Host(\`sep.${homeDomain}\`)`,
-      [`traefik.http.routers.${router}.entrypoints`]: 'web',
-      [`traefik.http.routers.${router}.priority`]: '5',
-      [`traefik.http.routers.${router}.service`]: router,
-      [`traefik.http.services.${router}.loadbalancer.server.port`]: '8080',
-      'nordstern.anchor': slug,
-    };
-  }
-  // business-server (api. and sep./sep24/sep6 paths)
-  return {
+// Anchor Platform SEP endpoints (SEP-1 toml, SEP-10 auth, SEP-6/12/24/31/38).
+const AP_PATHS = ['/.well-known', '/auth', '/sep6', '/sep10', '/sep12', '/sep24', '/sep31', '/sep38']
+  .map((p) => `PathPrefix(\`${p}\`)`).join(' || ');
+// Surfaces that live UNDER /sep24 but belong to the business-server, not the AP: the
+// SEP-24 interactive webview, its KYC/PSP callbacks, and the more-info page. The
+// business-server router runs at a HIGHER priority so these specific subpaths win; the
+// AP keeps the rest of /sep24. (Path(`/sep24/transaction`) is exact so it never steals
+// the AP's /sep24/transactions.)
+const BIZ_PATHS = [
+  'PathPrefix(`/sep24/interactive`)', 'PathPrefix(`/sep24/kyc`)',
+  'PathPrefix(`/sep24/razorpay`)', 'Path(`/sep24/transaction`)',
+].join(' || ');
+
+// Common Traefik router+service labels for one container, with TLS attached when a cert
+// resolver is configured (prod) so it's served under the *.<suffix> wildcard cert.
+function router(svc: string, rule: string, priority: string, port: string): Record<string, string> {
+  const out: Record<string, string> = {
     'traefik.enable': 'true',
-    [`traefik.http.routers.${router}.rule`]: `Host(\`api.${homeDomain}\`)`,
-    [`traefik.http.routers.${router}.entrypoints`]: 'web',
-    [`traefik.http.routers.${router}.priority`]: '10',
-    [`traefik.http.routers.${router}.service`]: router,
-    [`traefik.http.services.${router}.loadbalancer.server.port`]: '3000',
-    [`traefik.http.routers.${router}-sep.rule`]: `Host(\`sep.${homeDomain}\`) && (PathPrefix(\`/sep24/\`) || PathPrefix(\`/sep6/\`))`,
-    [`traefik.http.routers.${router}-sep.entrypoints`]: 'web',
-    [`traefik.http.routers.${router}-sep.priority`]: '15',
-    [`traefik.http.routers.${router}-sep.service`]: router,
-    'nordstern.anchor': slug,
+    [`traefik.http.routers.${svc}.rule`]: rule,
+    [`traefik.http.routers.${svc}.priority`]: priority,
+    [`traefik.http.routers.${svc}.entrypoints`]: PUBLIC_ENTRYPOINT,
+    [`traefik.http.routers.${svc}.service`]: svc,
+    [`traefik.http.services.${svc}.loadbalancer.server.port`]: port,
   };
+  if (CERT_RESOLVER) {
+    out[`traefik.http.routers.${svc}.tls`] = 'true';
+    out[`traefik.http.routers.${svc}.tls.certresolver`] = CERT_RESOLVER;
+  }
+  return out;
+}
+
+// One clean host per anchor: <slug>.<suffix> serves the customer app (catch-all), with the
+// Anchor Platform's SEP endpoints and our SEP-24 webview path-routed on the SAME host. The
+// operator console gets its own single-label host, console-<slug>.<suffix>. Both fall under
+// a single *.<suffix> wildcard. AP↔business-server callbacks are internal (container name),
+// so no api./sep. hosts are needed.
+function labels(role: 'ap' | 'biz' | 'client' | 'console', slug: string, homeDomain: string): Record<string, string> {
+  const svc = `${role}-${slug}`;
+  const tag = { 'nordstern.anchor': slug };
+  switch (role) {
+    case 'client':
+      return { ...router(svc, `Host(\`${homeDomain}\`)`, '1', '3001'), ...tag };
+    case 'console':
+      return { ...router(svc, `Host(\`console-${homeDomain}\`)`, '1', '3001'), ...tag };
+    case 'ap':
+      return { ...router(svc, `Host(\`${homeDomain}\`) && (${AP_PATHS})`, '10', '8080'), ...tag };
+    case 'biz':
+      return { ...router(svc, `Host(\`${homeDomain}\`) && (${BIZ_PATHS})`, '20', '3000'), ...tag };
+  }
+  throw new Error(`unknown role ${role}`); // unreachable — satisfies noImplicitReturns
 }
 
 async function ensureImage(image: string): Promise<void> {

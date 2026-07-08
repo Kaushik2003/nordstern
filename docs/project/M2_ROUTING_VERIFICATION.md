@@ -88,12 +88,18 @@ works under the new routing.
 | F3 | `PUBLIC_BASE_URL` defaulted to `localhost:3000`; `SEP_SERVER_URL` unset | **Med** | ✅ Fixed (inject bare host + AP container URL) |
 | F4 | First provision left `nebula` with a bad toml | Low | ✅ Resolved by re-provision after F1 |
 
-## 8. Known / open items (documented, NOT routing issues)
+## 8. Money-flow items — RESOLVED (post-M2, before M3)
 
-| # | Item | Impact | Recommendation |
+| # | Item | Resolution | Status |
 |---|---|---|---|
-| O1 | SEP-24 KYC gate imports `getStatus/createSession` **directly from the DIDIT adapter** (`sep24.ts`), bypassing the mock KYC adapter — so a mock anchor's gate still demands DIDIT | Mock anchors can't pass KYC without a real DIDIT session (worked around in test by writing an `ACCEPTED` verification) | Route the SEP-24 gate through the KYC adapter seam so `KYC_PROVIDER=mock` works end-to-end |
-| O2 | After a successful on-chain release, the AP status PATCH fails: `'iso4217:INR' is not a supported asset` → tx shows `error` in the operator view though tokens were delivered | Money moves correctly, but the AP/operator transaction isn't marked completed | Declare the INR fiat asset in the AP `assets.yaml`, or drop the fiat amount from the PATCH |
+| O1 | SEP-24 KYC gate imported `getStatus/createSession` **directly from the DIDIT adapter**, bypassing the mock KYC seam → mock anchors couldn't pass KYC | Added `getStatus()` + `startSession()` to the `KycProvider` interface; `sep24.ts` + `customerApi.ts` now call the configured `kyc` singleton (mock→mock, didit→didit). No provider hardcoding. | ✅ Fixed |
+| O2 | Post-release AP PATCH failed `'iso4217:INR' is not a supported asset` → tx stuck `error` despite on-chain delivery | `config-gen` now declares the `iso4217:INR` fiat asset, so `amount_in` validates and the tx reaches `completed`. | ✅ Fixed |
+
+**Re-verified on a fresh anchor (`solaris`) with NO manual KYC insert:** mock KYC
+auto-accepted via the adapter; deposit released 1000 SOLARIS on-chain; AP transaction
+reached **`completed`** with `amount_in = 88500.00 iso4217:INR` and `amount_out =
+1000.00 stellar:SOLARIS:…`. Lifecycle consistent: quote → payment → settlement →
+completed.
 
 ## 9. Code audit — no legacy host assumptions
 

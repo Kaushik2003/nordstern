@@ -86,27 +86,9 @@ exports.up = (pgm) => {
       created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
     );
 
-    -- ── Seeds (reproduce initSchema() exactly; "only if empty" so existing DBs are
-    --    untouched and fresh DBs get identical demo anchors + balanced policy) ──────
-    DO $$ BEGIN
-      IF NOT EXISTS (SELECT 1 FROM aggregator.anchors) THEN
-        INSERT INTO aggregator.anchors (id,name,domain,api_url,status,regions,capabilities,fee_config,limits,treasury_capacity,current_availability)
-        VALUES ('globex','Globex Anchor India','globex.nordstern.live','http://business-server:3000','active',
-          '{IN-MH,IN-KA,IN-DL}',
-          '{"supportedAssets":["USDC"],"supportedRails":["UPI","IMPS"],"supportedBanks":["HDFC","ICICI"],"maxTxSize":500000,"kycRequired":true,"settlementModel":"instant","apiVersion":"v4.4.0"}',
-          '{"fixed":8,"percent":0.005}',
-          '{"min":100,"max":500000}',
-          1000000.0, true);
-        INSERT INTO aggregator.anchors (id,name,domain,api_url,status,regions,capabilities,fee_config,limits,treasury_capacity,current_availability)
-        VALUES ('acme','Acme Payouts Ltd','acmepay.nordstern.live','http://acme-business-server:3000','active',
-          '{IN-TN,IN-AP,IN-KA}',
-          '{"supportedAssets":["USDC","EURT"],"supportedRails":["UPI","NEFT","IMPS"],"supportedBanks":["SBI","AXIS"],"maxTxSize":1000000,"kycRequired":true,"settlementModel":"standard","apiVersion":"v4.4.0"}',
-          '{"fixed":5,"percent":0.003}',
-          '{"min":50,"max":1000000}',
-          50000.0, true);
-      END IF;
-    END $$;
-
+    -- ── Seeds — REAL config only. The demo anchors (globex/acme) were removed: the
+    --    registry must contain only genuinely-provisioned anchors (they register
+    --    themselves at provision time). Only the routing policy is seeded (real config). ──
     DO $$ BEGIN
       IF NOT EXISTS (SELECT 1 FROM aggregator.routing_policies) THEN
         INSERT INTO aggregator.routing_policies (name, weights, active)

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/cn';
+import { cn } from '@nordstern/shared-ui';
 import { LayoutDashboard, Users, Anchor, Settings, Code, Activity, CreditCard } from 'lucide-react';
 import { useMe } from '@/lib/session';
 

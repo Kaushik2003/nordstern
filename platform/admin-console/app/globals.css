@@ -4,5 +4,4 @@
 /* Tailwind v4 content sources: this app + the shared-ui components (whose utility
    classes live outside this project root). */
 @source ".";
-@source "../components";
 @source "../../shared-ui/components";

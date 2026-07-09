@@ -4,10 +4,10 @@ import { useMe } from '@/lib/session';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { Sidebar } from '@/components/sidebar';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { api } from '@/lib/api';
+import { Avatar, AvatarFallback, AvatarImage } from '@nordstern/shared-ui';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@nordstern/shared-ui';
+import { Button } from '@nordstern/shared-ui';
+import { api } from '@nordstern/shared-auth';
 import { Loader2, LogOut } from 'lucide-react';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

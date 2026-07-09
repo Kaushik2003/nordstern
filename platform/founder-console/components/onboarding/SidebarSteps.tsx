@@ -1,5 +1,5 @@
 import { Check } from 'lucide-react';
-import { cn } from '@/lib/cn';
+import { cn } from '@nordstern/shared-ui';
 import Image from 'next/image';
 
 interface Step {

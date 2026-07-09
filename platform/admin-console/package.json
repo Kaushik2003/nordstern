@@ -1,5 +1,5 @@
 {
-  "name": "@nordstern/founder-console",
+  "name": "@nordstern/admin-console",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,17 +9,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@hookform/resolvers": "^5.4.0",
     "@nordstern/shared-auth": "*",
     "@nordstern/shared-ui": "*",
-    "@stellar/stellar-sdk": "^16.0.1",
-    "@tanstack/react-query": "^5.101.2",
     "lucide-react": "^1.23.0",
     "next": "^16.2.10",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "react-hook-form": "^7.80.0",
-    "zod": "^4.4.3"
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.2",

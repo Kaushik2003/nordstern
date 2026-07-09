@@ -1,0 +1,9 @@
+# Keep the console build context small. `api` is a separate service; node_modules and
+# build output are reinstalled/rebuilt inside the image.
+**/node_modules
+**/.next
+**/.git
+**/tsconfig.tsbuildinfo
+**/next-env.d.ts
+api/
+**/.env

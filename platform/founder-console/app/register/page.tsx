@@ -8,7 +8,7 @@ import { SidebarSteps } from '@/components/onboarding/SidebarSteps';
 import { BusinessProfile } from '@/components/onboarding/steps/BusinessProfile';
 import { ProductRails } from '@/components/onboarding/steps/ProductRails';
 import { ReviewSubmit } from '@/components/onboarding/steps/ReviewSubmit';
-import { Button } from '@/components/ui/button';
+import { Button } from '@nordstern/shared-ui';
 import { ChevronLeft, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 

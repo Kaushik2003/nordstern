@@ -1,8 +1,8 @@
 import { useFormContext } from 'react-hook-form';
 import { OnboardingFormValues } from '@/lib/validations/onboarding';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/cn';
+import { Label } from '@nordstern/shared-ui';
+import { Input } from '@nordstern/shared-ui';
+import { cn } from '@nordstern/shared-ui';
 import { FlaskConical, Rocket, Lightbulb } from 'lucide-react';
 
 const AVAILABLE_RAILS = ['UPI (India)', 'IMPS / Bank Transfer (India)', 'Pix (Brazil)', 'ACH / FedWire (US)', 'SEPA (Europe)', 'Mobile Money (Africa)'];

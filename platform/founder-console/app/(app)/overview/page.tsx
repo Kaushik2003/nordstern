@@ -1,7 +1,7 @@
 'use client';
 
 import { useMe } from '@/lib/session';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@nordstern/shared-ui';
 import { Activity, CreditCard, DollarSign, Users } from 'lucide-react';
 
 export default function OverviewPage() {

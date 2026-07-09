@@ -1,0 +1,11 @@
+{
+  "name": "@nordstern/platform-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "shared-ui",
+    "shared-auth",
+    "founder-console",
+    "admin-console"
+  ]
+}

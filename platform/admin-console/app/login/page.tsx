@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api, ApiError } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { api, ApiError } from '@nordstern/shared-auth';
+import { Button } from '@nordstern/shared-ui';
+import { Input } from '@nordstern/shared-ui';
+import { Label } from '@nordstern/shared-ui';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@nordstern/shared-ui';
 import { ShieldCheck } from 'lucide-react';
 
 // NordStern INTERNAL admin sign-in. A demo password gate (default admin / admin),
@@ -23,7 +23,7 @@ export default function AdminLoginPage() {
     setBusy(true); setError('');
     try {
       await api.post('/admin/login', { username: username.trim(), password });
-      router.replace('/admin');
+      router.replace('/');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Sign-in failed');
     } finally {

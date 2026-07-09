@@ -1,8 +1,8 @@
 import { useFormContext } from 'react-hook-form';
 import { OnboardingFormValues, isPublicEmail } from '@/lib/validations/onboarding';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/cn';
+import { Label } from '@nordstern/shared-ui';
+import { Input } from '@nordstern/shared-ui';
+import { cn } from '@nordstern/shared-ui';
 import { Lightbulb } from 'lucide-react';
 
 const MARKETS = ['India', 'United States', 'Brazil', 'Nigeria', 'European Union', 'Singapore', 'Mexico'];

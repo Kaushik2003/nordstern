@@ -8,7 +8,11 @@ RUN npm install
 # at platform-api on the compose network so the browser stays same-origin (cookies flow).
 ARG API_URL=http://platform-api:4000
 ENV API_URL=$API_URL
-RUN npm run build -w @nordstern/founder-console
+# The redeem link the admin copies points at the founder console (a different origin).
+# Baked at build time (NEXT_PUBLIC_*). Dev falls back to same-origin if unset.
+ARG NEXT_PUBLIC_FOUNDER_URL=
+ENV NEXT_PUBLIC_FOUNDER_URL=$NEXT_PUBLIC_FOUNDER_URL
+RUN npm run build -w @nordstern/admin-console
 
 # ── Production image (Next.js standalone; traced from the workspace root) ─────────────
 FROM node:20-alpine AS runner
@@ -18,9 +22,8 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV API_URL=http://platform-api:4000
 
-COPY --from=builder /app/founder-console/.next/standalone ./
-COPY --from=builder /app/founder-console/.next/static ./founder-console/.next/static
-COPY --from=builder /app/founder-console/public ./founder-console/public
+COPY --from=builder /app/admin-console/.next/standalone ./
+COPY --from=builder /app/admin-console/.next/static ./admin-console/.next/static
 
 EXPOSE 3000
-CMD ["node", "founder-console/server.js"]
+CMD ["node", "admin-console/server.js"]

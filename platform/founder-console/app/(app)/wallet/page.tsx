@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@nordstern/shared-ui';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@nordstern/shared-ui';
+import { Input } from '@nordstern/shared-ui';
+import { Label } from '@nordstern/shared-ui';
 import { Keypair, Transaction, Networks } from '@stellar/stellar-sdk';
 import { Loader2, Play, Wallet, RefreshCw, Send, CheckCircle2, AlertCircle } from 'lucide-react';
 

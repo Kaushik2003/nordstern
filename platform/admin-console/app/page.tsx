@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { api, ApiError } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { api, ApiError } from '@nordstern/shared-auth';
+import { Button } from '@nordstern/shared-ui';
+import { Badge } from '@nordstern/shared-ui';
 import { Loader2, LogOut, Copy, Check, RefreshCw, ShieldCheck, Inbox } from 'lucide-react';
 
 interface Application {
@@ -45,7 +45,7 @@ export default function AdminApplicationsPage() {
         await load();
         setReady(true);
       } catch {
-        router.replace('/admin/login');
+        router.replace('/login');
       }
     })();
   }, [router, load]);
@@ -73,10 +73,16 @@ export default function AdminApplicationsPage() {
 
   async function signOut() {
     try { await api.post('/admin/logout'); } catch { /* ignore */ }
-    router.replace('/admin/login');
+    router.replace('/login');
   }
 
-  const redeemLink = approved ? `${window.location.origin}/redeem?token=${approved.rawToken}` : '';
+  // /redeem lives on the founder console (register.nordstern.live), a different origin
+  // from admin. Build the link against the founder base URL; fall back to same-origin for
+  // single-host dev parity.
+  const founderBase =
+    process.env.NEXT_PUBLIC_FOUNDER_URL ||
+    (typeof window !== 'undefined' ? window.location.origin : '');
+  const redeemLink = approved ? `${founderBase}/redeem?token=${approved.rawToken}` : '';
 
   async function copyLink() {
     await navigator.clipboard.writeText(redeemLink);

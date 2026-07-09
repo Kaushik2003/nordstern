@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { api } from './api';
+import { api } from '@nordstern/shared-auth';
 
 export interface OrgSummary {
   id: string;

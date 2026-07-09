@@ -5,11 +5,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState, useEffect } from 'react';
-import { api, ApiError } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { api, ApiError } from '@nordstern/shared-auth';
+import { Button } from '@nordstern/shared-ui';
+import { Input } from '@nordstern/shared-ui';
+import { Label } from '@nordstern/shared-ui';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@nordstern/shared-ui';
 import { CheckCircle2, Loader2, ShieldCheck, Clock, Palette } from 'lucide-react';
 
 const schema = z.object({

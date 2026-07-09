@@ -188,12 +188,14 @@ services:
       AWS_SECRET_ACCESS_KEY: test
     networks: [nordstern-net]
 
-  # ── Founder / operator / NordStern-admin web app (platform/console). One app, many
-  #    surfaces; proxies /api → platform-api same-origin (cookies flow). Reachable at
-  #    http://localhost:4001 (prod: app.nordstern.live). M0: deploy + reach it.
-  platform-console:
+  # ── Founder console (platform/founder-console). The whole founder journey — apply,
+  #    login, redeem, overview, wallet. Proxies /api → platform-api same-origin (cookies
+  #    flow). Dev host: http://register.localhost (via Traefik). Also on :4001 directly
+  #    (keeps CONSOLE_URL/redeem links stable). Prod: register.nordstern.live.
+  founder-console:
     build:
-      context: ./platform/console
+      context: ./platform
+      dockerfile: founder-console/Dockerfile
       args: { API_URL: http://platform-api:4000 }
     restart: unless-stopped
     depends_on:
@@ -201,4 +203,34 @@ services:
     ports: ["4001:3000"]
     environment:
       API_URL: http://platform-api:4000
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.founder.rule=Host(`register.localhost`)
+      - traefik.http.routers.founder.entrypoints=web
+      - traefik.http.services.founder.loadbalancer.server.port=3000
+    networks: [nordstern-net]
+
+  # ── Admin console (platform/admin-console). NordStern internal team only — the anchor
+  #    applications review queue (approve / reject). Separate app, separate image, separate
+  #    host so no founder-facing code is ever served here. Dev host: http://admin.localhost
+  #    (via Traefik). Also on :4002 directly. Prod: admin.nordstern.live.
+  admin-console:
+    build:
+      context: ./platform
+      dockerfile: admin-console/Dockerfile
+      args:
+        API_URL: http://platform-api:4000
+        # Redeem links the admin copies target the founder console (different origin).
+        NEXT_PUBLIC_FOUNDER_URL: http://register.localhost
+    restart: unless-stopped
+    depends_on:
+      platform-api: { condition: service_started }
+    ports: ["4002:3000"]
+    environment:
+      API_URL: http://platform-api:4000
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.admin.rule=Host(`admin.localhost`)
+      - traefik.http.routers.admin.entrypoints=web
+      - traefik.http.services.admin.loadbalancer.server.port=3000
     networks: [nordstern-net]

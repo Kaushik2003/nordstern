@@ -98,7 +98,7 @@ variable "db_max_allocated_storage" {
 variable "db_engine_version" {
   description = "Postgres major.minor. Matches the local pg15."
   type        = string
-  default     = "15.7"
+  default     = "15.16"
 }
 
 variable "db_name" {

@@ -1,9 +1,10 @@
 import { pool } from '../../db.js';
 import {
   DIDIT_API_KEY, DIDIT_WORKFLOW_ID, PUBLIC_BASE_URL, KYC_REVERIFY_TTL_SECONDS,
-  NORDSTERN_API_URL, SERVICE_SECRET,
+  NORDSTERN_API_URL, SERVICE_SECRET, AUTH_MODE,
 } from '../../config.js';
 import { KycProvider, CustomerQuery, CustomerResult, KycStatus, KycSessionResult } from './KycProvider.js';
+import { propagateKycToPlatform } from '../../kycPropagate.js';
 
 // ─── DIDIT KYC ──────────────────────────────────────────────────────────────────
 // Real identity verification (document OCR + passive liveness + face match) via
@@ -118,6 +119,34 @@ async function persistDecision(
       [account, status, sessionId, summary],
     );
   }
+
+  // Update local customers table if AUTH_MODE is local
+  if (AUTH_MODE === 'local') {
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let customerId: string | null = null;
+    if (UUID_RE.test(account)) {
+      customerId = account;
+    } else if (/^[G][A-Z2-7]{55}$/.test(account)) {
+      const custRes = await db.query(
+        `SELECT customer_id FROM nordstern.customer_wallets WHERE address = $1`,
+        [account]
+      );
+      if (custRes.rows[0]) {
+        customerId = custRes.rows[0].customer_id;
+      }
+    }
+
+    if (customerId) {
+      const mappedKyc = status === 'ACCEPTED' ? 'approved' : (status === 'REJECTED' ? 'declined' : 'pending');
+      await db.query(
+        `UPDATE nordstern.customers 
+         SET kyc_status = $1, didit_session_id = $2, didit_verified_at = $3, updated_at = now() 
+         WHERE id = $4`,
+        [mappedKyc, sessionId, diditStatus === 'Approved' ? new Date() : null, customerId]
+      );
+    }
+  }
+
   return status;
 }
 
@@ -146,7 +175,7 @@ async function fetchSessionStatus(sessionId: string): Promise<{ status: string; 
 // the customer linked to their central profile when they connected it. Best-effort: any error
 // / 404 (wallet not linked to a customer) → null → caller falls back to normal verification.
 async function centralKycApproved(account: string): Promise<boolean> {
-  if (!NORDSTERN_API_URL || !SERVICE_SECRET) return false;
+  if (AUTH_MODE === 'local' || !NORDSTERN_API_URL || !SERVICE_SECRET) return false;
   try {
     const res = await fetch(
       `${NORDSTERN_API_URL}/api/v1/internal/customers/kyc?walletAddress=${encodeURIComponent(account)}`,
@@ -201,6 +230,13 @@ export async function getStatus(account: string): Promise<KycStatus> {
       const mapped = mapStatus(live.status);
       if (mapped !== 'PROCESSING') {
         await persistDecision(account, live.status, rec.didit_session_id, live.decision);
+        // #6: the poll path resolved a decision the webhook may never deliver (local dev, or
+        // a dropped callback). In platform mode, propagate it to the CENTRAL customer profile
+        // too — otherwise the app (which polls central KYC) hangs on "Finishing verification"
+        // even though DIDIT approved. (Local mode already updates local customers in persist.)
+        if (AUTH_MODE !== 'local') {
+          await propagateKycToPlatform({ vendor_data: account, status: live.status });
+        }
         console.log(`[didit] poll ${account}: ${live.status} → ${mapped}`);
         return mapped;
       }

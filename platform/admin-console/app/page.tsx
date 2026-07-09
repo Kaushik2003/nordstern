@@ -196,18 +196,24 @@ export default function AdminApplicationsPage() {
               <h2 className="text-base font-semibold">Application approved</h2>
             </div>
             <p className="mb-4 text-sm text-muted-foreground">
-              Invitation sent to <span className="font-medium text-foreground">{approved.email}</span>. Share this one-time
-              redeem link with the founder — it won&apos;t be shown again.
+              We&apos;ve emailed the activation link to <span className="font-medium text-foreground">{approved.email}</span>.
+              The founder redeems it themselves — nothing more to do here.
             </p>
-            <div className="flex items-center gap-2 rounded-lg border bg-muted/30 p-2">
-              <code className="flex-1 overflow-x-auto whitespace-nowrap px-1 text-xs">{redeemLink}</code>
-              <Button size="sm" variant="outline" onClick={copyLink}>
-                {copied ? <><Check className="mr-1.5 h-3.5 w-3.5" />Copied</> : <><Copy className="mr-1.5 h-3.5 w-3.5" />Copy</>}
-              </Button>
-            </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setApproved(null)}>Close</Button>
-              <Button onClick={() => window.open(redeemLink, '_blank')}>Open redeem page</Button>
+            {/* Ops fallback only: in dev (no email provider) or if the founder didn't receive it,
+                the one-time link is here. It's the founder's job to redeem, on the founder host. */}
+            <details className="rounded-lg border bg-muted/30 p-2">
+              <summary className="cursor-pointer select-none px-1 text-xs text-muted-foreground">
+                Link didn&apos;t arrive? Copy it manually (one-time)
+              </summary>
+              <div className="mt-2 flex items-center gap-2">
+                <code className="flex-1 overflow-x-auto whitespace-nowrap px-1 text-xs">{redeemLink}</code>
+                <Button size="sm" variant="outline" onClick={copyLink}>
+                  {copied ? <><Check className="mr-1.5 h-3.5 w-3.5" />Copied</> : <><Copy className="mr-1.5 h-3.5 w-3.5" />Copy</>}
+                </Button>
+              </div>
+            </details>
+            <div className="mt-5 flex justify-end">
+              <Button onClick={() => setApproved(null)}>Done</Button>
             </div>
           </div>
         </div>

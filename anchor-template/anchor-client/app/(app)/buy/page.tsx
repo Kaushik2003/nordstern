@@ -151,7 +151,7 @@ export default function BuyPage() {
             <Row label="You pay" value={inr(quote?.inrAmount)} strong />
             <div className="flex items-start gap-2 rounded-xl bg-surface px-3 py-2.5 text-xs text-muted">
               <Wallet className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>You’ll confirm securely in your wallet to receive your {brand.assetCode}. Then pay with UPI.</span>
+              <span>Your wallet will ask you to approve — this just proves the wallet is yours so we deliver to the right place. It never moves money out of your wallet. Then you pay with UPI.</span>
             </div>
           </CardBody></Card>
           {error && <Msg tone="error" text={error} />}
@@ -167,9 +167,9 @@ export default function BuyPage() {
           <Card><CardBody className="flex flex-col items-center gap-3 py-6 text-center">
             <div className="grid h-12 w-12 place-items-center rounded-full bg-brand/15"><ExternalLink className="h-6 w-6 text-brand-deep" /></div>
             <p className="font-medium text-ink">Complete your payment</p>
-            <p className="max-w-xs text-sm text-muted">Pay {inr(quote?.inrAmount)} securely with UPI to receive {amount} {brand.assetCode}.</p>
+            <p className="max-w-xs text-sm text-muted">A secure payment page opens in a new tab. Pay {inr(quote?.inrAmount)} with UPI or card — you’ll come back here automatically and we’ll deliver {amount} {brand.assetCode} to your wallet.</p>
             <a href={payUrl} target="_blank" rel="noopener noreferrer" className="w-full" onClick={() => setTimeout(() => setStep('processing'), 500)}>
-              <Button size="block">Pay {inr(quote?.inrAmount)}</Button>
+              <Button size="block">Continue to payment · {inr(quote?.inrAmount)}</Button>
             </a>
             <button className="text-sm text-muted hover:text-ink" onClick={() => setStep('processing')}>I’ve paid — track my money</button>
           </CardBody></Card>

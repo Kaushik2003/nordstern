@@ -147,7 +147,7 @@ export default function SellPage() {
             <Row label="You sell" value={`${amount} ${brand.assetCode}`} />
             <Row label="You receive" value={inr(quote?.inrAmount)} strong />
             <div className="flex items-start gap-2 rounded-xl bg-surface px-3 py-2.5 text-xs text-muted">
-              <Wallet className="mt-0.5 h-4 w-4 shrink-0" /><span>You’ll confirm securely in your wallet to send your {brand.assetCode}. We’ll pay the cash to your bank.</span>
+              <Wallet className="mt-0.5 h-4 w-4 shrink-0" /><span>Your wallet will ask you to approve — this just proves the wallet is yours. Nothing leaves your wallet yet: you’ll send the {brand.assetCode} on the next step, then we pay the cash to your bank.</span>
             </div>
           </CardBody></Card>
           {error && <Msg text={error} />}

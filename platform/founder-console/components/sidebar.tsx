@@ -3,15 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@nordstern/shared-ui';
-import { LayoutDashboard, Users, Anchor, Settings, Code, Activity, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Users, Settings, CreditCard, Anchor } from 'lucide-react';
 import { useMe } from '@/lib/session';
 
 const navigation = [
+  // Founder = org-level concerns only. Per-anchor treasury/transactions/customers live on
+  // each anchor's OPERATOR console (opened from the portfolio), NOT here.
   { name: 'Overview', href: '/overview', icon: LayoutDashboard },
-  { name: 'Anchors', href: '/anchors', icon: Anchor },
   { name: 'Wallet Sandbox', href: '/wallet', icon: CreditCard },
-  { name: 'Transactions', href: '/transactions', icon: Activity },
-  { name: 'Developers', href: '/developers', icon: Code },
   { name: 'Team', href: '/team', icon: Users },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
@@ -31,7 +30,7 @@ export function Sidebar() {
         </div>
         <div className="flex flex-col">
           <span className="text-sm font-semibold tracking-tight">{activeOrg}</span>
-          <span className="text-xs text-muted-foreground">Admin Console</span>
+          <span className="text-xs text-muted-foreground">Founder Console</span>
         </div>
       </div>
 

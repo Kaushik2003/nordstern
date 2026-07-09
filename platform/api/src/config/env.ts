@@ -32,6 +32,11 @@ const schema = z.object({
   APP_URL: z.string().default('http://localhost:3000'),
   // Public base URL of the console — used to build redeem/login links inside emails.
   CONSOLE_URL: z.string().default('http://localhost:4001'),
+  // Suffix each provisioned anchor is served under: dev `anchors.127.0.0.1.sslip.io`
+  // (→ <slug>.anchors.127.0.0.1.sslip.io), prod `nordstern.live`. Used to derive the
+  // founder's live anchor URLs (customer app + operator console). Matches control-plane.
+  ANCHOR_DOMAIN_SUFFIX: z.string().default('anchors.127.0.0.1.sslip.io'),
+  ANCHOR_PUBLIC_SCHEME: z.enum(['http', 'https']).default('http'),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().default('NordStern <onboarding@resend.dev>'),
 

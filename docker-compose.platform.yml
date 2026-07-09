@@ -175,6 +175,10 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-NordStern <onboarding@resend.dev>}
       CONSOLE_URL: ${CONSOLE_URL:-http://localhost:4001}
+      # Suffix + scheme each provisioned anchor is served under — used to derive the
+      # founder's live anchor URLs ("my anchors" portfolio). Matches control-plane.
+      ANCHOR_DOMAIN_SUFFIX: ${ANCHOR_DOMAIN_SUFFIX:-anchors.127.0.0.1.sslip.io}
+      ANCHOR_PUBLIC_SCHEME: ${ANCHOR_PUBLIC_SCHEME:-http}
       # Integration wiring (this is what connects the three services):
       CONTROL_PLANE_URL: http://control-plane:3002
       AGGREGATOR_URL: http://aggregator:3005

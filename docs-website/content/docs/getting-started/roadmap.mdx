@@ -1,0 +1,50 @@
+---
+title: Product Roadmap
+description: The phased development and deployment roadmap for the NordStern platform.
+---
+
+## Development Phases
+
+Our roadmap is structured in phases to ensure a smooth, stable, and compliant transition from local sandboxes to a production-grade multi-anchor ecosystem.
+
+---
+
+### Phase 1: Core Integration Sandbox (Current)
+We have established the technical foundation with simulated banking and verification loops to validate the core architecture:
+* **Stellar Protocol Support:** Live service discovery and authentication flows running on the Testnet.
+* **On-Ramp Flow:** End-to-end token minting triggered by simulated payment confirmations.
+* **Off-Ramp Flow:** On-chain transaction detection and tracking.
+* **Isolated Workspace Provisioning:** Automated container deployment for testing anchors.
+
+---
+
+### Phase 2: Live Integration & Adapters
+We are replacing simulated loops with production-grade integrations hidden behind swappable interfaces:
+* **Identity Verification:** Production integration with KYC partners (like HyperVerge or Signzy) for automated customer verification.
+* **Fiat-In (Deposits):** Active payment collection gateways (Razorpay, UPI intent, and dynamic QR code generation).
+* **Fiat-Out (Payouts):** Real-time automated bank disbursements via payouts API providers (like Cashfree or RazorpayX).
+* **Security Auditing:** HMAC signature verification for webhook channels.
+
+---
+
+### Phase 3: Operator Dashboard Productization
+We are consolidating operator and treasury control surfaces into a unified dashboard:
+* **Float Monitoring:** Real-time visibility of token reserves, liquidity thresholds, and network fee parameters.
+* **Compliance Management:** Operator workflows to approve/reject identity submissions and audit compliance cases.
+* **Dynamic Fee Management:** Configuration panel to modify fixed and percentage-based transaction spreads.
+
+---
+
+### Phase 4: Multi-Tenant Platform Escalation
+Transitioning the backend to host dozens of independent white-label anchors:
+* **Dynamic Provisioning:** Automated domain mapping, dedicated database schema generation, and automated key generation for new tenants.
+* **Cross-Tenant Isolation:** Complete database and runtime scoping per anchor.
+* **Aggregated Directory:** A registry service for quote and route queries across all active anchors.
+
+---
+
+### Phase 5: Production Go-Live & Hardening
+Preparing the infrastructure for mainnet transactions and enterprise reliability:
+* **Mainnet Launch:** Swapping endpoints from blockchain sandboxes to live mainnet rails.
+* **Enterprise Kubernetes Setup:** Deploying core services via EKS/Helm with automated scaling and backups.
+* **Observability & Alerting:** Active metrics monitoring, system tracing, and status alerts for operators.

@@ -1,0 +1,79 @@
+---
+title: Multi-Tenant Isolation
+description: Detailed explanation of database, cryptographic, routing, and cookie-level tenant isolation.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+NordStern enforces a strict multi-tenant architecture to ensure that multiple anchors can coexist on the same platform infrastructure without any possibility of data leakage, credential sharing, or cross-account access.
+
+---
+
+## The Isolation Proof (Gate 6)
+
+During system audits, multi-tenant isolation was validated through four distinct proof vectors:
+
+```
+[ Incoming Request ]
+         │
+         ▼
+ ┌──────────────┐
+ │ Traefik Edge │ ──► Host Header Routing (e.g. acme.anchors.localhost)
+ └──────────────┘
+         │
+         ▼
+ ┌──────────────┐
+ │ Session Edge │ ──► Host-Only Cookie Domain (Separate browser jars)
+ └──────────────┘
+         │
+         ▼
+ ┌──────────────┐
+ │   Database   │ ──► Separate anchordb_<slug> databases per tenant
+ └──────────────┘
+```
+
+---
+
+## 1. Physical Database Isolation
+
+Every anchor operates on its own dedicated database:
+* When an anchor is provisioned, the control plane creates a new Postgres database named `anchordb_<slug>` (e.g. `anchordb_acmepay`).
+* The anchor's transactional table schema (deposit outbox, payout histories, KYC checks) is isolated inside this database.
+* Data from one anchor cannot leak to another because they do not share database connections. 
+
+*Proof:* During manual runs, audit tables for anchor `didit-test` correctly recorded its deposits, while anchor `axicov`'s database tables remained empty (`0` rows).
+
+---
+
+## 2. Cryptographic Isolation
+
+Each anchor has its own dedicated keys on the Stellar network:
+* Anchor keypairs (Issuer, Distribution, and Signing) are generated independently.
+* The private seeds are encrypted using AES-256-GCM via a Master Key (`MASTER_KEK`) and stored in the database.
+* The anchor business-server handles signing using only its own decrypted seeds, meaning a compromise of one tenant's environment cannot expose another tenant's keys.
+
+---
+
+## 3. Cookie & Session Isolation
+
+To prevent session hijacking across tenants:
+* **Host-Only Cookies:** The platform cookie configurations leave `COOKIE_DOMAIN` **empty**.
+* This instructs the browser to treat cookies as *host-only*, meaning the login session for `console.acme.localhost` will never be sent to `console.axicov.localhost`.
+* **Diagonal Authentication Check:** Testing verified that trying to request an operator route for an anchor from a different domain returns `403 Forbidden` with the error message: *"You do not operate this anchor."*
+
+---
+
+## 4. Edge Routing Isolation
+
+Dynamic subdomains isolate traffic at the edge:
+* **Traefik** routes requests based on the host headers of incoming traffic.
+* A container group for `acme` is labeled with `Host("acme.anchors.localhost")` and only receives traffic matched to that host header.
+* Internal microservices (like platform-api) communicate with the respective business-servers using isolated Docker container DNS aliases (e.g. `http://business-server-acme:3000`).
+
+---
+
+## Traceability Links
+
+* Provisioner database creator: [`anchor-service/control-plane/src/provision.ts`](file:///Users/manobendramandal/Desktop/code/nordstern/anchor-service/control-plane/src/provision.ts#L104-L121)
+* Host-only cookie setup: [`platform/api/src/lib/cookies.ts`](file:///Users/manobendramandal/Desktop/code/nordstern/platform/api/src/lib/cookies.ts)
+* Operator authorization checks: [`anchor-template/business-server/src/adminAuth.ts`](file:///Users/manobendramandal/Desktop/code/nordstern/anchor-template/business-server/src/adminAuth.ts)

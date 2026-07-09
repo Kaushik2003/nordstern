@@ -1,0 +1,64 @@
+---
+title: Platform API
+description: Reference for the platform onboarding backend endpoints, routing realms, and payloads.
+---
+
+The Platform API (`platform/api`) is a Node/Express server acting as the metadata brain and coordinator of the onboarding plane.
+
+---
+
+## Authentication & Authorization Model
+
+The API enforces strict segmentation through three separate **realms** using separate host-only cookies (see [Identity & OTP](../auth-and-security/identity-and-otp)):
+* **Operator Realm:** Access-control for organization founders and operational staff.
+* **Admin Realm:** Access-control for internal NordStern system administrators.
+* **Customer Realm:** Access-control for end-users doing buy/sell operations.
+* **Internal Realm:** Gated by a shared HTTP header secret (`x-service-secret`) for backend-to-backend communication only.
+
+---
+
+## Endpoint Index
+
+### Operator Realm (`/api/v1/auth`)
+Founders use these endpoints for register/login. Auth is **email OTP only**.
+* `POST /auth/otp/request` — Requests a login verification code.
+* `POST /auth/otp/verify` — Validates the code. If new, registers the user. Sets cookie `ns_session`.
+* `POST /auth/refresh` — Rotates JWT using `ns_refresh` cookie.
+* `POST /auth/logout` — Destroys session.
+* `GET /auth/me` — Fetches current user, organization memberships, and active projects.
+
+### Admin Realm (`/api/v1/admin`)
+Super-admin tools. Password auth. Sets `ns_admin` cookie.
+* `POST /admin/login` — Authenticates using `ADMIN_USERNAME` and `ADMIN_PASSWORD`.
+* `GET /admin/applications` — Lists all submitted wizard applications (newest first).
+* `POST /admin/applications/:id/approve` — Approves application and generates the redeem `rawToken`.
+* `POST /admin/applications/:id/reject` — Rejects application.
+
+### Customer Realm (`/api/v1/customer`)
+Central client auth and wallet linking. Email OTP auth. Sets `ns_customer` cookie.
+* `POST /customer/auth/request-otp` — Requests code.
+* `POST /customer/auth/verify-otp` — Verifies code, logging in the customer.
+* `GET /customer/me` — Fetches customer profile.
+* `GET /customer/wallets` — Lists linked Stellar public addresses.
+* `POST /customer/wallets` — Links a new Stellar address (`address`, `label`, `network`).
+* `DELETE /customer/wallets/:id` — Unlinks address.
+* `GET /customer/kyc/status` — Retrieves central KYC status.
+
+### Provisioning & Invitations (`/api/v1/anchor-invitations`)
+* `POST /anchor-invitations/redeem` — Redeems an approved invite rawToken. Starts background container creation.
+* `GET /anchor-invitations/status/:jobId` — Returns the current provisioning progress stage.
+* `POST /anchor-invitations/status/:jobId/retry` — Re-triggers a failed provisioning run.
+
+### Internal Realm (`/api/v1/internal`)
+Authenticated by `x-service-secret` header. Allows anchors to query or update central user info.
+* `POST /internal/customers/kyc` — Propagates KYC status updates.
+* `GET /internal/customers/kyc` — Queries central KYC status.
+* `GET /internal/customers/:id/wallets` — Resolves wallet addresses for a customer ID.
+
+---
+
+## Traceability Links
+
+* Endpoints: [`platform/api/src/api/v1/`](file:///Users/manobendramandal/Desktop/code/nordstern/platform/api/src/api/v1/)
+* Auth verification middleware: [`platform/api/src/middleware/requireAuth.ts`](file:///Users/manobendramandal/Desktop/code/nordstern/platform/api/src/middleware/requireAuth.ts), [`requireAdmin.ts`](file:///Users/manobendramandal/Desktop/code/nordstern/platform/api/src/middleware/requireAdmin.ts), [`requireCustomer.ts`](file:///Users/manobendramandal/Desktop/code/nordstern/platform/api/src/middleware/requireCustomer.ts)
+* Internal route validation: [`platform/api/src/api/v1/internal.routes.ts`](file:///Users/manobendramandal/Desktop/code/nordstern/platform/api/src/api/v1/internal.routes.ts#L18-L23)

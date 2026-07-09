@@ -1,0 +1,9 @@
+{
+  "title": "Integrate APIs",
+  "pages": [
+    "authentication",
+    "adapters",
+    "kyc-didit",
+    "fiat-rails"
+  ]
+}

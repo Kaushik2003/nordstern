@@ -1,0 +1,73 @@
+---
+title: Disaster Recovery & Backups
+description: Disaster recovery procedures, dump scheduling, secret-store reconciliation, and database restore workflows.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+NordStern enforces a strict operational rule: **Never migrate a database that holds money records or tenant credentials without a tested backup and a proven restore pathway.**
+
+---
+
+## What Holds Money & Tenant Data
+
+Data is partitioned across three core stores, each requiring recovery protocols during a disaster:
+
+| Component | DB Name / Store | Contains | Restore Priority |
+|---|---|---|---|
+| **Money Ledger** | `anchordb_<slug>` (schema `nordstern`) | Deposits, withdrawals, local KYC states, outbox reconciliations. | **High** (Target of RTO) |
+| **Tenant Keys** | `controldb` (control-plane) | Active anchors registry, encrypted Issuer/Distributor seeds. | **High** (Enables money signing) |
+| **Onboarding Meta** | `platformdb` | Organizations, users, wizard applications. | **Medium** |
+| **API Keys & Credentials** | AWS Secrets Manager (Vault) | External payment rail (Razorpay / Cashfree) key values. | **Durable** (External backup) |
+
+---
+
+## Recovery Metrics
+
+The platform targets the following metrics for production operations:
+* **Recovery Point Objective (RPO):** $\le 15$ minutes (maximum acceptable age of data loss). Managed via automated WAL archiving / Point-In-Time-Recovery (PITR).
+* **Recovery Time Objective (RTO):** $\le 30$ minutes (maximum downtime to fully restore a single database instance).
+
+---
+
+## The Recovery Tooling
+
+The platform includes portable backup scripts located in [`scripts/`](file:///Users/manobendramandal/Desktop/code/nordstern/scripts/):
+
+* **`backup.sh <DATABASE_URL> [OUT_DIR]`** — Performs a `pg_dump` using Postgres custom archive format (compressed). Creates a sidecar `.sha256` checksum file to guarantee data integrity.
+* **`restore.sh <DUMP_FILE> <DATABASE_URL>`** — Verifies the SHA-256 checksum first, then executes a destructive restore (`pg_restore --clean --if-exists`).
+* **`dr-drill.sh <SCRATCH_DATABASE_URL>`** — A self-contained script that seeds fake transaction data, drops the tables, executes restore, and asserts that the final checksums match.
+
+---
+
+## Step-by-Step Restore Procedure
+
+In the event of a database corruption or loss, follow this sequence:
+
+### 1. Freeze Applications
+Stop the platform-api and business-server container traffic so no new records are written.
+
+### 2. Snapshot the Damaged Instance
+Always make a copy of the corrupted database *before* writing over it:
+```bash
+scripts/backup.sh postgres://anchor:anchor@localhost:5432/anchordb /backups/pre-restore-snapshot
+```
+
+### 3. Restore the Last Known Good Dump
+```bash
+scripts/restore.sh /backups/anchordb/anchordb_2026-07-09.dump postgres://anchor:anchor@localhost:5432/anchordb
+```
+
+### 4. Reconcile Vault Secrets
+Because database tables store only references to AWS Secrets Manager, a restored database yields pointers, not actual keys:
+* **Production:** Pointers resolve automatically as long as the versioned keys are still present in AWS Secrets Manager.
+* **Development (LocalStack):** Since LocalStack is ephemeral, container restarts will clear the keys. You must manually re-provision the secrets/API keys for the restored anchors.
+
+### 5. Restart Stack & Verify
+Bring up the containers, review the transaction tables in the operator dashboard, and confirm that checksum digests match.
+
+---
+
+## CI Verification: The DR Drill
+
+Disaster recovery is continuously validated in CI. Every Pull Request executes the `dr-drill` test to ensure that no schema migrations break backup and restore compatibility. A red status on the drill blocks deployment.

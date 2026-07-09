@@ -1,0 +1,67 @@
+---
+title: Operator Console
+description: Operations guide for managing your anchor workspace, treasury, and customer transactions.
+---
+
+## Managing your Anchor Workspace
+
+The **Operator Console** is your administrative workspace for managing daily operations, verifying customers, audits, and settings. Each anchor gets its own dedicated console hosted at `https://console-<slug>.nordstern.live`.
+
+---
+
+## 1. Dashboard Overview
+
+The **Overview** dashboard provides real-time visibility into the performance of your anchor:
+* **Key Metrics:** Monitor total processing volumes, successful deposit/withdrawal counts, and transaction success rates.
+* **Volume Analytics:** Track fiat inflow (customer deposits) and outflow (customer withdrawals) over daily, weekly, or monthly periods.
+* **System Health Status:** Inspect live indicators showing connection status with payment gateways and the blockchain network.
+
+---
+
+## 2. Transactions & Payment Auditing
+
+The **Transactions** module is the central ledger of all money movement:
+* **Deposit Logs:** View all customer deposits. Each record tracks the incoming fiat transaction reference (e.g. Razorpay payment ID) and the corresponding on-chain asset transfer transaction hash.
+* **Withdrawal Logs:** Monitor customer withdrawals. Tracks the incoming on-chain asset payment from the customer's wallet and the outgoing IMPS/UPI payout reference.
+* **Transaction States:**
+  * `Awaiting Payment:` The customer has started a deposit flow but has not completed the checkout.
+  * `Payment Received:` The payment gateway has confirmed receipt of fiat funds.
+  * `Processing:` The system is executing the asset transfer or fiat payout.
+  * `Completed:` The digital asset has been successfully minted/transferred, or fiat has cleared in the customer's bank account.
+* **Operational Actions:**
+  * **Retry:** Manually re-drive a deposit release if the transaction timed out or failed due to network congestion.
+  * **Refund:** Cancel a transaction and return the funds to the customer.
+
+---
+
+## 3. Treasury & Reserve Management
+
+The **Treasury** dashboard monitors your operational balances:
+* **Float Monitoring:** Real-time visibility of the digital asset balance in your workspace Distribution Address.
+* **Reserve Matching:** Compares on-chain token reserves against traditional cash holdings in your corporate bank accounts to ensure a 1:1 backing ratio.
+* **Threshold Alerts:** Warnings are generated when your distribution balance falls below threshold targets, indicating that you need to transfer more assets to maintain transaction liquidity.
+
+---
+
+## 4. Customer KYC Management
+
+The **Customers** page lists all end-users associated with your anchor workspace:
+* **User Profiles:** Search and view customer registrations by email or linked wallet addresses.
+* **Identity Status:** Review customer KYC states (`unverified`, `pending`, `approved`, `rejected`).
+* **Compliance Checks:** Review risk profiling parameters and submitted identity documents.
+
+---
+
+## 5. Pricing, Fees & Limits
+
+The **Pricing** configuration panel enables you to control your fee spreads and transaction limits:
+* **Fixed Fees:** A flat amount charged per transaction (e.g. 10 INR).
+* **Percentage Spreads:** A variable percentage fee charged on the total transaction value (e.g. 0.5%).
+* **Velocity Limits:** Define transaction caps per user (daily and weekly volume ceilings) to enforce AML risk policies.
+
+---
+
+## Related Pages
+* **[Onboarding Guide](/docs/founders/overview)**
+* **[Pricing & Fees Guide](/docs/operator/pricing-and-fees)**
+* **[Developer Authentication](/docs/developers/authentication)**

@@ -1,0 +1,54 @@
+---
+title: Security & Custody Model
+description: How NordStern protects your funds, isolates your customer data, and secures transactions.
+---
+
+## Trust & Security
+
+NordStern is designed to keep your business-critical data secure and ensure complete control over your capital. Our defense-in-depth security architecture separates infrastructure orchestration from financial operations.
+
+---
+
+## 1. Non-Custodial Capital Protection
+
+Your money stays in your control. The system is designed so that NordStern never takes custody of your funds:
+
+* **Direct Flow of Funds:** Fiat currency flows directly from the customer’s bank account to your payment processor (e.g. Razorpay/Cashfree) and then to your corporate bank account.
+* **On-Chain Settlement:** Digital assets move directly between your treasury account and the customer’s wallet address.
+* **No Pooling:** NordStern does not run a pooled liquidity pool or master escrow. Your funds are never co-mingled with those of other anchors or NordStern itself.
+
+---
+
+## 2. Cryptographic Secret Isolation
+
+Your private cryptographic keys (Signing, Issuing, and Distribution keys) are isolated per workspace:
+
+* **Encryption at Rest:** Keys are encrypted using industry-standard AES-GCM encryption with a Master Key (`MASTER_KEK`).
+* **Write-Only Credentials:** When you set up your API keys, banking credentials, or webhook secrets in the Operator Console, they are written directly to your isolated database. The interface will never display these secrets back to any user.
+
+---
+
+## 3. Tenant Data Partitioning
+
+NordStern guarantees complete data isolation between anchors:
+
+* **Isolated Databases:** Each anchor workspace is provisioned with its own separate database database instance (or schema), ensuring that customer lists, transactions, compliance logs, and API logs cannot bleed between anchors.
+* **Subdomain Scoping:** Sessions and cookies are scoped strictly to your unique subdomain (e.g., `yourcompany.nordstern.live`). Session hijacking or cross-workspace access is prevented at the router level.
+* **Role-Based Access Control (RBAC):** Your staff accounts are limited by roles (Owner, Admin, Operator). Team members can only view information and perform actions that align with their operational permissions.
+
+---
+
+## 4. API Gating & Abuse Prevention
+
+The platform implements strict API policies to protect against attacks:
+
+* **Insecure Direct Object Reference (IDOR) Guard:** Every request validates that the active operator session has explicit permission to interact with the target resource.
+* **Rate Limiting:** Gated endpoints (like requesting OTP login codes) are rate-limited to blunting brute-force login attempts and preventing spam.
+* **Service Boundary Hardening:** Backend administrative APIs are blocked from public internet exposure, preventing any client-side manipulation of transaction outcomes or KYC verification statuses.
+
+---
+
+## Related Pages
+* **[How it Works](/docs/getting-started/concepts)**
+* **[Compliance & Licensing](/docs/getting-started/compliance)**
+* **[API Authentication](/docs/developers/authentication)**

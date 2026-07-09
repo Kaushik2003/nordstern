@@ -1,0 +1,42 @@
+---
+title: Frequently Asked Questions
+description: Answers to common business, security, and operational questions about NordStern.
+---
+
+## Frequently Asked Questions
+
+### General & Business
+
+#### Does NordStern custody customer assets or bank reserves?
+No. NordStern operates on a strict non-custodial model. We never access or custody customer private keys, and we do not pool or touch your corporate cash reserves. Funds flow directly between the customer's wallet/bank account and your own corporate banking/treasury channels. NordStern acts purely as a software coordinator.
+
+#### How long does it take to onboard and launch an anchor?
+Submitting the onboarding application takes about 10 minutes. Once approved by the administration (typically 1 to 2 business days), provisioning your live anchor workspace takes **3 to 5 minutes** through the automated redeem portal.
+
+---
+
+### Security & Custody
+
+#### How is customer data isolated between anchors?
+Every partner anchor is provisioned with its own separate database database instance (or isolated schema) and dedicated application containers. Customer profiles, transaction logs, compliance histories, and webhook events are physically partitioned and cannot bleed between different workspaces.
+
+#### Are corporate keys and payment secrets secure?
+Yes. All operational private keys and gateway API keys are encrypted at rest using AES-GCM encryption under a Master Key (`MASTER_KEK`). Credentials are write-only—once configured in the console, they are written directly to secure storage and can never be read or retrieved via the API or dashboard.
+
+---
+
+### Transactions & Troubleshooting
+
+#### How does the platform protect against double-payouts?
+All fiat disbursements (payouts) are guarded by database-level locks. The transaction engine must successfully claim and lock the withdrawal record as `processing` before calling the payout gateway API. If a network timeout or server crash occurs, retry loops are blocked from sending duplicate payouts due to database uniqueness invariants.
+
+#### Why do customers see a "missing trustline" error?
+To protect users from receiving unwanted tokens, the blockchain network requires wallets to explicitly establish a "trustline" for a specific digital asset before it can be deposited. 
+* **The Solution:** The customer must open their wallet app (e.g. Lobstr, Vibrant) and click "Add Asset" to select your asset code (e.g. USDC). This registers the trustline in their wallet.
+
+---
+
+## Related Pages
+* **[How it Works](/docs/getting-started/concepts)**
+* **[Security & Custody Model](/docs/getting-started/security-model)**
+* **[Transaction Statuses](/docs/reference/transaction-statuses)**

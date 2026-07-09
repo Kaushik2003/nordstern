@@ -1,0 +1,102 @@
+---
+title: Provisioning & Control Plane
+description: Technical breakdown of the automated key generation, Stellar funding, and container provisioning engine.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+The **Control Plane** (`anchor-service/control-plane`) is the automated engine that builds new anchors. It communicates directly with the Docker daemon using the `dockerode` library and calls the Stellar Testnet to issue tokens.
+
+---
+
+## Provisioning Lifecycle Step-by-Step
+
+When `platform-api` requests the control plane to provision a new anchor, the `runProvision` function executes the following sequence:
+
+```
+[Start Job]
+    │
+    ▼
+1. Generate Keypairs ────► Encrypt seeds with MASTER_KEK into DB
+    │
+    ▼
+2. Friendbot Funding ────► Request free XLM for Issuer + Distributor accounts
+    │
+    ▼
+3. Trustlines & Issue ───► Establish trustline, pay asset tokens Issuer ──► Distributor
+    │
+    ▼
+4. Generate Configs ─────► Write stellar.toml + anchor-platform.yaml files to disk
+    │
+    ▼
+5. Setup Database ───────► CREATE DATABASE anchordb_<slug> on Postgres
+    │
+    ▼
+6. Docker Containers ────► Spawn docker containers with Traefik host routing labels
+    │
+    ▼
+7. Poll Health Check ────► Wait for stellar.toml & /health to respond 200
+    │
+    ▼
+[Anchor Active]
+```
+
+---
+
+## 1. Keypair Generation & Cryptographic Vault
+
+The provisioner generates three Stellar keypairs (`generateKeypairs()`):
+* **Issuer Keypair:** Defines the origin of the token.
+* **Distribution Keypair:** Holds the working pool/float.
+* **Signing Keypair:** Handles SEP-10 challenge handshakes.
+
+The private seed values (`S...`) are encrypted immediately using AES-256-GCM via the `encryptSecret` utility and the master key (`MASTER_KEK`). They are saved to the `anchor_secrets` table in `controldb`. The public keys (`G...`) are stored in plaintext.
+
+---
+
+## 2. On-Chain Asset Setup
+
+The provisioner connects to the Stellar Testnet:
+1. Requests test tokens (XLM) from **Friendbot** to fund the Issuer and Distribution addresses.
+2. Builds and submits an asset trustline transaction: the Distribution account trusts the Issuer's custom token.
+3. Submits an asset payment transaction: the Issuer transfers the initial token supply (defined by the wizard) to the Distribution account.
+
+---
+
+## 3. Configuration Generation
+
+The control plane generates static configuration files for the anchor and writes them to a host volume directory (`ANCHOR_CONFIG_HOST_ROOT/<slug>`):
+* `stellar.toml` — The SEP-1 discovery profile containing the anchor's public keys, currency specs, and URLs.
+* `anchor-platform.yaml` — The Stellar Anchor Platform settings, including DB credentials and callback URLs.
+* `assets.yaml` — The asset configurations defining deposit and withdraw limits and methods.
+
+---
+
+## 4. Container Provisioning via Dockerode
+
+Using the Docker socket (`/var/run/docker.sock`), the control plane spawns the following container services in the bridge network `nordstern-net`:
+* `anchor-platform-<slug>` (Image `stellar/anchor-platform:latest`)
+* `business-server-<slug>` (Image `nordstern/business-server:dev`)
+
+### Traefik Host Routing Labels
+The provisioner registers host routing configurations dynamically by labeling the Docker containers. Traefik picks these up automatically:
+* `Host("<slug>.anchors.localhost")` routes to the Anchor Platform (SEP APIs) on port `8080`.
+* `Host("api-<slug>.anchors.localhost")` routes to the Business Server callbacks on port `3000`.
+
+---
+
+## 5. Health checks & Teardown on Failure
+
+The control plane polls (`waitHealthy`) the anchor's `stellar.toml` file and the business server `/health` endpoint. Once both return 200, the tenant's `stack_status` is updated to `active`.
+
+If any step fails:
+* The status changes to `error`.
+* The orchestrator performs a rollback: tears down the spawned docker containers (`removeStack`) and drops the Postgres databases (`dropAnchorDb`).
+
+---
+
+## Traceability Links
+
+* Provisioning manager: [`anchor-service/control-plane/src/provision.ts`](file:///Users/manobendramandal/Desktop/code/nordstern/anchor-service/control-plane/src/provision.ts)
+* Dockerode container configurer: [`anchor-service/control-plane/src/orchestrator.ts`](file:///Users/manobendramandal/Desktop/code/nordstern/anchor-service/control-plane/src/orchestrator.ts)
+* Secret encryption: [`anchor-service/control-plane/src/vault.ts`](file:///Users/manobendramandal/Desktop/code/nordstern/anchor-service/control-plane/src/vault.ts)

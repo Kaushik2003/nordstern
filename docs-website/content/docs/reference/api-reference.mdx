@@ -1,0 +1,124 @@
+---
+title: API Endpoint Reference
+description: API documentation for NordStern's public customer endpoints and integration routes.
+---
+
+## API Reference
+
+This page describes the API endpoints exposed by the NordStern Platform API, grouped by their target resource and authentication requirements.
+
+---
+
+## 1. Customer Authentication (`/api/v1/customer/auth`)
+
+Endpoints used to authenticate end-users via passwordless one-time passcodes (OTP).
+
+### Request OTP
+Dispatches a 6-digit OTP verification code to the customer's email.
+* **HTTP Method:** `POST`
+* **Path:** `/api/v1/customer/auth/request-otp`
+* **Request Headers:**
+  * `Content-Type: application/json`
+* **Request Body:**
+  ```json
+  {
+    "email": "user@example.com"
+  }
+  ```
+* **Response:**
+  * **Status:** `200 OK` (Always returns 200 to prevent user enumeration).
+  * **Body:**
+    ```json
+    {
+      "ok": true
+    }
+    ```
+
+### Verify OTP
+Validates the email code and issues an active customer session cookie.
+* **HTTP Method:** `POST`
+* **Path:** `/api/v1/customer/auth/verify-otp`
+* **Request Body:**
+  ```json
+  {
+    "email": "user@example.com",
+    "code": "123456"
+  }
+  ```
+* **Response:**
+  * **Status:** `200 OK`
+  * **Headers:** Sets `Set-Cookie: ns_customer=<session_token>; HttpOnly; Secure; SameSite=Lax`
+  * **Body:**
+    ```json
+    {
+      "customer": {
+        "id": "c7a8b9c0-1234-5678-abcd-ef0123456789",
+        "email": "user@example.com"
+      },
+      "isNew": false
+    }
+    ```
+
+---
+
+## 2. Customer Wallets (`/api/v1/customer/wallets`)
+
+Endpoints for managing customer-linked wallet addresses. Requires an active `ns_customer` session cookie.
+
+### Link Wallet
+Associates a new cryptographic wallet address with the authenticated customer profile.
+* **HTTP Method:** `POST`
+* **Path:** `/api/v1/customer/wallets`
+* **Request Body:**
+  ```json
+  {
+    "address": "GD3W45J7...",
+    "label": "My Main Wallet",
+    "network": "testnet"
+  }
+  ```
+* **Response:**
+  * **Status:** `201 Created`
+  * **Body:**
+    ```json
+    {
+      "id": "w_55667788-abcd-1234-efgh-998877665544",
+      "customerId": "c7a8b9c0-1234-5678-abcd-ef0123456789",
+      "address": "GD3W45J7...",
+      "label": "My Main Wallet",
+      "network": "testnet",
+      "createdAt": "2026-07-09T18:30:00Z"
+    }
+    ```
+
+---
+
+## 3. Webhook Channels
+
+Configure these endpoints on your payment processor dashboard to propagate events.
+
+### KYC Webhook (DIDIT)
+DIDIT calls this endpoint when a customer completes their identity check session.
+* **HTTP Method:** `POST`
+* **Path:** `/api/v1/customer/kyc/webhook`
+* **Request Headers:**
+  * `X-Didit-Signature: <signature_hash>`
+* **Request Body:**
+  ```json
+  {
+    "event": "session.completed",
+    "data": {
+      "sessionId": "sess_998877",
+      "status": "APPROVED",
+      "customerId": "c7a8b9c0-1234-5678-abcd-ef0123456789"
+    }
+  }
+  ```
+* **Response:** `200 OK` on successful validation.
+
+---
+
+## Related Pages
+* **[Developer Authentication](/docs/developers/authentication)**
+* **[Swappable Adapters](/docs/developers/adapters)**
+* **[Transaction Statuses](/docs/reference/transaction-statuses)**

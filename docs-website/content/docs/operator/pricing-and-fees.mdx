@@ -1,0 +1,67 @@
+---
+title: Pricing & Fees
+description: How to configure transaction fees, manage exchange rates, and configure limits.
+---
+
+## Managing Your Revenue Engine
+
+As an anchor, you control the pricing structure for all transaction flows. The system supports fixed fees, percentage spreads, and live exchange rate providers to determine pricing dynamically.
+
+---
+
+## 1. The Fee Calculation Model
+
+Transaction fees are calculated per transaction using a two-tier model:
+
+**Total Fee = Fixed Fee + (Transaction Amount * Percentage Spread)**
+
+### Fixed Fee
+* **Purpose:** Covers third-party payment gateway transaction costs (e.g. UPI/IMPS transfer fees).
+* **Configuration:** Set as a flat amount in your currency (e.g. 10.00 INR).
+
+### Percentage Spread
+* **Purpose:** Represents your primary operational revenue margin or liquidity spread.
+* **Configuration:** Set as a decimal value (e.g., `0.01` for a 1% spread).
+
+*Example:* A customer deposits 1,000 INR. If your fixed fee is 10 INR and percentage spread is 1%, the total fee is:
+
+**10 + (1000 * 0.01) = 20 INR**
+
+The customer receives the digital asset equivalent of **980 INR**.
+
+---
+
+## 2. Exchange Rate Providers
+
+Exchange rates (e.g., INR per USDC conversion) are retrieved dynamically using a swappable provider interface:
+
+* **CoinMarketCap Provider:** Connects directly to the CoinMarketCap API to track real-time blockchain asset exchange values.
+* **Live Financial Feeds:** Retrieves spot USD/INR prices from generic currency exchange API channels.
+* **Fixed Rate Sandbox:** Used in testing/sandbox environments to maintain a predictable, static conversion rate (defaults to `88.50`).
+
+---
+
+## 3. Transaction Quotes & Time-To-Live (TTL)
+
+To protect your treasury from market volatility, conversion rates are guaranteed using a quote-lock mechanism:
+
+1. **Quote Request:** When a customer begins a deposit or withdrawal, the interface requests a locked conversion quote.
+2. **Quote Calculation:** The engine fetches the active conversion rate, applies your fee rules, and outputs the final payout amount.
+3. **Time-To-Live (TTL) Lock:** Quotes are locked and stored with a **30-second TTL**.
+4. **Execution:** The customer must complete the payment checkout before the TTL timer expires. If the timer expires, the transaction must request a refreshed quote at current market rates.
+
+---
+
+## 4. Setting Limits
+
+You can configure transaction ceilings in your console to comply with local risk policies:
+* **Minimum Transaction Amount:** The smallest allowed transfer (e.g. 100 INR) to avoid dust payments.
+* **Maximum Single Transaction:** The maximum amount allowed per individual checkout.
+* **Velocity Ceilings:** Set cumulative volume caps per user for daily or weekly periods (e.g., maximum 50,000 INR per week per customer).
+
+---
+
+## Related Pages
+* **[Operator Console Dashboard](/docs/operator/dashboard)**
+* **[Compliance & Licensing](/docs/getting-started/compliance)**
+* **[Developer API Reference](/docs/reference/api-reference)**

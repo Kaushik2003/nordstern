@@ -1,0 +1,10 @@
+{
+  "title": "Reference",
+  "pages": [
+    "api-reference",
+    "transaction-statuses",
+    "glossary",
+    "faq",
+    "changelog"
+  ]
+}

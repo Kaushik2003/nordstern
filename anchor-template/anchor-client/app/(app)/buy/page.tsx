@@ -10,6 +10,8 @@ import { getQuote, startBuy, myTransaction, type CustomerTx } from '@/lib/anchor
 import { customer as customerApi } from '@/lib/customer';
 import { settler, type SettlementSession } from '@/lib/settlement';
 import { inr } from '@/lib/format';
+import { getAccount, friendbot, buildTrustlineXdr, submitXdr } from '@/lib/api';
+import { signTransaction } from '@/lib/freighter';
 
 type Step = 'amount' | 'confirm' | 'pay' | 'processing' | 'done' | 'error';
 
@@ -37,6 +39,7 @@ export default function BuyPage() {
   const [txId, setTxId] = useState<string | null>(null);
   const [payUrl, setPayUrl] = useState<string | null>(null);
   const [tx, setTx] = useState<CustomerTx | null>(null);
+  const [addingTrustline, setAddingTrustline] = useState(false);
   const poll = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const verified = customer?.kycStatus === 'approved';
@@ -85,11 +88,57 @@ export default function BuyPage() {
     return () => { if (poll.current) clearInterval(poll.current); };
   }, [step, txId, session]);
 
+  async function addTrustline() {
+    setAddingTrustline(true);
+    setError('');
+    try {
+      const addr = (await settler.available()) ?? (await settler.connect());
+      
+      const balances = await getAccount(addr);
+      if (balances.error === 'Account not found' || balances.xlm === null) {
+        if (process.env.NEXT_PUBLIC_IS_MAINNET === 'true') {
+          throw new Error('Your Stellar account must be funded with some XLM first before enabling this asset.');
+        } else {
+          await friendbot(addr);
+          await new Promise((resolve) => setTimeout(resolve, 2500));
+        }
+      }
+
+      const xdr = await buildTrustlineXdr(addr);
+      const signed = await signTransaction(xdr);
+      await submitXdr(signed);
+      setError('');
+      // Continue automatically
+      await confirmAndAuthorize();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not enable asset');
+    } finally {
+      setAddingTrustline(false);
+    }
+  }
+
   async function confirmAndAuthorize() {
     setBusy(true); setError('');
     try {
       // Connect a wallet if needed, then the "secure confirmation" (wallet signs).
       const addr = (await settler.available()) ?? (await settler.connect());
+      
+      // Verify trustline is established
+      const balances = await getAccount(addr);
+      if (balances.error === 'Account not found' || balances.xlm === null) {
+        if (process.env.NEXT_PUBLIC_IS_MAINNET === 'true') {
+          throw new Error('Your Stellar account must be funded with some XLM first before enabling this asset.');
+        } else {
+          await friendbot(addr);
+          await new Promise((resolve) => setTimeout(resolve, 2500));
+        }
+      }
+      
+      const freshBalances = await getAccount(addr);
+      if (freshBalances.anch === null) {
+        throw new Error('Your wallet needs to enable this asset first.');
+      }
+
       // Link this wallet to the central customer profile so a KYC done once is reused
       // across anchors AND the money path (no second verification). Best-effort; a
       // duplicate/already-linked wallet is fine to ignore.
@@ -139,7 +188,25 @@ export default function BuyPage() {
               : (limits.min != null && limits.max != null) &&
                 <p className="text-xs text-faint">Between {limits.min} and {limits.max} {brand.assetCode} per transaction</p>}
           </CardBody></Card>
-          {error && <Msg tone="error" text={error} />}
+          {error && (
+            <div className="space-y-3">
+              <Msg tone="error" text={error} />
+              {/trustline|op_no_trust/i.test(error) && (
+                <Button
+                  size="block"
+                  variant="outline"
+                  disabled={addingTrustline}
+                  onClick={addTrustline}
+                >
+                  {addingTrustline ? (
+                    <span className="flex items-center justify-center gap-2"><Spinner className="h-4 w-4" /> Enabling asset…</span>
+                  ) : (
+                    <span>Enable {brand.assetCode} in wallet</span>
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
           <Button size="block" disabled={!quote || busy || !!limitError} onClick={() => setStep('confirm')}>Continue <ArrowRight className="h-4 w-4" /></Button>
         </>
       )}
@@ -154,7 +221,25 @@ export default function BuyPage() {
               <span>Your wallet will ask you to approve — this just proves the wallet is yours so we deliver to the right place. It never moves money out of your wallet. Then you pay with UPI.</span>
             </div>
           </CardBody></Card>
-          {error && <Msg tone="error" text={error} />}
+          {error && (
+            <div className="space-y-3">
+              <Msg tone="error" text={error} />
+              {/trustline|op_no_trust/i.test(error) && (
+                <Button
+                  size="block"
+                  variant="outline"
+                  disabled={addingTrustline}
+                  onClick={addTrustline}
+                >
+                  {addingTrustline ? (
+                    <span className="flex items-center justify-center gap-2"><Spinner className="h-4 w-4" /> Enabling asset…</span>
+                  ) : (
+                    <span>Enable {brand.assetCode} in wallet</span>
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
           <Button size="block" disabled={busy} onClick={confirmAndAuthorize}>
             {busy ? <><Spinner className="h-5 w-5" /> Confirming…</> : <><ShieldCheck className="h-4 w-4" /> Confirm securely</>}
           </Button>
@@ -211,6 +296,21 @@ export default function BuyPage() {
           <AlertCircle className="h-12 w-12 text-[var(--color-danger)]" />
           <p className="text-lg font-bold text-ink">Couldn’t complete</p>
           <p className="max-w-xs text-sm text-muted">{error}</p>
+          {/trustline|op_no_trust/i.test(error) && (
+            <Button
+              size="block"
+              variant="outline"
+              disabled={addingTrustline}
+              onClick={addTrustline}
+              className="mt-2"
+            >
+              {addingTrustline ? (
+                <span className="flex items-center justify-center gap-2"><Spinner className="h-4 w-4" /> Enabling asset…</span>
+              ) : (
+                <span>Enable {brand.assetCode} in wallet</span>
+              )}
+            </Button>
+          )}
           <Button variant="outline" size="block" onClick={() => { setStep('amount'); setError(''); setTx(null); }}>Try again</Button>
         </CardBody></Card>
       )}
@@ -220,7 +320,7 @@ export default function BuyPage() {
 
 function friendly(msg: string): string {
   if (/freighter|not installed|not connected/i.test(msg)) return 'You need a connected wallet to receive your money. Install a Stellar wallet and try again.';
-  if (/trustline/i.test(msg)) return 'Your wallet needs to enable this asset first. Open your wallet, add it, then try again.';
+  if (/trustline|op_no_trust/i.test(msg)) return 'Your wallet needs to enable this asset first. Open your wallet, add it, then try again.';
   if (/verification|kyc|accepted/i.test(msg)) return 'Please complete identity verification before buying.';
   return 'Something went wrong starting your buy. Please try again.';
 }

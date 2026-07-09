@@ -1,0 +1,130 @@
+---
+title: Swappable Adapters
+description: How to build and configure custom KYC and payment gateway adapters in NordStern.
+---
+
+## Modular Architecture
+
+Because compliance rules, banking APIs, and verification vendors evolve frequently, NordStern abstracts all external dependencies behind TypeScript interfaces (which we call **Seams**). 
+
+The platform core implements the business and transaction lifecycle, delegates external calls to these interfaces, and starts with simple **Mock Adapters** as defaults.
+
+```
+[ Platform Core Engine ]
+         |
+         +--> [ KycProvider Interface ] ----> [ Mock / HyperVerge / Signzy ]
+         |
+         +--> [ DepositProvider Interface ] -> [ Mock / Razorpay / UPI ]
+         |
+         +--> [ PayoutProvider Interface ] --> [ Mock / Cashfree / RazorpayX ]
+```
+
+---
+
+## 1. KYC Provider Adapter (`KycProvider`)
+
+The platform delegates identity checks to the `KycProvider` interface when a user starts a verification flow.
+
+### Interface Definition
+
+```typescript
+export interface KycVerificationResult {
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  sessionId?: string;
+  sessionUrl?: string;
+  decisionSummary?: Record<string, any>;
+  verifiedAt?: Date;
+  expiresAt?: Date;
+}
+
+export interface KycProvider {
+  /**
+   * Initializes a new identity verification session.
+   */
+  startVerification(customerId: string, callbackUrl: string): Promise<KycVerificationResult>;
+  
+  /**
+   * Checks the status of a pending session.
+   */
+  getVerificationStatus(sessionId: string): Promise<KycVerificationResult>;
+}
+```
+
+---
+
+## 2. Fiat Deposit Adapter (`DepositProvider`)
+
+Used to collect INR deposits from customer wallets during on-ramping.
+
+### Interface Definition
+
+```typescript
+export interface DepositIntent {
+  paymentUrl: string;       // URL for user checkout (Razorpay, UPI intent)
+  paymentReference: string;  // Internal transaction reference ID
+}
+
+export interface DepositProvider {
+  /**
+   * Generates a checkout link or UPI intent for an amount.
+   */
+  createDepositIntent(
+    transactionId: string,
+    amountInr: number,
+    customerId: string
+  ): Promise<DepositIntent>;
+  
+  /**
+   * Verifies the authenticity of incoming payment gateway webhooks.
+   */
+  verifyWebhookSignature(payload: string, signature: string): boolean;
+}
+```
+
+---
+
+## 3. Fiat Payout Adapter (`PayoutProvider`)
+
+Used to disperse INR funds to customer bank accounts during off-ramping.
+
+### Interface Definition
+
+```typescript
+export interface PayoutResult {
+  status: 'SUCCESS' | 'FAILED' | 'PROCESSING';
+  payoutReferenceId: string; // Payout bank transaction reference
+  failureReason?: string;
+}
+
+export interface PayoutProvider {
+  /**
+   * Triggers an automated UPI/IMPS transfer to a customer bank account.
+   */
+  sendPayout(
+    transactionId: string,
+    amountInr: number,
+    destination: {
+      accountNumber?: string;
+      ifsc?: string;
+      upiId?: string;
+    }
+  ): Promise<PayoutResult>;
+}
+```
+
+---
+
+## 4. How to Configure Adapters
+
+To toggle active adapter implementations in your workspace, configure the following environment variables in your `.env` settings:
+
+* **`KYC_PROVIDER`**: Set to `mock` (sandbox defaults) or `didit` (live KYC).
+* **`DEPOSIT_RAILS_PROVIDER`**: Set to `mock` or `razorpay`.
+* **`PAYOUT_RAILS_PROVIDER`**: Set to `mock` or `cashfree`.
+
+---
+
+## Related Pages
+* **[Identity Verification Integration](/docs/developers/kyc-didit)**
+* **[Fiat Payment Rails](/docs/developers/fiat-rails)**
+* **[Developer Authentication](/docs/developers/authentication)**

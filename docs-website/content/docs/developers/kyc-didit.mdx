@@ -1,0 +1,97 @@
+---
+title: KYC Integration (DIDIT)
+description: Technical guide on setting up automated KYC verifications using the DIDIT adapter.
+---
+
+## Universal Verification Flow
+
+NordStern integrates with **DIDIT** to automate customer identity verification (KYC). The platform implements a **"verify once, reuse everywhere"** model. When a customer completes verification with one anchor, their approved status is stored centrally and automatically propagates to any other anchor they use.
+
+```
+[ Customer Wallet Connects ]
+             │
+             ▼
+┌──────────────────────────┐
+│  Query Central Profile   │ ──► GET /internal/customers/kyc?walletAddress=...
+└──────────────────────────┘
+             │
+      ┌──────┴──────┐
+      ▼             ▼
+  [Approved]    [Not Approved]
+      │             │
+      ▼             ▼
+[Skip KYC Gate]  [Redirect to DIDIT hosted verification page]
+                    │
+                    ▼
+                 [Webhook updates central database]
+```
+
+---
+
+## 1. Prerequisites
+Before setting up the live DIDIT integration, ensure you have:
+1. An active developer account on the [DIDIT Portal](https://didit.me).
+2. A configured **Workflow ID** matching your required document rules (e.g. PAN + Aadhaar validation).
+3. Your DIDIT API secret keys.
+
+---
+
+## 2. Configuration Steps
+
+To enable the DIDIT adapter in your workspace, configure these environment parameters on your host:
+
+```bash
+# Toggle the active adapter
+KYC_PROVIDER=didit
+
+# DIDIT Credentials
+DIDIT_API_KEY=your_didit_api_secret_key
+DIDIT_WORKFLOW_ID=your_didit_workflow_id
+DIDIT_WEBHOOK_SECRET=your_didit_webhook_secret_signing_key
+```
+
+---
+
+## 3. Webhook Integration
+
+When a customer completes Aadhaar and selfie verification on the DIDIT hosted screen, DIDIT triggers a webhook back to your anchor's business server:
+
+* **Endpoint:** `POST /api/v1/customer/kyc/webhook`
+* **Verification:** The business server automatically checks the payload signature against `DIDIT_WEBHOOK_SECRET` to prevent tampering.
+* **Propagation:** On validation, the server marks the local customer status as `ACCEPTED` and automatically updates the central NordStern registry so the user is verified across all partner portals.
+
+### Sample Webhook Payload
+```json
+{
+  "event": "session.completed",
+  "data": {
+    "sessionId": "sess_abc123xyz",
+    "status": "APPROVED",
+    "customerId": "cust_4567",
+    "completedAt": "2026-07-09T18:00:00Z"
+  }
+}
+```
+
+---
+
+## 4. Local Sandbox Testing (Mock KYC)
+
+For local development or staging tests, you can bypass real document verification and instantly auto-approve accounts:
+
+1. In your `.env` configuration, set:
+   ```bash
+   KYC_PROVIDER=mock
+   ALLOW_MOCK_KYC=true
+   ```
+2. When a user clicks **Verify Identity** in the customer client app, the mock adapter automatically returns a successful callback within seconds.
+
+> [!CAUTION]
+> **Production Safety Invariant:** To prevent accidental compliance gaps, the platform core factory will trigger a startup crash if you attempt to launch in production (`IS_MAINNET=true`) with `KYC_PROVIDER=mock` enabled.
+
+---
+
+## Related Pages
+* **[Swappable Adapters](/docs/developers/adapters)**
+* **[Developer Authentication](/docs/developers/authentication)**
+* **[Operator Console Dashboard](/docs/operator/dashboard)**

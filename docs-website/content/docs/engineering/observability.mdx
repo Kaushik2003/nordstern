@@ -1,0 +1,47 @@
+---
+title: Observability & Telemetry
+description: Structured JSON logging, audit trail hash-chaining, and platform metrics roadmap.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+NordStern's observability system relies on structured logging and cryptographically chained audit trails, prioritizing simplicity and tamper-evidence for early deployments.
+
+---
+
+## 1. Structured JSON Logging
+
+All log lines written by Node.js backends (Platform API, Control Plane, Aggregator, and Business Server) are emitted as structured JSON objects:
+* **Format:** Every line is a single JSON serialization with keys: `ts` (ISO Timestamp), `level` (`info` / `warn` / `error`), `svc` (Service Name, e.g. `business-server:acmepay`), and `msg`.
+* **Correlations:** HTTP requests include an `X-Request-Id` header (propagated on `req.reqId`). On-chain operations print the associated Stellar Transaction ID, making it trivial to search logs using:
+  ```bash
+  docker compose logs | grep <TX_ID>
+  ```
+
+---
+
+## 2. Hash-Chained Audit Logs
+
+For compliance operations, the Business Server implements a **tamper-evident audit trail** to log administrative actions (such as fee updates or manual releases).
+
+### Chaining Algorithm
+Before inserting a new audit log row, the server executes:
+1. Fetches the cryptographic hash of the *previous* log row (`prev_hash`), defaulting to `0000000000000000` for the first record.
+2. Concatenates fields: `hashInput = prevHash + action + detail + actor + timestamp`.
+3. Computes the SHA-256 hash and takes a slice:
+   ```typescript
+   const hash = crypto.createHash('sha256').update(hashInput).digest('hex').slice(0, 16);
+   ```
+4. Saves both `hash` and `prev_hash` to `nordstern.audit_logs`.
+
+<Callout type="warn" title="Audit Hash Truncation Inconsistency">
+  The 16-character truncation slices the SHA-256 output. While this saves space, it weakens cryptographic collision resistance compared to saving the full 64-character hex string. 
+</Callout>
+
+---
+
+## 3. Telemetry & Metrics (Roadmap)
+
+There is **no automated metrics telemetry** (such as Prometheus scrape targets, Grafana dashboard setups, or OpenTelemetry tracers) configured in the local development stack:
+* **Telemetry Monitoring:** The Aggregator runs background workers checking `/health` paths to flag anchor availability.
+* **Production Plan:** The production Kubernetes blueprint (`anchor-template/infra`) defines Prometheus configurations and node-exporter rules, slated for deployment during Phase 4 hardening.

@@ -1,0 +1,28 @@
+---
+title: Changelog
+description: Record of notable product changes, feature releases, and updates to NordStern.
+---
+
+## Release History
+
+### July 9, 2026
+
+#### Platform Portal Segregation
+* **Update:** Segregated the monolithic platform console into two dedicated web portals: **Founder Portal** (`platform/founder-console`) and **Admin Portal** (`platform/admin-console`).
+* **Benefit:** Allows independent deployments and subdomain scoping (`register.nordstern.live` and `admin.nordstern.live`). Shared layouts and logic are unified under package workspaces.
+
+#### Universal KYC Reusability
+* **Update:** Introduced a centralized customer verification registry.
+* **Benefit:** Once a customer completes identity check verification (KYC) on one anchor workspace, their verified status is recorded centrally, enabling them to execute transactions instantly across other anchors without re-submitting documentation.
+
+#### One-Click Withdrawal (Off-Ramp)
+* **Update:** Integrated native wallet extension capabilities (`@stellar/freighter-api`) for withdrawal checkouts.
+* **Benefit:** Customers can authorize and send digital assets to the anchor treasury with a single click, removing the manual copy-pasting of destination keys and transaction memos.
+
+---
+
+### July 6, 2026
+
+#### Connected Workspace Provisioner
+* **Update:** Fully automated the container provisioner using runtime system orchestration.
+* **Benefit:** Approving an onboarding application instantly provisions isolated databases, generates keypairs, funds distribution accounts, boots workspace containers, and registers the subdomain in the directory aggregator automatically.

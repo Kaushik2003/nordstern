@@ -1,0 +1,48 @@
+---
+title: Compliance & Licensing
+description: Key regulatory considerations for running a fiat-blockchain gateway in India.
+---
+
+## Regulatory Framework
+
+Operating a fiat-to-blockchain gateway involves navigating several compliance frameworks in India. NordStern’s architecture is designed to adapt to these requirements by separating technology orchestration from financial custody and licensing.
+
+> [!IMPORTANT]
+> **Disclaimer:** NordStern is a technology infrastructure provider. We do not provide legal or regulatory advice. Operating an anchor requires consulting with qualified legal counsel in Indian fintech regulations.
+
+---
+
+## 1. Fiat Custody & Nodal Accounts
+
+A primary compliance consideration is determining who holds the fiat currency (INR) and which licenses are required:
+
+* **Anchor-Owned Escrow:** In this model, you connect your own bank relationships and nodal/escrow accounts to the platform. You hold the primary regulatory relationship.
+* **NordStern Escrow:** A future model where NordStern acts as a managed-account service provider.
+* **Modular Integration:** NordStern remains neutral. All banking and collection integrations are built behind a swappable interface so you can adapt as your licensing model evolves.
+
+---
+
+## 2. FIU-IND and VDA Guidelines
+
+Under guidelines from the Financial Intelligence Unit (FIU-IND) and the Prevention of Money Laundering Act (PMLA):
+
+* **Virtual Digital Asset Service Providers (VDASPs):** Businesses performing conversion between fiat and digital assets must register with FIU-IND and comply with reporting requirements.
+* **KYC Mandate:** Before executing any deposit or withdrawal transactions, anchors must complete a Know-Your-Customer (KYC) check on the individual user.
+* **NordStern Integration:** We provide standardized hooks to plug in local KYC providers (like HyperVerge or Signzy) and track compliance cases in your dashboard.
+
+---
+
+## 3. Non-Custodial Safeguards
+
+To minimize regulatory overhead, NordStern defaults to a non-custodial structure:
+
+* **No Pool Accounts:** Your corporate treasury is isolated.
+* **User Wallet Ownership:** Users retain their own keys and authorize transactions from their own wallets. 
+* **Regulatory Exemption:** By keeping key custody and fiat pooling out of the software core, you avoid triggering heavy payment aggregator or custodian licensing requirements.
+
+---
+
+## Related Pages
+* **[How it Works](/docs/getting-started/concepts)**
+* **[Security & Custody Model](/docs/getting-started/security-model)**
+* **[KYC Integration Guide](/docs/developers/kyc-didit)**

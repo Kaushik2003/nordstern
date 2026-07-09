@@ -1,0 +1,53 @@
+---
+title: How it Works
+description: Plain English explanations of anchors, the non-custodial model, and the cash flow lifecycle.
+---
+
+## Core Concepts
+
+To successfully operate on NordStern, it helps to understand the main concepts that power the transaction flow.
+
+---
+
+## What is an Anchor?
+
+An **Anchor** is a financial bridge connecting the traditional banking system to the blockchain network. 
+
+```
+[ Customer Wallet ] <--- (Digital Assets) ---> [ Anchor Treasury ] <--- (INR) ---> [ Payment Gateway / Bank ]
+```
+
+* **On-Ramp (Customer Deposit Flow):** The customer sends fiat currency (INR) to the anchor's bank account (e.g., via UPI or IMPS). The anchor detects this payment and sends the equivalent digital asset (e.g., USDC) directly to the customer's self-custodial wallet.
+* **Off-Ramp (Customer Withdrawal Flow):** The customer sends digital assets from their wallet back to the anchor's treasury. The anchor detects the transaction on-chain and triggers an INR payout directly to the customer's verified bank account.
+
+Anchors monetize this flow by collecting transaction fees or a spread on the conversion rate.
+
+---
+
+## The Non-Custodial Security Model
+
+NordStern operates on a strict **non-custodial** principle:
+
+* **Zero Key Custody:** You own your cryptographic private keys. NordStern never gains access to, controls, or backs up your signing credentials.
+* **Separation of Rails:** You connect your own payment gateway (like Razorpay or Cashfree) and bank accounts. NordStern does not hold, pool, or touch any fiat money.
+* **Direct Settlement:** Funds flow directly between the customer's wallet/bank account and your treasury. There is no middleman escrow managed by NordStern.
+
+This architecture ensures that your business maintains total control over its funds and security, simplifying compliance and auditing.
+
+---
+
+## Standardized Integration Protocols
+
+To make sure any wallet application can interact with any anchor worldwide, the ecosystem uses standard protocol rules:
+
+* **Service Discovery:** A metadata file published on your domain detailing supported tokens, fees, and API URLs so compatible wallets can find you.
+* **Web Authentication:** A cryptographic handshake where users log into your anchor services using their wallet keys, rather than standard passwords.
+* **Identity Verification:** A standardized API exchange for submitting KYC details (PAN card, ID proofs) before a transaction is approved.
+* **Customer Transaction Flow:** A secure web view interface hosted by you but opened inside the user's wallet application, guiding them through identity checks and payment gateway checkout.
+
+---
+
+## Related Pages
+* **[Security & Custody Model](/docs/getting-started/security-model)**
+* **[Compliance & Licensing](/docs/getting-started/compliance)**
+* **[Becoming an Anchor](/docs/founders/overview)**

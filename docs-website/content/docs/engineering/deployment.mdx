@@ -1,0 +1,68 @@
+---
+title: Deployment & Cloud Infrastructure
+description: Operational reference for the local Docker Compose stack, Terraform pilot deployment, and the Kubernetes GitOps blueprint.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+NordStern has three defined deployment models: Local Compose (for active development), Terraform Single-EC2 Pilot (for testnet staging), and Kubernetes GitOps (for production scale).
+
+---
+
+## 1. Local Compose Stack
+* **Path:** [`docker-compose.platform.yml`](file:///Users/manobendramandal/Desktop/code/nordstern/docker-compose.platform.yml)
+* **Ingress:** Traefik parses Docker labels to route subdomains locally (e.g. `*.localhost`).
+* **Storage:** Named volume `pgdata` hosts the PostgreSQL databases locally.
+
+---
+
+## 2. Terraform Single-EC2 Pilot
+The active staging deploy pathway is designed around a single AWS EC2 instance connected to an Amazon RDS Postgres database.
+
+* **Path:** [`deploy/terraform/`](file:///Users/manobendramandal/Desktop/code/nordstern/deploy/)
+* **Database:** Amazon RDS runs PostgreSQL, executing `deploy/pg-init.sql` on startup to partition the 4 databases.
+* **Orchestration:** The EC2 host runs Docker Compose. The platform-api and control-plane execute on the host, spawning individual anchor containers in the docker daemon.
+* **Secrets:** Integrated with AWS Secrets Manager.
+
+---
+
+## 3. Kubernetes & GitOps Blueprint (Roadmap)
+
+The project includes production-grade Kubernetes deployment manifests designed for high-availability scaling. 
+
+```
+                    ┌────────────────────────┐
+                    │     ArgoCD Engine      │
+                    └────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                           EKS Cluster                           │
+│                                                                 │
+│ ┌───────────────────────────┐     ┌───────────────────────────┐ │
+│ │        Namespace A        │     │        Namespace B        │ │
+│ │ ┌──────┐ ┌──────┐ ┌─────┐ │     │ ┌──────┐ ┌──────┐ ┌─────┐ │ │
+│ │ │Anchor│ │ Biz  │ │Ingr │ │     │ │Anchor│ │ Biz  │ │Ingr │ │ │
+│ │ │Platform│ Server │     │ │     │ │Platform│ Server │     │ │ │
+│ │ └──────┘ └──────┘ └─────┘ │     │ └──────┘ └──────┘ └─────┘ │ │
+│ └───────────────────────────┘     └───────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+* **Path:** [`anchor-template/infra/`](file:///Users/manobendramandal/Desktop/code/nordstern/anchor-template/infra/)
+* **EKS Setup:** Provisioned with VPC, node groups managed by Karpenter, and ECR repositories.
+* **Helm Chart (`anchor-stack`):** Packages the Anchor Platform, Business Server, ingress definitions (using AWS ALB Controller), and default-deny Kubernetes NetworkPolicies.
+* **GitOps (ArgoCD):** App-of-apps pattern that manages deployment sync, including cert-manager (TLS certificates), external-dns (wildcard domain routing), and Prometheus/Grafana monitors.
+
+<Callout type="warn" title="Kubernetes Deployment is Untested Blueprint">
+  The Helm charts, Karpenter configurations, and ArgoCD manifests inside `anchor-template/infra` are blueprints. They are not wired to the active runtime provisioning engine. The Control Plane currently provisions anchors using the Docker daemon socket (`dockerode`) rather than spawning Kubernetes pods.
+</Callout>
+
+---
+
+## Traceability Links
+
+* Deployment compose stack: [`docker-compose.platform.yml`](file:///Users/manobendramandal/Desktop/code/nordstern/docker-compose.platform.yml)
+* EKS Terraform definitions: [`anchor-template/infra/terraform/`](file:///Users/manobendramandal/Desktop/code/nordstern/anchor-template/infra/terraform/)
+* Anchor Helm Chart: [`anchor-template/infra/helm/anchor-stack/`](file:///Users/manobendramandal/Desktop/code/nordstern/anchor-template/infra/helm/anchor-stack/)
+* ArgoCD bootstrap manifests: [`anchor-template/infra/argocd/`](file:///Users/manobendramandal/Desktop/code/nordstern/anchor-template/infra/argocd/)

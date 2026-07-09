@@ -1,0 +1,77 @@
+---
+title: Running the Stack
+description: Operational reference for starting, managing, and troubleshooting the Docker Compose services.
+---
+
+This section details how to run, manage, and debug the core platform services locally.
+
+---
+
+## Service Mapping & Ports
+
+All core services run inside a shared Docker network bridge named `nordstern-net`. The table below lists the public and internal ports:
+
+| Service Name | Container Name | Host Port | Internal Port | Health Check Endpoint |
+|---|---|---|---|---|
+| **db** | `nordstern-platform-db` | `5432` | `5432` | Postgres ping (`pg_isready`) |
+| **secrets** | `localstack` | `4566` | `4566` | LocalStack status `/health` |
+| **traefik** | `traefik` | `80` (Web)<br />`8090` (Dashboard) | `80` / `8080` | None |
+| **platform-api** | `nordstern-platform-api` | `4000` | `4000` | HTTP GET `/health` |
+| **control-plane** | `nordstern-control-plane` | `3002` | `3002` | HTTP GET `/health` |
+| **aggregator** | `nordstern-aggregator` | `3005` | `3005` | HTTP GET `/health` |
+| **founder-console** | `nordstern-founder-console` | `4001` | `3000` | HTTP GET `/` |
+| **admin-console** | `nordstern-admin-console` | `4002` | `3000` | HTTP GET `/` |
+
+---
+
+## Core Operational Commands
+
+### Start the Stack
+Always specify the generated env base file when starting services:
+```bash
+docker compose --env-file anchor-service/.env.base -f docker-compose.platform.yml up -d
+```
+
+### Inspect Container Logs
+To debug a crashing service (e.g. platform-api):
+```bash
+docker compose -f docker-compose.platform.yml logs -f platform-api
+```
+
+### Stop the Stack
+Tear down the containers without deleting databases:
+```bash
+docker compose -f docker-compose.platform.yml down
+```
+
+### Clean Teardown
+Tear down containers, networks, and remove the Postgres volume:
+```bash
+docker compose -f docker-compose.platform.yml down -v
+```
+
+---
+
+## Troubleshooting Common Errors
+
+### Network Label Conflict
+* **Error:** `network nordstern-net declared as external, but could not be found` or `incorrect label`.
+* **Cause:** The docker network was created with legacy configuration labels.
+* **Fix:** Delete the network manually and restart the stack:
+  ```bash
+  docker network rm nordstern-net
+  ```
+
+### Database Port Conflicts
+* **Error:** `bind: address already in use` on port `5432`.
+* **Cause:** A local Postgres server is running on the host system.
+* **Fix:** Stop your host Postgres server or other running docker instances:
+  ```bash
+  # On macOS
+  brew services stop postgresql
+  ```
+
+### Stalled Provisioning Job
+* **Error:** Onboard redeem spinner hangs, stage stays stuck in "Funding accounts".
+* **Cause:** The Stellar Testnet is reset quarterly, or Friendbot is temporarily down.
+* **Fix:** Check network connection, retry the job via `POST /api/v1/anchor-invitations/status/:jobId/retry`.

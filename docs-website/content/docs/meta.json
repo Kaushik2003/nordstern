@@ -1,0 +1,13 @@
+{
+  "title": "NordStern Docs",
+  "pages": [
+    "index",
+    "getting-started",
+    "founders",
+    "operator",
+    "developers",
+    "customer",
+    "reference",
+    "engineering"
+  ]
+}

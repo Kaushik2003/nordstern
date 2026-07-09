@@ -1,0 +1,42 @@
+---
+title: Ports & Service Mapping
+description: Configuration index of all network ports, container linkages, and host routes.
+---
+
+This section lists the network ports, volumes, and domain configurations of the NordStern platform.
+
+---
+
+## Port Configurations
+
+| Service Name | Port (Host) | Port (Internal) | Routing Hostname | Protocol |
+|---|---|---|---|---|
+| **Traefik Edge** | `80` | `80` | `*.localhost` / `*.nordstern.live` | HTTP / TCP |
+| **Traefik Admin** | `8090` | `8080` | None | HTTP |
+| **Platform API** | `4000` | `4000` | `api.localhost` / `api.nordstern.live` | HTTP / JSON |
+| **Founder Console** | `4001` | `3000` | `register.localhost` / `register.nordstern.live` | HTTP / HTML |
+| **Admin Console** | `4002` | `3000` | `admin.localhost` / `admin.nordstern.live` | HTTP / HTML |
+| **Control Plane** | `3002` | `3002` | None (Internal only) | HTTP / JSON |
+| **Aggregator** | `3005` | `3005` | None (Internal only) | HTTP / JSON |
+| **Database (Postgres)** | `5432` | `5432` | None | TCP |
+| **Secrets Manager** | `4566` | `4566` | None | HTTP (AWS SDK) |
+
+---
+
+## Dynamic Tenant Port Configurations
+
+When the Control Plane provisions an anchor cell, the containers are assigned dynamically within the Docker network. The reverse proxy maps external hostheaders to these containers:
+
+| Container | Internal Port | Edge Host Header Routing |
+|---|---|---|
+| **`anchor-platform-<slug>`** | `8080` (public)<br />`8085` (private) | `Host("<slug>.anchors.localhost")` |
+| **`business-server-<slug>`** | `3000` | `Host("api-<slug>.anchors.localhost")` |
+| **`operator-console-<slug>`** | `3001` | `Host("console-<slug>.anchors.localhost")` |
+| **`anchor-client-<slug>`** | `3001` | `Host("client-<slug>.anchors.localhost")` |
+
+---
+
+## Volume Mounts
+
+* **`pgdata` (Postgres Volume):** Persists data for `platformdb`, `controldb`, `aggregatordb`, and all `anchordb_<slug>` instances.
+* **`ANCHOR_CONFIG_HOST_ROOT`:** Bind-mount on the host filesystem mapping generated anchor configuration templates (`stellar.toml`, `anchor-platform.yaml`, `assets.yaml`) into the container stacks.

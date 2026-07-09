@@ -1,0 +1,81 @@
+---
+title: Database Schema & Migrations
+description: Reference for the platform's databases, table columns, relationships, and migration executors.
+---
+
+NordStern runs multiple logically isolated databases on a single PostgreSQL container (the `db` service), initialized via `deploy/pg-init.sql`.
+
+---
+
+## The Four Logical Databases
+
+```
+ ┌────────────────────────────────────────────────────────┐
+ │                      Postgres (db)                     │
+ └────────────────────────────────────────────────────────┘
+     │            │                 │              │
+     ▼            ▼                 ▼              ▼
+┌──────────┐ ┌──────────┐     ┌───────────┐ ┌──────────────┐
+│platformdb│ │controldb │     │aggregatordb│ │anchordb_slug │
+└──────────┘ └──────────┘     └───────────┘ └──────────────┘
+```
+
+---
+
+## 1. `platformdb` — Onboarding & Metadata
+
+Owned by `platform-api`. This database manages user identities, organizations, invite status, and audit logs.
+
+### Schema Management
+* **Technology:** **Drizzle ORM**
+* **Migration Run:** Driven by the one-shot container `platform-migrate` on startup using `drizzle-kit push`.
+
+### Key Tables
+* **`users`** — Accounts, passwords (bcrypt-hashed), email address.
+* **`organizations`** — Multi-tenant organization boundaries.
+* **`memberships`** — Links users to organizations and assigns roles (`owner`, `admin`, `member`).
+* **`anchors`** — Anchor metadata stubs (name, domain slug, status: draft -> active).
+* **`provisioning_jobs`** — Track progress stage (`stage` status: e.g. "Generating keys", "completed") and any failures.
+
+---
+
+## 2. `controldb` — Provisioner Registry
+
+Owned by `anchor-service/control-plane`. It tracks deployed containers and handles key vault security.
+
+### Schema Management
+* **Technology:** Managed directly by the control plane using simple schema creations and Express db client connections.
+
+### Key Tables
+* **`tenants`** — Maps slugs to container IDs (`ap_container_id`, `biz_container_id`), domains, and status.
+* **`anchor_secrets`** — Encrypted seeds (`S...`) and plaintext public keys (`G...`) for Issuer, Distributor, and Signing accounts.
+
+---
+
+## 3. `aggregatordb` — Discovery Registry
+
+Owned by the `aggregator-service`.
+
+### Key Tables
+* **`anchors`** — Registered anchors, fee percentages, limits, regions, and current availability status.
+* **`quotes`** — Active transaction quotes with TTL values.
+* **`routing_decisions`** — Logs which routes were selected and why.
+
+---
+
+## 4. `anchordb_<slug>` — Anchor Ledger
+
+Every active anchor gets its own isolated database. It holds two schemas:
+1. **`public` (Anchor Platform):** Holds Flyway-managed protocol tables for transactions and ledger offsets.
+2. **`nordstern` (Business Server):** Handles money-safety outboxes and audit details:
+   * **`deposit_releases`:** Lock outbox tracking Transfer-After-Commit deposit statuses.
+   * **`withdrawal_payouts`:** Lock table ensuring At-Most-Once payouts.
+   * **`kyc_verifications`:** Anchor-local KYC approval logs.
+
+---
+
+## Traceability Links
+
+* Platform DB schema definitions: [`platform/api/src/db/schema.ts`](file:///Users/manobendramandal/Desktop/code/nordstern/platform/api/src/db/schema.ts)
+* Control plane DB config: [`anchor-service/control-plane/src/db.ts`](file:///Users/manobendramandal/Desktop/code/nordstern/anchor-service/control-plane/src/db.ts)
+* Aggregator DB definition: [`anchor-template/aggregator-service/src/db.ts`](file:///Users/manobendramandal/Desktop/code/nordstern/anchor-template/aggregator-service/src/db.ts)

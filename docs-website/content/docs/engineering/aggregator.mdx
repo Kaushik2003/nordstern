@@ -1,0 +1,80 @@
+---
+title: Aggregator & Router
+description: Internal middleware for capability registry, active health polling, fee quoting, and weighted routing scoring.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+The **Aggregator** (`anchor-template/aggregator-service`) is the registry and routing coordinator of the discovery plane. Running on port `3005`, it aggregates all active anchors into a single queryable lookup directory.
+
+---
+
+## Dynamic Registry
+
+When the Control Plane successfully provisions a new anchor, the Platform API automatically registers the anchor with the Aggregator using `POST /anchors`. 
+
+The registry keeps track of:
+* The anchor domain, slug, and private internal container API URL (e.g. `http://business-server-<slug>:3000`).
+* Supported regions, assets, and payment rails (like UPI or bank transfer).
+* Limits, fee schedules, and current treasury balance capacities.
+
+---
+
+## Quote Engine
+
+The quote engine (`quote.ts`) calculates transaction quotes and stores them in `aggregator.quotes`:
+1. It validates parameters (currency pairs, rails, limits).
+2. It calculates fees using the formula: `fee = fixed_amount + (transaction_amount * percentage)`.
+3. It resolves the FX rate.
+
+<Callout type="warn" title="Hardcoded FX Exchange Rate">
+  The Aggregator currently uses a hardcoded constant **`FX_RATE_INR_USDC = 88.50`** for quotes in local development. Live market FX feeds (such as CoinMarketCap quotes) are designed but disabled in this sandbox environment.
+</Callout>
+
+---
+
+## Weighted Routing Engine
+
+When a client requests the best anchor for a transaction via `POST /route`, the routing engine (`routing.ts`) scores all active and healthy anchors:
+
+### 1. Hard Constraints Filtering
+To be eligible, an anchor must:
+* Have `status = 'active'` and `current_availability = true`.
+* Support the target asset code, payment rail, and geographic region.
+* Have a treasury capacity greater than or equal to the requested transaction amount.
+
+### 2. Weighted Scoring Algorithm
+The routing engine pulls the active weights policy from `routing_policies` (default: **Fee: 0.4, Speed: 0.2, Uptime: 0.2, Liquidity: 0.2**). It scores anchors using:
+* **Fee Score (0-100):** Relative score comparing the anchor's calculated fee against the cheapest available anchor.
+* **Speed Score (0-100):** Constant score based on execution speed capabilities (Instant = 100, under 60 min = 50).
+* **Uptime Score (0-100):** Calculated from active health metrics over the last 1 hour.
+* **Liquidity Score (0-100):** Assesses the ratio of the anchor's treasury capacity against the requested amount.
+
+The anchor with the highest weighted sum is selected, returning its routing metadata and a clear, plain-text `reasoning` trace.
+
+---
+
+## Health Monitoring Worker
+
+A background health worker runs every 15 seconds:
+1. Pings each registered anchor's admin endpoint, falling back to its `/health` path.
+2. Updates `current_availability` (true/false) and `treasury_capacity` based on the response.
+3. Records log events inside `health_metrics` in `aggregatordb`.
+
+---
+
+## SEP Handoff API
+
+When a client starts a transaction via `POST /transactions/start` on the aggregator:
+* The aggregator locates the selected anchor in the registry.
+* It returns the anchor's **real public SEP endpoints** (e.g. `Host: <slug>.anchors.localhost`), reading them directly from the anchor's `stellar.toml`.
+* The client wallet then performs SEP-10 challenge authentication directly against the anchor.
+
+---
+
+## Traceability Links
+
+* Registry routing: [`anchor-template/aggregator-service/src/routes/`](file:///Users/manobendramandal/Desktop/code/nordstern/anchor-template/aggregator-service/src/routes/)
+* Routing scoring algorithm: [`anchor-template/aggregator-service/src/routing.ts`](file:///Users/manobendramandal/Desktop/code/nordstern/anchor-template/aggregator-service/src/routing.ts)
+* Quote calculations: [`anchor-template/aggregator-service/src/quote.ts`](file:///Users/manobendramandal/Desktop/code/nordstern/anchor-template/aggregator-service/src/quote.ts)
+* Health background checker: [`anchor-template/aggregator-service/src/health.ts`](file:///Users/manobendramandal/Desktop/code/nordstern/anchor-template/aggregator-service/src/health.ts)

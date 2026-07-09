@@ -1,0 +1,21 @@
+{
+  "title": "Internal Engineering",
+  "pages": [
+    "architecture",
+    "architecture-overview",
+    "business-server",
+    "platform-api",
+    "control-plane",
+    "aggregator",
+    "multi-tenancy",
+    "running-the-stack",
+    "first-anchor-walkthrough",
+    "databases",
+    "secrets",
+    "deployment",
+    "backups-and-dr",
+    "observability",
+    "ports-and-services",
+    "money-flow"
+  ]
+}

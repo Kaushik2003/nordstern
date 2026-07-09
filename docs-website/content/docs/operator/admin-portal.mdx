@@ -1,0 +1,54 @@
+---
+title: Admin Portal
+description: Administration guide for review, approval, and management of business anchor applications.
+---
+
+## Managing the Platform Queue
+
+The **Admin Portal** is the internal management dashboard used by NordStern system administrators to review incoming registration requests, issue workspace invitations, and monitor the tenant onboarding pipeline. It is hosted at `https://admin.nordstern.live`.
+
+---
+
+## 1. Authentication & Security
+
+Due to the administrative privileges granted by this dashboard, access is guarded by strict security policies:
+* **Admin Credentials:** Requires a dedicated username and password credential. It does not use OTP login codes.
+* **Isolated Session Cookies:** Logging in issues a secure, host-only admin session cookie.
+* **Access Gating:** Admin sessions are completely isolated from standard customer or workspace operator sessions. An operator or customer account can never access this administrative interface.
+
+---
+
+## 2. Reviewing the Applications Queue
+
+Upon logging in, administrators are presented with the **Applications Queue**, listing all submitted anchor applications in chronological order (newest first).
+
+Administrators inspect each application to verify:
+* **Business Verification:** Review corporate profile details, registered company names, and email contacts.
+* **Asset Specifications:** Confirm the requested digital asset details (e.g. USDC parameters) to ensure it aligns with standard blockchain networks.
+* **Banking Rails:** Confirm the payment processor setup (e.g. Razorpay/Cashfree credentials).
+* **Compliance Checks:** Review the self-declared risk profiles and anti-money laundering (AML) policies.
+
+---
+
+## 3. Onboarding Decisions & Actions
+
+For every pending registration request, the administrator can perform one of two actions:
+
+### Approve Application
+Clicking **Approve** updates the workspace registration record:
+* **Invitation Token:** The system automatically mints a secure, single-use workspace activation token.
+* **Onboarding Email:** An email is sent to the applicant containing a unique redeem link.
+* **Token Backup:** The Admin Portal displays the generated token on-screen once, enabling the admin to copy and send the link manually if needed.
+
+### Reject Application
+Clicking **Reject** blocks the onboarding flow:
+* **Status Update:** The registration record status changes to `rejected`.
+* **Notification Email:** A notification email is dispatched to the business contact informing them of the outcome.
+* **Security Safeguard:** No workspace parameters or database partitions are created, protecting platform resources.
+
+---
+
+## Related Pages
+* **[Onboarding Guide](/docs/founders/overview)**
+* **[Operator Console Dashboard](/docs/operator/dashboard)**
+* **[Compliance & Licensing](/docs/getting-started/compliance)**

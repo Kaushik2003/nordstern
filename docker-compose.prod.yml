@@ -63,6 +63,12 @@ services:
       AWS_SECRET_ACCESS_KEY: ""
       AWS_REGION: ${AWS_REGION:-ap-south-1}
     ports: []   # not exposed publicly — reached only via Traefik / the compose network
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.platform-api.rule=Host(`api.nordstern.live`)
+      - traefik.http.routers.platform-api.entrypoints=websecure
+      - traefik.http.routers.platform-api.tls.certresolver=le
+      - traefik.http.services.platform-api.loadbalancer.server.port=4000
 
   # ── Control plane (prod): provision anchors over HTTPS under *.nordstern.live ──
   control-plane:
@@ -90,6 +96,7 @@ services:
 
   # ── Founder console → register.nordstern.live (HTTPS) ──
   founder-console:
+    profiles: ["vercel-disabled"]
     build:
       context: ./platform
       dockerfile: founder-console/Dockerfile
@@ -104,6 +111,7 @@ services:
 
   # ── Admin console → admin.nordstern.live (HTTPS) ──
   admin-console:
+    profiles: ["vercel-disabled"]
     build:
       context: ./platform
       dockerfile: admin-console/Dockerfile

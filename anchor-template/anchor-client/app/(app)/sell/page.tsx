@@ -29,6 +29,7 @@ export default function SellPage() {
   const [step, setStep] = useState<Step>('amount');
   const [amount, setAmount] = useState('');
   const [quote, setQuote] = useState<{ inrAmount: string; inrPerUnit: string } | null>(null);
+  const [limits, setLimits] = useState<{ min: number | null; max: number | null }>({ min: null, max: null });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [session, setSession] = useState<SettlementSession | null>(null);
@@ -36,6 +37,13 @@ export default function SellPage() {
   const [tx, setTx] = useState<CustomerTx | null>(null);
   const poll = useRef<ReturnType<typeof setInterval> | null>(null);
   const verified = customer?.kycStatus === 'approved';
+
+  // Load min/max once so we validate as the user types (before any handoff).
+  useEffect(() => {
+    getQuote(1, 'sell')
+      .then((q) => setLimits({ min: q.minAmount ?? null, max: q.maxAmount ?? null }))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const n = Number(amount);
@@ -47,6 +55,14 @@ export default function SellPage() {
     }, 250);
     return () => { alive = false; clearTimeout(t); };
   }, [amount]);
+
+  const nAmount = Number(amount);
+  const limitError =
+    limits.min != null && nAmount > 0 && nAmount < limits.min
+      ? `Minimum is ${limits.min} ${brand.assetCode}`
+      : limits.max != null && nAmount > limits.max
+        ? `Maximum is ${limits.max} ${brand.assetCode}`
+        : '';
 
   useEffect(() => {
     if (step !== 'processing' || !txId || !session) return;
@@ -114,10 +130,14 @@ export default function SellPage() {
             <div className="flex items-center justify-between border-t border-line pt-3 text-sm">
               <span className="text-muted">You receive</span><span className="font-semibold text-ink">{quote ? inr(quote.inrAmount) : '—'}</span>
             </div>
-            {quote && <p className="text-xs text-faint">1 {brand.assetCode} ≈ {inr(quote.inrPerUnit)}</p>}
+            {quote && !limitError && <p className="text-xs text-faint">1 {brand.assetCode} ≈ {inr(quote.inrPerUnit)}</p>}
+            {limitError
+              ? <p className="text-xs font-medium text-[var(--color-danger)]">{limitError}</p>
+              : (limits.min != null && limits.max != null) &&
+                <p className="text-xs text-faint">Between {limits.min} and {limits.max} {brand.assetCode} per transaction</p>}
           </CardBody></Card>
           {error && <Msg text={error} />}
-          <Button size="block" disabled={!quote || busy} onClick={() => setStep('confirm')}>Continue <ArrowRight className="h-4 w-4" /></Button>
+          <Button size="block" disabled={!quote || busy || !!limitError} onClick={() => setStep('confirm')}>Continue <ArrowRight className="h-4 w-4" /></Button>
         </>
       )}
 

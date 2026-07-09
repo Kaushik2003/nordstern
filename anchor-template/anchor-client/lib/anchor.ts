@@ -5,7 +5,7 @@ import type { SettlementSession } from '@/lib/settlement';
 // Customer-facing money operations, all over the /biz proxy → this anchor's business-server.
 // Blockchain terms never surface here; callers speak in "buy / sell / amount / status".
 
-export interface Quote { assetCode: string; inrPerUnit: string; assetAmount?: string; inrAmount?: string; source: string }
+export interface Quote { assetCode: string; inrPerUnit: string; assetAmount?: string; inrAmount?: string; source: string; minAmount?: number | null; maxAmount?: number | null }
 
 export async function getQuote(amount: number, side: 'buy' | 'sell'): Promise<Quote> {
   const r = await fetch(`/biz/api/quote?amount=${amount}&side=${side}`);

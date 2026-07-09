@@ -4,6 +4,7 @@ import {
 } from '@stellar/stellar-sdk';
 import { ASSET_CODE, ASSET_ISSUER_PUBLIC, HORIZON_URL, NET_PASS, SEP_SERVER_URL } from './config.js';
 import { rate } from './adapters/index.js';
+import { pool } from './db.js';
 
 // ─── Browser helper API + SEP proxy ────────────────────────────────────────────
 // Lets the (same-origin) wallet UI do Stellar ops without bundling the SDK, and
@@ -20,7 +21,19 @@ walletRouter.get('/api/quote', async (req, res) => {
     const inrPerUnit = Number(q.inrPerUsdc);
     const amount = Number(req.query.amount);
     const side = (req.query.side as string) === 'sell' ? 'sell' : 'buy';
-    const body: Record<string, unknown> = { assetCode: ASSET_CODE, inrPerUnit: inrPerUnit.toFixed(2), source: q.source };
+    // Surface the anchor's operational min/max (asset units) so the Buy/Sell screen can
+    // validate AS THE USER TYPES — instead of only failing later inside the SEP-24 gate.
+    const strategy = await pool
+      .query('SELECT config FROM nordstern.strategy_config ORDER BY version DESC LIMIT 1')
+      .then((r) => r.rows[0]?.config ?? null)
+      .catch(() => null);
+    const body: Record<string, unknown> = {
+      assetCode: ASSET_CODE,
+      inrPerUnit: inrPerUnit.toFixed(2),
+      source: q.source,
+      minAmount: strategy?.minDeposit ?? null,
+      maxAmount: strategy?.maxDeposit ?? null,
+    };
     if (Number.isFinite(amount) && amount > 0) {
       // buy: enter asset amount → INR to pay. sell: enter asset amount → INR received.
       body.assetAmount = amount.toFixed(2);

@@ -6,6 +6,22 @@
 > `docker-compose*`, Terraform, CI workflows, build/deploy scripts, and docs.
 >
 > **No code was changed. Nothing was deleted.** This is analysis only.
+>
+> ## ✅ Phase 2 executed — 2026-07-09 (commit `70955a7`)
+> The **entire legacy standalone anchor-service execution path** was retired as one unit
+> (Phase-2 forensic search surfaced that `anchor-service/{client,business-server}` were wired
+> into the standalone `anchor-service/docker-compose*.yml` + `dev.sh` + AGENTS.md — not just
+> orphaned dirs). **Removed (173 files):**
+> - `anchor-service/business-server`, `anchor-service/client`  → **Removed** (superseded by `anchor-template/*`)
+> - `anchor-service/docker-compose.yml`, `docker-compose.mainnet.yml`, `scripts/setup-mainnet.mjs` → **Removed** (standalone stack; replaced by `docker-compose.platform.yml`)
+> - `anchor-template/client` → **Removed** (superseded by `anchor-template/console`)
+> - scratch: `anchor-service/chat{,2}.txt`, `anchor-template/KYC_DIDIT{,_DOCS}.txt` → **Removed**
+>
+> **Kept (canonical):** `anchor-service/control-plane`, `scripts/setup-base` + `setup-testnet`, `config`.
+> **De-referenced in lockstep:** `ci.yml` / `security.yml` / `docker.yml`; `dev.sh` rewritten as the
+> single canonical launcher; `AGENTS.md` / `README.md` updated to one supported run path.
+> **Still pending (Phase 3, product decision):** `frontend/web`, `anchor-platform/`, `sep24-reference-ui/`.
+> `mobile/nordpay` kept.
 
 ## Method
 

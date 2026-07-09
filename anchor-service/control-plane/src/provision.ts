@@ -74,7 +74,9 @@ anchorsRouter.post('/', async (req: AuthedRequest, res: Response) => {
     await pool.query(
       `INSERT INTO anchor_adapters (tenant_id, kyc_provider, deposit_provider, payout_provider, fee_provider)
        VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING`,
-      [anchor.id, adapters?.kyc ?? 'mock', adapters?.deposit ?? 'mock', adapters?.payout ?? 'mock', adapters?.fee ?? 'mock'],
+      // KYC defaults to REAL (didit) — universal across every NordStern anchor. Other
+      // seams stay mock-first until their per-anchor credentials are supplied.
+      [anchor.id, adapters?.kyc ?? 'didit', adapters?.deposit ?? 'mock', adapters?.payout ?? 'mock', adapters?.fee ?? 'mock'],
     );
     res.json(anchor);
   } catch (err: any) {
@@ -201,7 +203,7 @@ async function runProvision(anchor: any): Promise<void> {
     distributionSecret: kps.distribution.secret(),
     signingSecret: kps.signing.secret(),
     adapters: {
-      kyc: adapters?.kyc_provider ?? 'mock',
+      kyc: adapters?.kyc_provider ?? 'didit',   // universal real KYC (DIDIT) by default
       deposit: adapters?.deposit_provider ?? 'mock',
       payout: adapters?.payout_provider ?? 'mock',
       fee: adapters?.fee_provider ?? 'mock',

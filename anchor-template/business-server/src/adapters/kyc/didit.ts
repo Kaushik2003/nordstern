@@ -1,6 +1,7 @@
 import { pool } from '../../db.js';
 import {
   DIDIT_API_KEY, DIDIT_WORKFLOW_ID, PUBLIC_BASE_URL, KYC_REVERIFY_TTL_SECONDS,
+  NORDSTERN_API_URL, SERVICE_SECRET,
 } from '../../config.js';
 import { KycProvider, CustomerQuery, CustomerResult, KycStatus, KycSessionResult } from './KycProvider.js';
 
@@ -139,6 +140,27 @@ async function fetchSessionStatus(sessionId: string): Promise<{ status: string; 
   }
 }
 
+// "Verify once, reuse everywhere": before making an account do DIDIT, ask platform-api
+// whether the CENTRAL customer who owns this wallet is already approved. If so, this anchor
+// trusts that central decision — no second verification. Keyed on the wallet address, which
+// the customer linked to their central profile when they connected it. Best-effort: any error
+// / 404 (wallet not linked to a customer) → null → caller falls back to normal verification.
+async function centralKycApproved(account: string): Promise<boolean> {
+  if (!NORDSTERN_API_URL || !SERVICE_SECRET) return false;
+  try {
+    const res = await fetch(
+      `${NORDSTERN_API_URL}/api/v1/internal/customers/kyc?walletAddress=${encodeURIComponent(account)}`,
+      { headers: { 'x-service-secret': SERVICE_SECRET } },
+    );
+    if (!res.ok) return false;
+    const body: any = await res.json();
+    return body?.status === 'approved';
+  } catch (e: any) {
+    console.warn(`[didit] central KYC lookup failed for ${account}: ${e?.message ?? e}`);
+    return false;
+  }
+}
+
 // GET current verification status for an account, applying the TTL. An ACCEPTED
 // record whose expires_at has passed is reported NEEDS_INFO → the gate re-shows.
 export async function getStatus(account: string): Promise<KycStatus> {
@@ -146,12 +168,29 @@ export async function getStatus(account: string): Promise<KycStatus> {
     'SELECT status, expires_at, didit_session_id FROM nordstern.kyc_verifications WHERE vendor_data = $1',
     [account],
   );
-  if (rows.length === 0) return 'NEEDS_INFO';
   const rec = rows[0];
-  if (rec.status === 'ACCEPTED') {
-    if (rec.expires_at && new Date(rec.expires_at).getTime() <= Date.now()) return 'NEEDS_INFO';
+
+  // Locally ACCEPTED and unexpired → done, no lookup needed.
+  const localAccepted =
+    rec?.status === 'ACCEPTED' && !(rec.expires_at && new Date(rec.expires_at).getTime() <= Date.now());
+  if (localAccepted) return 'ACCEPTED';
+
+  // Not locally accepted (no row, PROCESSING, NEEDS_INFO, or an expired ACCEPTED) — reuse a
+  // CENTRAL approval before ever sending the user through DIDIT again. This must run even when
+  // a stale PROCESSING/NEEDS_INFO row exists (e.g. a session was opened on this account), or a
+  // verified-once customer would be re-prompted. Cache it locally so the money-release path and
+  // subsequent checks are fast and consistent.
+  if (await centralKycApproved(account)) {
+    await persistDecision(account, 'Approved', rec?.didit_session_id ?? null, null);
+    console.log(`[didit] ${account} reused central KYC approval → ACCEPTED`);
     return 'ACCEPTED';
   }
+
+  if (!rec) return 'NEEDS_INFO';
+
+  // A previously-ACCEPTED record whose TTL has passed (and no central approval to reuse) →
+  // re-verify. Return here so the poll/fall-through below can't report the stale 'ACCEPTED'.
+  if (rec.status === 'ACCEPTED') return 'NEEDS_INFO';
 
   // PROCESSING → actively poll DIDIT so the gate resolves without depending on webhook
   // delivery. Only persist when the session has advanced past "processing"

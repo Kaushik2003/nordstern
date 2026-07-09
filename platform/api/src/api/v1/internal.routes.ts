@@ -52,6 +52,27 @@ internalRouter.post('/customers/kyc',
   }),
 );
 
+// Read a customer's CENTRAL KYC status by a linked wallet address (or customerId). Lets an
+// anchor business-server reuse "verify once" — if the customer who owns this wallet is already
+// approved centrally, the anchor need not send them through DIDIT again. Read-only, service-
+// gated. 404 when no customer is linked to that wallet (a wallet-only user) → caller falls
+// back to its normal (per-account) verification.
+internalRouter.get('/customers/kyc', ah(async (req, res) => {
+  const walletAddress = typeof req.query.walletAddress === 'string' ? req.query.walletAddress : undefined;
+  const customerId = typeof req.query.customerId === 'string' ? req.query.customerId : undefined;
+  if (!walletAddress && !customerId) throw badRequest('walletAddress or customerId required');
+
+  let id = customerId;
+  if (!id && walletAddress) {
+    const w = await customerWalletsRepo.findByAddressAnyCustomer(walletAddress);
+    if (!w) throw notFound('No customer linked to that wallet');
+    id = w.customerId;
+  }
+  const c = await customersRepo.findById(id!);
+  if (!c) throw notFound('Customer not found');
+  res.json({ customerId: c.id, status: c.kycStatus });
+}));
+
 // A customer's linked wallet addresses. Lets the anchor business-server scope "my
 // transactions" to the authenticated customer without holding the wallet list itself.
 internalRouter.get('/customers/:id/wallets', ah(async (req, res) => {

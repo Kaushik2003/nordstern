@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowUpFromLine, ShieldCheck, Wallet, ArrowRight, ExternalLink, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowUpFromLine, ShieldCheck, Wallet, ArrowRight, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useBrand } from '@/components/brand-context';
 import { useCustomer } from '@/components/customer-context';
 import { Card, CardBody, Button, Spinner, Badge } from '@/components/ui';
-import { getQuote, startSell, getTx, type CustomerTx } from '@/lib/anchor';
+import { getQuote, startSell, myTransaction, withdrawInstructions, sendWithdrawal, type CustomerTx } from '@/lib/anchor';
+import { customer as customerApi } from '@/lib/customer';
 import { settler, type SettlementSession } from '@/lib/settlement';
 import { inr } from '@/lib/format';
 
@@ -32,7 +33,6 @@ export default function SellPage() {
   const [error, setError] = useState('');
   const [session, setSession] = useState<SettlementSession | null>(null);
   const [txId, setTxId] = useState<string | null>(null);
-  const [sendUrl, setSendUrl] = useState<string | null>(null);
   const [tx, setTx] = useState<CustomerTx | null>(null);
   const poll = useRef<ReturnType<typeof setInterval> | null>(null);
   const verified = customer?.kycStatus === 'approved';
@@ -51,7 +51,8 @@ export default function SellPage() {
   useEffect(() => {
     if (step !== 'processing' || !txId || !session) return;
     poll.current = setInterval(async () => {
-      const t = await getTx(txId, session.token).catch(() => null);
+      // Customer-session poll (cookie-auth) — SEP-10 /sep/tx/:id 404s for the native app.
+      const t = await myTransaction(txId).catch(() => null);
       if (!t) return; setTx(t);
       if (t.phase === 'completed') setStep('done');
       else if (t.phase === 'failed' || t.phase === 'refunded') { setStep('error'); setError('This transaction didn’t complete.'); }
@@ -63,11 +64,28 @@ export default function SellPage() {
     setBusy(true); setError('');
     try {
       const addr = (await settler.available()) ?? (await settler.connect());
+      // Link this wallet to the central customer so KYC (verified once) is reused. Best-effort.
+      customerApi.addWallet(addr).catch(() => {});
       const s = await settler.authorize(addr); setSession(s);
-      const { id, instructionsUrl } = await startSell(s, Number(amount).toFixed(2), brand.assetCode);
-      setTxId(id); setSendUrl(instructionsUrl); setStep('send');
+      const { id } = await startSell(s, Number(amount).toFixed(2), brand.assetCode);
+      setTxId(id); setStep('send');
     } catch (e) { setError(e instanceof Error ? 'Could not start your sell. Please try again.' : 'Error'); }
     finally { setBusy(false); }
+  }
+
+  // Native "click to send": build the transfer to the treasury, pop the wallet to confirm,
+  // submit, then advance to the live tracking panel (the processing poll detects receipt →
+  // payout → done automatically).
+  async function doSend() {
+    if (!txId || !session) return;
+    setBusy(true); setError('');
+    try {
+      const { treasury, memo } = await withdrawInstructions(txId);
+      await sendWithdrawal(session.walletAddress, treasury, Number(amount).toFixed(2), memo);
+      setStep('processing');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not send. Please try again.');
+    } finally { setBusy(false); }
   }
 
   return (
@@ -118,13 +136,16 @@ export default function SellPage() {
         </>
       )}
 
-      {step === 'send' && sendUrl && (
-        <Card><CardBody className="flex flex-col items-center gap-3 py-6 text-center">
-          <div className="grid h-12 w-12 place-items-center rounded-full bg-brand/15"><ExternalLink className="h-6 w-6 text-brand-deep" /></div>
-          <p className="font-medium text-ink">Complete your transfer</p>
-          <p className="max-w-xs text-sm text-muted">Confirm the transfer of {amount} {brand.assetCode} to receive {inr(quote?.inrAmount)} in your bank.</p>
-          <a href={sendUrl} target="_blank" rel="noopener noreferrer" className="w-full" onClick={() => setTimeout(() => setStep('processing'), 500)}><Button size="block">Continue transfer</Button></a>
-          <button className="text-sm text-muted hover:text-ink" onClick={() => setStep('processing')}>I’ve transferred — track it</button>
+      {step === 'send' && (
+        <Card><CardBody className="flex flex-col items-center gap-4 py-6 text-center">
+          <div className="grid h-12 w-12 place-items-center rounded-full bg-brand/15"><Wallet className="h-6 w-6 text-brand-deep" /></div>
+          <p className="font-medium text-ink">Send {amount} {brand.assetCode}</p>
+          <p className="max-w-xs text-sm text-muted">Confirm the transfer in your wallet. We’ll detect it automatically and pay {inr(quote?.inrAmount)} to your bank — no copying or memos needed.</p>
+          {error && <Msg text={error} />}
+          <Button size="block" disabled={busy} onClick={doSend}>
+            {busy ? <><Spinner className="h-5 w-5" /> Confirm in your wallet…</> : <><Wallet className="h-4 w-4" /> Send from wallet</>}
+          </Button>
+          <button className="text-sm text-muted hover:text-ink" onClick={() => { setStep('confirm'); setError(''); }}>Back</button>
         </CardBody></Card>
       )}
 
@@ -143,9 +164,9 @@ export default function SellPage() {
           </div>
           <div className="space-y-2 rounded-xl bg-surface p-4">
             <Row label="Sold" value={`${amount} ${brand.assetCode}`} />
-            <Row label="You receive" value={inr(tx?.inrAmount ?? quote?.inrAmount)} />
-            <Row label="Reference" value={tx?.reference ?? txId?.slice(0, 8).toUpperCase() ?? '—'} />
-            <div className="flex items-center justify-between"><span className="text-sm text-muted">Status</span><Badge tone="success">Completed</Badge></div>
+            <Row label="Credited to bank" value={inr(tx?.inrAmount ?? quote?.inrAmount)} strong />
+            <Row label="UTR" value={tx?.payoutReference ?? tx?.reference ?? txId?.slice(0, 8).toUpperCase() ?? '—'} />
+            <div className="flex items-center justify-between"><span className="text-sm text-muted">Status</span><Badge tone="success">Paid</Badge></div>
           </div>
           <Button variant="outline" size="block" onClick={() => router.push('/home')}>Done</Button>
         </CardBody></Card>

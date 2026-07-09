@@ -1,4 +1,5 @@
-import { initiateSep24, getTransaction } from '@/lib/api';
+import { initiateSep24, getTransaction, buildPaymentXdr, submitXdr } from '@/lib/api';
+import { signTransaction } from '@/lib/freighter';
 import type { SettlementSession } from '@/lib/settlement';
 
 // Customer-facing money operations, all over the /biz proxy → this anchor's business-server.
@@ -36,6 +37,7 @@ export interface CustomerTx {
   createdAt: string | null;
   completedAt: string | null;
   reference: string | null;   // customer-facing reference
+  payoutReference?: string | null;   // sell only: bank UTR / PSP payout id
   assetCode?: string;
   // Technical (collapsed under "Advanced details" in the UI):
   rawStatus: string;
@@ -51,6 +53,22 @@ export async function myTransactions(): Promise<CustomerTx[]> {
   if (!r.ok) throw new Error('Could not load your activity');
   const body = (await r.json()) as { transactions: CustomerTx[] };
   return body.transactions;
+}
+
+// Where to send the asset for a withdrawal (native "click to send").
+export async function withdrawInstructions(txId: string): Promise<{ treasury: string; memo: string; assetCode: string }> {
+  const r = await fetch(`/biz/customer/withdraw/${txId}`, { credentials: 'include' });
+  if (!r.ok) throw new Error('Could not load transfer details');
+  return r.json();
+}
+
+// Native send: build the asset payment to the treasury with the required memo, sign it in the
+// customer's wallet (the "secure confirmation"), and submit. Returns the Stellar tx hash. The
+// anchor's Observer then detects it by memo and pays out — the caller just polls status.
+export async function sendWithdrawal(from: string, treasury: string, amount: string, memo: string): Promise<string> {
+  const xdr = await buildPaymentXdr(from, treasury, amount, memo);
+  const signed = await signTransaction(xdr);
+  return submitXdr(signed);
 }
 
 export async function myTransaction(id: string): Promise<CustomerTx | null> {

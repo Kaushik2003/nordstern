@@ -6,7 +6,8 @@ import { ArrowDownToLine, ShieldCheck, Wallet, ArrowRight, ExternalLink, Loader2
 import { useBrand } from '@/components/brand-context';
 import { useCustomer } from '@/components/customer-context';
 import { Card, CardBody, Button, Spinner, Badge } from '@/components/ui';
-import { getQuote, startBuy, getTx, type CustomerTx } from '@/lib/anchor';
+import { getQuote, startBuy, myTransaction, type CustomerTx } from '@/lib/anchor';
+import { customer as customerApi } from '@/lib/customer';
 import { settler, type SettlementSession } from '@/lib/settlement';
 import { inr } from '@/lib/format';
 
@@ -55,7 +56,10 @@ export default function BuyPage() {
   useEffect(() => {
     if (step !== 'processing' || !txId || !session) return;
     poll.current = setInterval(async () => {
-      const t = await getTx(txId, session.token).catch(() => null);
+      // Poll the customer-session endpoint (cookie-auth, scoped to linked wallets) — the
+      // SEP-10 /sep/tx/:id path 404s for the native app, leaving this screen spinning after
+      // a completed deposit. myTransaction() sees the completed tx and phase flips to done.
+      const t = await myTransaction(txId).catch(() => null);
       if (!t) return;
       setTx(t);
       if (t.phase === 'completed') { setStep('done'); }
@@ -69,6 +73,10 @@ export default function BuyPage() {
     try {
       // Connect a wallet if needed, then the "secure confirmation" (wallet signs).
       const addr = (await settler.available()) ?? (await settler.connect());
+      // Link this wallet to the central customer profile so a KYC done once is reused
+      // across anchors AND the money path (no second verification). Best-effort; a
+      // duplicate/already-linked wallet is fine to ignore.
+      customerApi.addWallet(addr).catch(() => {});
       const s = await settler.authorize(addr);
       setSession(s);
       const { id, paymentUrl } = await startBuy(s, Number(amount).toFixed(2), brand.assetCode);

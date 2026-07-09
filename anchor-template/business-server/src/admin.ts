@@ -15,16 +15,18 @@ import crypto from 'crypto';
 
 export const adminRouter = Router();
 
-const num = (a: any) => Number(a?.amount ?? 0);
+const num = (v: any) => Number(v ?? 0);
 
 function normalize(tx: Record<string, any>) {
   return {
     id: tx.id,
     kind: tx.kind,
     status: tx.status,
-    amountIn: tx.amount_in ?? null,
-    amountOut: tx.amount_out ?? null,
-    amountExpected: tx.amount_expected ?? null,
+    // Flatten the AP's { amount, asset } to the numeric string the console renders — the
+    // asset unit is implied by kind (deposit in=INR/out=asset; withdrawal reversed).
+    amountIn: tx.amount_in?.amount ?? null,
+    amountOut: tx.amount_out?.amount ?? null,
+    amountExpected: tx.amount_expected?.amount ?? null,
     memo: tx.memo ?? null,
     destination: tx.destination_account ?? null,
     stellarTx: tx.stellar_transactions?.[0]?.id ?? null,

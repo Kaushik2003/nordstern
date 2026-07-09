@@ -262,6 +262,15 @@ export async function createAnchorStack(p: StackParams): Promise<{ apId: string;
     bizEnv.push(`SUREPASS_BASE_URL=${p.surepass.baseUrl}`, `SUREPASS_TOKEN=${p.surepass.token}`);
   }
 
+  // Universal DIDIT KYC: one NordStern-level DIDIT account serves EVERY launched anchor
+  // (verify once, reuse across anchors). The creds live in the control-plane's own env
+  // (from the git-ignored .env.base), never per-anchor and never in the DB — injected into
+  // each business-server so real identity verification is the default. If absent, the
+  // business-server's didit adapter fails closed rather than silently accepting mock KYC.
+  for (const k of ['DIDIT_API_KEY', 'DIDIT_WORKFLOW_ID', 'DIDIT_WEBHOOK_SECRET'] as const) {
+    if (process.env[k]) bizEnv.push(`${k}=${process.env[k]}`);
+  }
+
   // Pull this anchor's PSP/banking credentials from the SecretStore and inject them
   // wholesale (DL-010). In prod this is what External Secrets Operator does via
   // envFrom; here the provisioner does it directly. Values never touch our DB and

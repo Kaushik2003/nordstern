@@ -84,6 +84,12 @@ services:
       ANCHOR_DOMAIN_SUFFIX: anchors.127.0.0.1.sslip.io
       HORIZON_URL: https://horizon-testnet.stellar.org
       NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+      # Universal DIDIT KYC — one NordStern-level account injected into EVERY provisioned
+      # anchor's business-server (see orchestrator.ts). Values come from the git-ignored
+      # anchor-service/.env.base (loaded via --env-file); never committed, never per-anchor.
+      DIDIT_API_KEY: ${DIDIT_API_KEY:-}
+      DIDIT_WORKFLOW_ID: ${DIDIT_WORKFLOW_ID:-}
+      DIDIT_WEBHOOK_SECRET: ${DIDIT_WEBHOOK_SECRET:-}
       # SecretStore reader — pulls each anchor's PSP creds at container launch and
       # injects them (mirrors External Secrets Operator in prod). Same path as platform-api.
       SECRETS_PREFIX: nordstern

@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import type { Request } from 'express';
-import { listTransactions, fetchTransaction } from './platform.js';
+import { listTransactions, fetchTransaction, patchTransaction } from './platform.js';
+import { pool } from './db.js';
 import { kyc } from './adapters/index.js';
-import { ASSET_CODE, PROVIDERS } from './config.js';
+import { ASSET_CODE, PROVIDERS, TREASURY_PUBLIC } from './config.js';
+import { generateMemo } from './stellar.js';
 import { requireCustomerSession, fetchCustomerWallets } from './customerSession.js';
 import { propagateKycToPlatform } from './kycPropagate.js';
 
@@ -81,10 +83,36 @@ customerApiRouter.get('/customer/transactions/:id', async (req, res) => {
       res.status(404).json({ error: 'not found' });
       return;
     }
-    res.json(toCustomerTx(tx));
+    const out = toCustomerTx(tx);
+    // For a sell, surface the actual payout reference (bank UTR / PSP id) so the receipt
+    // shows where the money went — not just the internal transaction id.
+    if (out.kind === 'sell') {
+      const { rows } = await pool.query(
+        `SELECT reference FROM nordstern.withdrawal_payouts WHERE transaction_id = $1`,
+        [tx.id],
+      );
+      (out as Record<string, unknown>).payoutReference = rows[0]?.reference ?? null;
+    }
+    res.json(out);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }
+});
+
+// GET /customer/withdraw/:id — where to send the asset for a withdrawal: the treasury
+// account + the required memo the Observer matches on. Lets the native app build a "click to
+// send" payment (wallet signs) instead of a copy-paste webview. Same values the SEP-24
+// webview shows; session-gated. The memo is derived identically to the SEP-24 path
+// (generateMemo), so the Observer matches the incoming payment automatically.
+customerApiRouter.get('/customer/withdraw/:id', async (req, res) => {
+  const id = req.params.id as string;
+  const memo = generateMemo(id);
+  // Register the expected transfer with the Anchor Platform so its Observer matches the
+  // incoming payment by memo and advances the tx to pending_anchor. The SEP-24 webview does
+  // this on render; the native "click to send" flow bypasses the webview, so it MUST happen
+  // here — otherwise the payment lands on-chain but is never matched and the sell hangs.
+  await patchTransaction(id, { status: 'pending_user_transfer_start', memo, memo_type: 'text' }).catch(() => {});
+  res.json({ treasury: TREASURY_PUBLIC, memo, assetCode: ASSET_CODE });
 });
 
 // POST /customer/kyc/start — begin DIDIT verification tied to the CUSTOMER identity.

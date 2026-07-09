@@ -20,8 +20,20 @@
 > **Kept (canonical):** `anchor-service/control-plane`, `scripts/setup-base` + `setup-testnet`, `config`.
 > **De-referenced in lockstep:** `ci.yml` / `security.yml` / `docker.yml`; `dev.sh` rewritten as the
 > single canonical launcher; `AGENTS.md` / `README.md` updated to one supported run path.
-> **Still pending (Phase 3, product decision):** `frontend/web`, `anchor-platform/`, `sep24-reference-ui/`.
-> `mobile/nordpay` kept.
+> ## ✅ Phase 3 executed — 2026-07-09 (commit `c64cdb4`)
+> Product decision made: keep `frontend/` for non-anchor-operation surfaces only.
+> **Removed (1,262 files):**
+> - `frontend/web` ("Keel") → **Removed** — synthetic-data operator-console prototype;
+>   duplicated the canonical `anchor-template/console`.
+> - `anchor-platform/` (1,127 files) + `sep24-reference-ui/` → **Removed** — upstream Stellar
+>   source clones (on GitHub upstream; MVP runs the `stellar/anchor-platform` Docker image).
+>
+> **Kept:** `frontend/landing` + brand/design system, `mobile/nordpay`.
+> **De-referenced in lockstep:** `ci.yml`/`security.yml`/`docker.yml`; `CLAUDE.md`, `AGENTS.md`
+> (§8 rewritten), `README.md`, `ROADMAP.md`.
+>
+> **Cleanup outcome:** tracked files **2,349 → 914** (−1,435 across Phases 2+3). One canonical
+> architecture — no parallel stacks, no reference clones, no obsolete execution paths.
 
 ## Method
 

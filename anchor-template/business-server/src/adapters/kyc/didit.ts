@@ -1,7 +1,7 @@
 import { pool } from '../../db.js';
 import {
   DIDIT_API_KEY, DIDIT_WORKFLOW_ID, PUBLIC_BASE_URL, KYC_REVERIFY_TTL_SECONDS,
-  NORDSTERN_API_URL, SERVICE_SECRET, AUTH_MODE,
+  NORDSTERN_API_URL, SERVICE_SECRET,
 } from '../../config.js';
 import { KycProvider, CustomerQuery, CustomerResult, KycStatus, KycSessionResult } from './KycProvider.js';
 import { propagateKycToPlatform } from '../../kycPropagate.js';
@@ -120,8 +120,10 @@ async function persistDecision(
     );
   }
 
-  // Update local customers table if AUTH_MODE is local
-  if (AUTH_MODE === 'local') {
+  // Standalone (no central platform): mirror the decision into the anchor-local customers
+  // table. In hosted mode (NORDSTERN_API_URL set) the central profile is updated via
+  // propagateKycToPlatform instead, and these local tables don't exist — so skip.
+  if (!NORDSTERN_API_URL) {
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     let customerId: string | null = null;
     if (UUID_RE.test(account)) {
@@ -175,7 +177,7 @@ async function fetchSessionStatus(sessionId: string): Promise<{ status: string; 
 // the customer linked to their central profile when they connected it. Best-effort: any error
 // / 404 (wallet not linked to a customer) → null → caller falls back to normal verification.
 async function centralKycApproved(account: string): Promise<boolean> {
-  if (AUTH_MODE === 'local' || !NORDSTERN_API_URL || !SERVICE_SECRET) return false;
+  if (!NORDSTERN_API_URL || !SERVICE_SECRET) return false;
   try {
     const res = await fetch(
       `${NORDSTERN_API_URL}/api/v1/internal/customers/kyc?walletAddress=${encodeURIComponent(account)}`,
@@ -234,7 +236,7 @@ export async function getStatus(account: string): Promise<KycStatus> {
         // a dropped callback). In platform mode, propagate it to the CENTRAL customer profile
         // too — otherwise the app (which polls central KYC) hangs on "Finishing verification"
         // even though DIDIT approved. (Local mode already updates local customers in persist.)
-        if (AUTH_MODE !== 'local') {
+        if (NORDSTERN_API_URL && SERVICE_SECRET) {
           await propagateKycToPlatform({ vendor_data: account, status: live.status });
         }
         console.log(`[didit] poll ${account}: ${live.status} → ${mapped}`);

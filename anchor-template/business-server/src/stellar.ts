@@ -123,3 +123,37 @@ export async function findTreasuryPayment(
   }
   return null;
 }
+
+// Mirror of findTreasuryPayment for the OFF-ramp: has the user's asset arrived AT the
+// treasury for this withdrawal? Matches the incoming payment by memo + exact amount/asset.
+// Used by the withdrawal poller to detect the transfer itself when the Anchor Platform
+// Observer can't advance the tx (e.g. AP events disabled) — so off-ramp completes without
+// depending on the AP event pipeline. Confirming amount+asset+memo (not memo alone) keeps
+// it safe against an unrelated payment that happens to reuse a memo.
+export async function findIncomingWithdrawal(
+  amount: string,
+  memo: string,
+): Promise<{ hash: string } | null> {
+  if (!TREASURY_PUBLIC) return null;
+  const page = await horizon
+    .transactions()
+    .forAccount(TREASURY_PUBLIC)
+    .order('desc')
+    .limit(SCAN_LIMIT)
+    .call();
+
+  for (const rec of page.records) {
+    if (!rec.successful || rec.memo_type !== 'text' || rec.memo !== memo) continue;
+    const ops = await rec.operations();
+    const received = ops.records.some(
+      (o: any) =>
+        o.type === 'payment' &&
+        o.to === TREASURY_PUBLIC &&
+        o.asset_code === ASSET_CODE &&
+        o.asset_issuer === ASSET_ISSUER_PUBLIC &&
+        Number(o.amount) === Number(amount),
+    );
+    if (received) return { hash: rec.hash };
+  }
+  return null;
+}

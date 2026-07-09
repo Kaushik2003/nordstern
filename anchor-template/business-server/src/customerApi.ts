@@ -37,12 +37,21 @@ function txAccounts(tx: Record<string, any>): string[] {
 
 function toCustomerTx(tx: Record<string, any>) {
   const kind = tx.kind === 'withdrawal' ? 'sell' : 'buy';
+  // The AP legs are opposite per direction:
+  //   deposit (buy):    amount_in = INR,   amount_out = asset delivered
+  //   withdrawal (sell): amount_in = asset, amount_out = INR paid out
+  // Map to the customer's INR vs asset amounts accordingly, so a sell receipt shows the
+  // real INR credited (not the asset count with a ₹ sign).
+  const asset = kind === 'sell'
+    ? (amt(tx.amount_in) ?? amt(tx.amount_expected))
+    : (amt(tx.amount_out) ?? amt(tx.amount_expected));
+  const inr = kind === 'sell' ? amt(tx.amount_out) : amt(tx.amount_in);
   return {
     id: tx.id,
     kind,
     phase: phase(String(tx.status ?? '')),
-    assetAmount: amt(tx.amount_out) ?? amt(tx.amount_expected) ?? amt(tx.amount_in),
-    inrAmount: amt(tx.amount_in),
+    assetAmount: asset,
+    inrAmount: inr,
     reference: String(tx.id ?? '').slice(0, 8).toUpperCase() || null,
     createdAt: tx.started_at ?? null,
     completedAt: tx.completed_at ?? null,

@@ -2,6 +2,7 @@ import { listTransactions, patchTransaction, fetchTransaction } from './platform
 import { assetId } from './config.js';
 import { rate, payout } from './adapters/index.js';
 import { pool } from './db.js';
+import { generateMemo, findIncomingWithdrawal } from './stellar.js';
 
 // ─── Withdrawal poller (off-ramp) ──────────────────────────────────────────────
 // The AP Observer moves a withdrawal to `pending_anchor` once the user's USDC
@@ -16,6 +17,13 @@ import { pool } from './db.js';
 // withdrawal can never be disbursed twice. Mirror of the deposit outbox (DEC-007).
 
 const POLL_MS = 10_000;
+
+// A SEP-24 session that never completes should not linger as "In Progress" forever. Any
+// deposit/withdrawal still awaiting the user's action (incomplete / pending_user_transfer_start)
+// older than this is expired → the customer sees "Couldn't complete", and it drops out of the
+// active list. Safe: these statuses precede any money movement, so expiring one moves no funds.
+const SESSION_MAX_MS = 5 * 60_000;              // 5 minutes
+const REAP_STATUSES = new Set(['incomplete', 'pending_user_transfer_start']);
 
 // Atomic single-claim: INSERT the intent, or reclaim a 'failed' row. Returns
 // 'claimed' when we own the payout; 'in_flight' when another tick owns it; or
@@ -98,8 +106,65 @@ export async function processWithdrawal(tx: Record<string, any>): Promise<void> 
   console.log(`[withdrawal] ${tx.id} → completed (ref ${result.reference ?? 'n/a'})`);
 }
 
+// ── Self-detection: pending_user_transfer_start → pending_anchor ────────────────
+// Normally the AP's HorizonPaymentObserver detects the user's incoming asset (matched by
+// memo) and advances the withdrawal to `pending_anchor`. But that transition rides the AP
+// event pipeline, which is disabled in setups without a queue (events.enabled=false) — the
+// Observer sees the payment but never advances the tx, so the off-ramp hangs. This pass
+// makes detection self-contained: for each awaiting-transfer withdrawal, ask Horizon whether
+// the matching payment (memo + exact amount/asset) has landed at the treasury, and if so
+// advance it ourselves. The subsequent processWithdrawal step is still guarded by the durable
+// at-most-once claim, so detecting here can never cause a double payout.
+async function detectIncomingWithdrawals(): Promise<void> {
+  const records = await listTransactions({ sep: '24', status: 'pending_user_transfer_start' });
+  const awaiting = records.filter(
+    (r: any) => r.kind === 'withdrawal' && r.status === 'pending_user_transfer_start',
+  );
+  for (const tx of awaiting) {
+    try {
+      const amount = tx.amount_expected?.amount;
+      if (!amount || Number(amount) <= 0) continue;
+      const hit = await findIncomingWithdrawal(String(amount), generateMemo(tx.id));
+      if (hit) {
+        await patchTransaction(tx.id, { status: 'pending_anchor' });
+        console.log(`[withdrawal] ${tx.id} transfer detected on-chain (${hit.hash}) → pending_anchor`);
+      }
+    } catch (err) {
+      console.error(`[withdrawal] detect error on ${tx.id}:`, (err as Error).message);
+    }
+  }
+}
+
+// Expire sessions that have been awaiting the user's action for longer than SESSION_MAX_MS.
+// Runs AFTER detection so a real-but-slightly-late transfer is picked up before it's reaped.
+async function reapStaleSessions(): Promise<void> {
+  const records = await listTransactions({ sep: '24', order: 'desc' });
+  const now = Date.now();
+  for (const tx of records) {
+    if (!REAP_STATUSES.has(tx.status)) continue;
+    const started = Date.parse(tx.started_at ?? tx.updated_at ?? '');
+    if (!started || now - started < SESSION_MAX_MS) continue;
+    try {
+      await patchTransaction(tx.id, {
+        status: 'expired',
+        message: 'Session expired — no payment received within 5 minutes.',
+      });
+      console.log(`[reaper] ${tx.id} (${tx.kind}, ${tx.status}) expired after ${Math.round((now - started) / 60000)}m`);
+    } catch (err) {
+      console.error(`[reaper] failed to expire ${tx.id}:`, (err as Error).message);
+    }
+  }
+}
+
 async function poll(): Promise<void> {
   try {
+    // 1. Detect user transfers the AP Observer may not have advanced (events disabled).
+    await detectIncomingWithdrawals();
+
+    // 1b. Expire abandoned sessions (>5 min awaiting the user) so they leave "In Progress".
+    await reapStaleSessions();
+
+    // 2. Pay out anything now pending_anchor (at-most-once guarded).
     const records = await listTransactions({ sep: '24', status: 'pending_anchor' });
     // The AP status filter is unreliable — filter client-side. Only genuinely
     // pending_anchor withdrawals are candidates; completed/errored ones are excluded.

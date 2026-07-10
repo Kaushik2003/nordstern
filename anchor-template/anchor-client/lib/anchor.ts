@@ -1,5 +1,5 @@
 import { initiateSep24, getTransaction, buildPaymentXdr, submitXdr } from '@/lib/api';
-import { signTransaction } from '@/lib/freighter';
+import { signTransaction } from '@/lib/wallet';
 import type { SettlementSession } from '@/lib/settlement';
 
 // Customer-facing money operations, all over the /biz proxy → this anchor's business-server.

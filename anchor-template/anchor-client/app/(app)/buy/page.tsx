@@ -11,7 +11,7 @@ import { customer as customerApi } from '@/lib/customer';
 import { settler, type SettlementSession } from '@/lib/settlement';
 import { inr } from '@/lib/format';
 import { getAccount, friendbot, buildTrustlineXdr, submitXdr } from '@/lib/api';
-import { signTransaction } from '@/lib/freighter';
+import { signTransaction } from '@/lib/wallet';
 
 type Step = 'amount' | 'confirm' | 'pay' | 'processing' | 'done' | 'error';
 

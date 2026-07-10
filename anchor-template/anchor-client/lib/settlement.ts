@@ -1,4 +1,4 @@
-import * as Freighter from '@/lib/freighter';
+import * as Wallet from '@/lib/wallet';
 import { sep10Challenge, sep10Submit } from '@/lib/api';
 
 // ── Settlement seam (future-proof) ──────────────────────────────────────────────
@@ -27,11 +27,11 @@ export interface Settler {
 // the caller shows "Confirm securely in your wallet".
 const selfCustodialSettler: Settler = {
   kind: 'self-custodial',
-  connect: () => Freighter.connect(),
-  available: () => Freighter.checkConnected(),
+  connect: () => Wallet.connect(),
+  available: () => Wallet.checkConnected(),
   async authorize(walletAddress: string): Promise<SettlementSession> {
     const challenge = await sep10Challenge(walletAddress);
-    const signed = await Freighter.signTransaction(challenge); // the secure confirmation
+    const signed = await Wallet.signTransaction(challenge); // the secure confirmation
     const token = await sep10Submit(signed);
     return { walletAddress, token };
   },

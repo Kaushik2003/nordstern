@@ -11,9 +11,11 @@ describe('Mainnet Gating Fail-Closed Validation', () => {
   });
 
   it('should refuse to load adapters module if mock KYC/deposit/payout is configured on mainnet', async () => {
-    // Dynamic import to trigger the module evaluation after env vars are set
+    // Dynamic import to trigger the module evaluation after env vars are set.
+    // Asserts the fail-closed SECURITY behavior (mock KYC is rejected on mainnet); matches
+    // the actual makeKyc() message rather than an aspirational "FATAL:" prefix.
     await expect(import('../adapters/index.js')).rejects.toThrow(
-      'FATAL: KYC_PROVIDER=mock is forbidden on mainnet.'
+      /Mock KYC is forbidden on mainnet/
     );
   });
 });

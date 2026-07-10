@@ -89,3 +89,15 @@ export const PROVIDERS = {
   payout:  process.env.PAYOUT_PROVIDER  ?? 'mock',
   fee:     process.env.FEE_PROVIDER     ?? 'mock',
 };
+
+// ─── Standalone operator auth (self-host kit) ───────────────────────────────────
+// When the anchor runs OUTSIDE the NordStern platform (the self-hostable "anchor-in-a-box"
+// kit), there is no platform-api to authenticate the operator. AUTH_MODE=local turns on
+// localAuth.ts — a self-contained email-OTP login for the single operator. In the hosted
+// platform AUTH_MODE stays unset (≠ 'local'), so localAuth is inert and platform sessions
+// (PLATFORM_JWT_ACCESS_SECRET) are used instead.
+export const AUTH_MODE        = process.env.AUTH_MODE        ?? 'platform'; // 'local' | 'platform'
+export const OPERATOR_EMAIL   = process.env.OPERATOR_EMAIL   ?? '';
+export const LOCAL_JWT_SECRET = process.env.LOCAL_JWT_SECRET ?? '';
+export const RESEND_API_KEY   = process.env.RESEND_API_KEY   ?? '';
+export const EMAIL_FROM       = process.env.EMAIL_FROM       ?? 'NordStern <onboarding@resend.dev>';

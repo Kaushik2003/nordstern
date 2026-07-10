@@ -69,6 +69,9 @@
   --font-display: var(--ff-clear-display), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Detail-panel width — shared by the panel and the content compression so they line up. */
+:root { --panel-w: clamp(420px, 35vw, 520px); }
+
 * {
   border-color: var(--color-border);
 }

@@ -7,7 +7,7 @@ import { useBrand } from '@/components/brand-context';
 import { useCustomer } from '@/components/customer-context';
 import { Card, CardBody, Button, Spinner, Badge } from '@/components/ui';
 import { getQuote, startBuy, myTransaction, type CustomerTx } from '@/lib/anchor';
-import { customer as customerApi } from '@/lib/customer';
+import { ensureWalletLinked } from '@/lib/link-wallet';
 import { settler, type SettlementSession } from '@/lib/settlement';
 import { inr } from '@/lib/format';
 import { getAccount, friendbot, buildTrustlineXdr, submitXdr } from '@/lib/api';
@@ -152,9 +152,10 @@ export default function BuyPage() {
       setNeedsTrustline(false);
 
       // Link this wallet to the central customer profile so a KYC done once is reused
-      // across anchors AND the money path (no second verification). Best-effort; a
-      // duplicate/already-linked wallet is fine to ignore.
-      customerApi.addWallet(addr).catch(() => {});
+      // across anchors AND the customer's history is scoped to it. Proven ownership only
+      // (one extra signature the first time per wallet). Best-effort: a decline never blocks
+      // the buy — the payment proceeds; only the central link is skipped.
+      await ensureWalletLinked(addr).catch(() => {});
       const s = await settler.authorize(addr);
       setSession(s);
       const { id, paymentUrl } = await startBuy(s, Number(amount).toFixed(2), brand.assetCode);

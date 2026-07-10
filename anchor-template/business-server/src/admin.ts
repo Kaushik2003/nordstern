@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { listTransactions, patchTransaction } from './platform.js';
 import { getTreasuryBalances } from './stellar.js';
-import { ASSET_CODE, ASSET_ISSUER_PUBLIC, TREASURY_PUBLIC, IS_MAINNET, assetId } from './config.js';
+import { ASSET_CODE, ASSET_ISSUER_PUBLIC, TREASURY_PUBLIC, IS_MAINNET, assetId, PROVIDERS } from './config.js';
 import { rate } from './adapters/index.js';
 import { pool } from './db.js';
 import { releaseDeposit } from './sep24.js';
@@ -57,12 +57,67 @@ adminRouter.get('/summary', async (_req, res) => {
     ]);
     const txs = records.map(normalize);
     const completed = (t: any) => t.status === 'completed';
+    const failed = (t: any) => t.status === 'error';
     const deposits = txs.filter((t) => t.kind === 'deposit');
     const withdrawals = txs.filter((t) => t.kind === 'withdrawal');
     const pending = txs.filter((t) => !['completed', 'error', 'refunded'].includes(t.status));
     // Real health signals (were hardcoded). If we reached here, listTransactions (Platform
     // API) and getTreasuryBalances (Horizon) both succeeded. DB is pinged live.
     const dbUp = await pool.query('SELECT 1').then(() => true).catch(() => false);
+
+    // ── Derived, REAL metrics (all from actual transactions/ledger — never fabricated) ──
+    const sum = (arr: any[], f: (t: any) => any) => arr.reduce((s, t) => s + num(f(t)), 0);
+    const usdcDeposited = sum(deposits.filter(completed), (t) => t.amountOut);
+    const usdcWithdrawn = sum(withdrawals.filter(completed), (t) => t.amountIn);
+    const inrCollected = sum(deposits.filter(completed), (t) => t.amountIn);
+    const inrPaidOut = sum(withdrawals.filter(completed), (t) => t.amountOut);
+    // Net asset issued and outstanding (delivered on-ramp minus redeemed off-ramp).
+    const tokensInCirculation = Math.max(0, usdcDeposited - usdcWithdrawn);
+
+    // Average settlement time (minutes) over completed txns that carry both timestamps.
+    const settled = txs.filter((t) => completed(t) && t.startedAt && t.completedAt);
+    const avgSettlementMinutes = settled.length
+      ? settled.reduce((s, t) => s + (new Date(t.completedAt).getTime() - new Date(t.startedAt).getTime()), 0) / settled.length / 60000
+      : null;
+
+    // 14-day money-movement series from completed txns (real daily inflow/outflow).
+    const dayKey = (d: string | null) => (d ? new Date(d).toISOString().slice(0, 10) : null);
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const movementSeries = Array.from({ length: 14 }, (_, i) => {
+      const d = new Date(); d.setUTCDate(d.getUTCDate() - (13 - i));
+      const key = d.toISOString().slice(0, 10);
+      return {
+        date: key,
+        inflow: sum(deposits.filter((t) => completed(t) && dayKey(t.completedAt) === key), (t) => t.amountIn).toFixed(2),
+        outflow: sum(withdrawals.filter((t) => completed(t) && dayKey(t.completedAt) === key), (t) => t.amountOut).toFixed(2),
+      };
+    });
+    const dailyOutflow = sum(withdrawals.filter((t) => completed(t) && dayKey(t.completedAt) === todayKey), (t) => t.amountOut);
+
+    // Needs-attention queues (real counts + amounts).
+    const withdrawalsAwaitingPayout = withdrawals.filter((t) => t.status === 'pending_anchor' || t.status === 'pending_user_transfer_complete');
+    const depositsPending = deposits.filter((t) => t.status === 'pending_user_transfer_start');
+    const payoutFailed = withdrawals.filter(failed);
+    const attention = {
+      withdrawalsAwaitingPayout: { count: withdrawalsAwaitingPayout.length, amount: sum(withdrawalsAwaitingPayout, (t) => t.amountOut ?? t.amountExpected).toFixed(2) },
+      depositsPending: { count: depositsPending.length, amount: sum(depositsPending, (t) => t.amountExpected).toFixed(2) },
+      payoutFailed: { count: payoutFailed.length, amount: sum(payoutFailed, (t) => t.amountOut ?? t.amountExpected).toFixed(2) },
+    };
+
+    // Recent transactions (top 8) — customer-friendly shape for the dashboard list. We have
+    // no customer names for SEP-24 txns, so identity is the masked account/memo (honest).
+    const mask = (a: string | null) => (a ? `${a.slice(0, 4)}…${a.slice(-4)}` : '—');
+    const recent = txs.slice(0, 8).map((t) => ({
+      id: t.id,
+      kind: t.kind,                       // deposit | withdrawal
+      dir: t.kind === 'deposit' ? 'in' : 'out',
+      ref: mask(t.destination) !== '—' ? mask(t.destination) : (t.memo ? String(t.memo).slice(0, 10) : `tx_${String(t.id).slice(0, 4)}`),
+      status: t.status,
+      inr: t.kind === 'deposit' ? t.amountIn : t.amountOut,
+      asset: t.kind === 'deposit' ? t.amountOut : t.amountIn,
+      startedAt: t.startedAt,
+      completedAt: t.completedAt,
+    }));
 
     res.json({
       network: IS_MAINNET ? 'mainnet' : 'testnet',
@@ -78,11 +133,33 @@ adminRouter.get('/summary', async (_req, res) => {
       },
       volume: {
         // Deposit (on-ramp): INR in → USDC out.
-        inrCollected: deposits.filter(completed).reduce((s, t) => s + num(t.amountIn), 0).toFixed(2),
-        usdcDeposited: deposits.filter(completed).reduce((s, t) => s + num(t.amountOut), 0).toFixed(2),
+        inrCollected: inrCollected.toFixed(2),
+        usdcDeposited: usdcDeposited.toFixed(2),
         // Withdrawal (off-ramp): USDC in → INR out.
-        usdcWithdrawn: withdrawals.filter(completed).reduce((s, t) => s + num(t.amountIn), 0).toFixed(2),
-        inrPaidOut: withdrawals.filter(completed).reduce((s, t) => s + num(t.amountOut), 0).toFixed(2),
+        usdcWithdrawn: usdcWithdrawn.toFixed(2),
+        inrPaidOut: inrPaidOut.toFixed(2),
+      },
+      // Balance-sheet + operations metrics — all derived from real transactions/ledger.
+      metrics: {
+        tokensInCirculation: tokensInCirculation.toFixed(2),   // net asset issued & outstanding
+        netFiatCollected: (inrCollected - inrPaidOut).toFixed(2), // net INR from real txns (NOT a bank balance)
+        avgSettlementMinutes: avgSettlementMinutes == null ? null : avgSettlementMinutes.toFixed(1),
+        netFlow24h: (num((deposits.filter(t => completed(t) && dayKey(t.completedAt) === todayKey)).reduce((s, t) => s + num(t.amountIn), 0)) - dailyOutflow).toFixed(2),
+        dailyOutflow: dailyOutflow.toFixed(2),
+      },
+      movementSeries,   // 14 × { date, inflow, outflow }
+      attention,        // real needs-attention queues
+      recent,           // top 8 transactions (masked account/memo — no fabricated names)
+      // Reserve/issuance accounts — real Stellar accounts this anchor controls.
+      reserveAccounts: {
+        distribution: { address: TREASURY_PUBLIC, assetBalance: balances.usdc, xlm: balances.xlm },
+        issuer: { address: ASSET_ISSUER_PUBLIC },
+      },
+      // Configured providers (real adapter selection) + their coarse status.
+      providers: {
+        kyc: PROVIDERS.kyc,
+        deposit: PROVIDERS.deposit,
+        payout: PROVIDERS.payout,
       },
       // Only fields we can actually source are returned. bankBalance / reservedBalance /
       // dailySettlement require a bank/treasury-ops integration that does not exist yet —

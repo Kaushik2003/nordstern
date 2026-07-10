@@ -2,26 +2,39 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Wallet, Plus, Trash2, ShieldCheck, LogOut, Check, X, Pencil } from 'lucide-react';
+import { Wallet, Trash2, LogOut, Check, X, Pencil, ShieldCheck, Link2 } from 'lucide-react';
 import { customer as api, ApiError, type Wallet as W } from '@/lib/customer';
+import { connect } from '@/lib/wallet';
+import { ensureWalletLinked } from '@/lib/link-wallet';
 import { useCustomer } from '@/components/customer-context';
-import { Card, CardBody, Badge, Button, Input, Spinner, type Tone } from '@/components/ui';
+import { useBrand } from '@/components/brand-context';
+import { Card, CardBody, Button, Input, Spinner, Badge } from '@/components/ui';
+import { Avatar, AvatarPicker, avatarEmoji } from '@/components/avatar';
+import { VerificationCard, InfrastructureSection } from '@/components/ecosystem';
 
-const kycTone = (s: string): Tone => (s === 'approved' ? 'success' : s === 'declined' ? 'danger' : 'warning');
-const kycLabel = (s: string) => (s === 'approved' ? 'Verified' : s === 'pending' ? 'In review' : s === 'declined' ? 'Failed' : 'Not verified');
 const mask = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+
+// A compact, common-country list for the picker; the KYC-filled value is always included even
+// if it's not here. Not exhaustive — enough to cover the pilot's users without a huge bundle.
+const COUNTRIES = [
+  'India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Singapore', 'United Arab Emirates',
+  'Germany', 'France', 'Netherlands', 'Nigeria', 'Kenya', 'South Africa', 'Brazil', 'Mexico',
+  'Japan', 'Philippines', 'Indonesia', 'Bangladesh', 'Pakistan', 'Sri Lanka', 'Nepal',
+];
 
 export default function ProfilePage() {
   const { customer, refresh, signOut } = useCustomer();
+  const brand = useBrand();
   const router = useRouter();
 
   const [wallets, setWallets] = useState<W[] | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [name, setName] = useState(customer?.fullName ?? '');
-  const [addr, setAddr] = useState('');
-  const [label, setLabel] = useState('');
-  const [adding, setAdding] = useState(false);
+  const [pickingAvatar, setPickingAvatar] = useState(false);
+  const [linking, setLinking] = useState(false);
   const [err, setErr] = useState('');
+
+  const country = (customer?.preferences?.country as string | undefined) ?? '';
 
   useEffect(() => { api.wallets().then(setWallets).catch(() => setWallets([])); }, []);
   useEffect(() => { setName(customer?.fullName ?? ''); }, [customer?.fullName]);
@@ -30,13 +43,30 @@ export default function ProfilePage() {
     await api.updateProfile({ fullName: name.trim() }).catch(() => {});
     await refresh(); setEditingName(false);
   }
-  async function addWallet() {
-    setAdding(true); setErr('');
+  async function pickAvatar(emoji: string) {
+    setPickingAvatar(false);
+    await api.updateProfile({ preferences: { avatar: emoji } }).catch(() => {});
+    await refresh();
+  }
+  async function saveCountry(value: string) {
+    await api.updateProfile({ preferences: { country: value } }).catch(() => {});
+    await refresh();
+  }
+
+  // Prove-then-link: connect a wallet, sign a server-issued challenge, verify. This is the
+  // only way to attach a wallet — you can link only a wallet you can actually sign with.
+  async function linkWallet() {
+    setLinking(true); setErr('');
     try {
-      await api.addWallet(addr.trim(), label.trim() || undefined);
-      setWallets(await api.wallets()); setAddr(''); setLabel('');
-    } catch (e) { setErr(e instanceof ApiError ? e.message : 'Could not link wallet'); }
-    finally { setAdding(false); }
+      const address = await connect();
+      await ensureWalletLinked(address);
+      setWallets(await api.wallets());
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message
+        : e instanceof Error && /cancel|denied|reject/i.test(e.message) ? 'Verification cancelled'
+        : 'Could not verify wallet ownership';
+      setErr(msg);
+    } finally { setLinking(false); }
   }
   async function removeWallet(id: string) {
     if (!confirm('Unlink this wallet?')) return;
@@ -46,12 +76,32 @@ export default function ProfilePage() {
   async function doSignOut() { await signOut(); router.replace('/login'); }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-ink">Profile</h1>
+    <div className="mx-auto max-w-3xl space-y-6 fade-up">
+      <h1 className="text-3xl font-bold tracking-tight text-ink">Profile</h1>
 
       {/* Personal */}
       <Card><CardBody className="space-y-4">
-        <Field label="Email" value={customer?.email ?? '—'} />
+        {/* Avatar + identity header */}
+        <div className="flex items-center gap-4">
+          <button onClick={() => setPickingAvatar((v) => !v)} className="group relative" aria-label="Change avatar">
+            {customer && <Avatar customer={customer} size="xl" />}
+            <span className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full border border-line bg-canvas text-muted shadow-sm transition group-hover:text-ink">
+              <Pencil className="h-3 w-3" />
+            </span>
+          </button>
+          <div className="min-w-0">
+            <p className="truncate text-lg font-semibold text-ink">{customer?.fullName || 'Your account'}</p>
+            <p className="truncate text-sm text-muted">{customer?.email}</p>
+          </div>
+        </div>
+
+        {pickingAvatar && customer && (
+          <div className="rounded-xl border border-line bg-surface/50 p-3">
+            <p className="mb-2 text-xs text-muted">Pick your avatar</p>
+            <AvatarPicker value={avatarEmoji(customer)} onPick={pickAvatar} />
+          </div>
+        )}
+
         <div>
           <p className="text-xs text-muted">Full name</p>
           {editingName ? (
@@ -67,40 +117,57 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+
+        <div>
+          <p className="text-xs text-muted">Country</p>
+          <select
+            value={COUNTRIES.includes(country) || country === '' ? country : country}
+            onChange={(e) => saveCountry(e.target.value)}
+            className="mt-1 h-10 w-full rounded-xl border border-line bg-canvas px-3 text-sm text-ink outline-none focus:border-brand"
+          >
+            <option value="">Select your country</option>
+            {country && !COUNTRIES.includes(country) && <option value={country}>{country}</option>}
+            {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
       </CardBody></Card>
 
-      {/* Identity / KYC */}
-      <Card><CardBody className="flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-full bg-surface"><ShieldCheck className="h-5 w-5 text-brand-deep" /></div>
-        <div className="flex-1"><p className="font-medium text-ink">Identity verification</p><p className="text-xs text-muted">Powered by DIDIT — completed once, reused everywhere.</p></div>
-        {customer?.kycStatus === 'approved'
-          ? <Badge tone="success">Verified</Badge>
-          : <Button size="sm" variant="outline" onClick={() => router.push('/verify')}>{customer?.kycStatus === 'pending' ? 'In review' : 'Verify'}</Button>}
-      </CardBody></Card>
+      {/* Identity / KYC — informative, network-aware */}
+      <VerificationCard status={customer?.kycStatus ?? 'unverified'} onAction={() => router.push('/verify')} />
 
-      {/* Linked wallets */}
+      {/* Infrastructure — transparency about how this service is built */}
+      <InfrastructureSection anchorName={brand.name} />
+
+      {/* Linked wallets — proven ownership only */}
       <div>
         <div className="mb-2 flex items-center gap-2"><Wallet className="h-4 w-4 text-muted" /><h2 className="font-semibold text-ink">Linked wallets</h2></div>
         <Card><CardBody className="space-y-3">
-          <p className="text-xs text-muted">Wallets are optional and can be added or removed anytime. Your account is your email — wallets just link to it.</p>
+          <p className="text-xs text-muted">
+            Your account is your email. Link a wallet by proving you control it — you&apos;ll be asked to
+            sign a quick verification request. Only wallets you can sign with can be linked.
+          </p>
           {wallets === null ? <Skeletons /> : wallets.length === 0 ? (
             <p className="py-2 text-sm text-faint">No wallets linked yet.</p>
           ) : (
             <div className="space-y-2">
               {wallets.map((w) => (
                 <div key={w.id} className="flex items-center justify-between rounded-xl border border-line px-3 py-2">
-                  <div><p className="text-sm font-medium text-ink">{w.label || 'Wallet'}</p><p className="font-mono text-xs text-faint">{mask(w.address)}</p></div>
-                  <button onClick={() => removeWallet(w.id)} className="text-muted hover:text-[var(--color-danger)]"><Trash2 className="h-4 w-4" /></button>
+                  <div>
+                    <p className="text-sm font-medium text-ink">{w.label || 'Wallet'}</p>
+                    <p className="font-mono text-xs text-faint">{mask(w.address)}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge tone="success"><ShieldCheck className="mr-1 inline h-3 w-3" />Verified</Badge>
+                    <button onClick={() => removeWallet(w.id)} className="text-muted hover:text-[var(--color-danger)]"><Trash2 className="h-4 w-4" /></button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
           <div className="space-y-2 border-t border-line pt-3">
-            <Input value={addr} onChange={(e) => setAddr(e.target.value)} placeholder="Wallet address" className="h-10 font-mono text-sm" />
-            <div className="flex gap-2">
-              <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label (optional)" className="h-10" />
-              <Button size="sm" onClick={addWallet} disabled={adding || !addr}>{adding ? <Spinner className="h-4 w-4" /> : <><Plus className="h-4 w-4" /> Link</>}</Button>
-            </div>
+            <Button size="block" variant="outline" onClick={linkWallet} disabled={linking}>
+              {linking ? <><Spinner className="h-4 w-4" /> Waiting for signature…</> : <><Link2 className="h-4 w-4" /> Connect &amp; verify a wallet</>}
+            </Button>
             {err && <p className="text-sm text-[var(--color-danger)]">{err}</p>}
           </div>
         </CardBody></Card>
@@ -111,7 +178,4 @@ export default function ProfilePage() {
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
-  return <div><p className="text-xs text-muted">{label}</p><p className="mt-0.5 font-medium text-ink">{value}</p></div>;
-}
 function Skeletons() { return <div className="space-y-2"><div className="h-12 animate-pulse rounded-xl bg-surface-2" /><div className="h-12 animate-pulse rounded-xl bg-surface-2" /></div>; }

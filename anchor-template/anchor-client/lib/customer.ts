@@ -19,7 +19,8 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
 }
 
 export interface Customer { id: string; email: string; fullName: string | null; kycStatus: 'unverified' | 'pending' | 'approved' | 'declined'; preferences?: Record<string, unknown>; createdAt?: string }
-export interface Wallet { id: string; address: string; label: string | null; network: string; createdAt: string }
+export interface Wallet { id: string; address: string; label: string | null; network: string; provenAt?: string | null; createdAt: string }
+export interface WalletChallenge { address: string; network: 'testnet' | 'mainnet'; challengeXdr: string; expiresAt: string }
 
 export const customer = {
   requestOtp: (email: string, anchorName?: string) => req<{ ok: true }>('POST', '/auth/request-otp', { email, anchorName }),
@@ -29,6 +30,11 @@ export const customer = {
   updateProfile: (patch: { fullName?: string; preferences?: Record<string, unknown> }) => req<Customer>('PATCH', '/me', patch),
   kyc: () => req<{ kycStatus: string; verifiedAt: string | null; sessionId: string | null }>('GET', '/kyc/status'),
   wallets: () => req<Wallet[]>('GET', '/wallets'),
-  addWallet: (address: string, label?: string) => req<Wallet>('POST', '/wallets', { address, label }),
+  // Ownership-proof link flow (Identity Phase 1). A wallet is attached only after the
+  // customer signs a server-issued challenge — never by typing an arbitrary address.
+  walletChallenge: (address: string, network: 'testnet' | 'mainnet') =>
+    req<WalletChallenge>('POST', '/wallets/challenge', { address, network }),
+  verifyWallet: (address: string, signedXdr: string, label?: string) =>
+    req<Wallet>('POST', '/wallets/verify', { address, signedXdr, label }),
   removeWallet: (id: string) => req<{ ok: true }>('DELETE', `/wallets/${id}`),
 };

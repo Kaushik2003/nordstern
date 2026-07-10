@@ -6,8 +6,9 @@ export interface Brand {
   displayName: string;
   slug: string;
   assetCode: string;
-  accent: string;          // primary accent hex — overrides --color-brand
+  accent: string;          // captured but NOT applied — the console always uses NordStern purple
   logoUrl: string | null;
+  network: 'testnet' | 'mainnet';
 }
 
 const HEX = /^#([0-9a-fA-F]{6})$/;
@@ -24,6 +25,7 @@ export function readableOn(hex: string): string {
 export function getBrand(): Brand {
   const accent = process.env.ANCHOR_ACCENT ?? '';
   const name = process.env.ANCHOR_NAME ?? 'NordStern Anchor';
+  const passphrase = process.env.NETWORK_PASSPHRASE ?? '';
   return {
     name,
     displayName: process.env.ANCHOR_DISPLAY_NAME?.trim() || name,
@@ -31,5 +33,6 @@ export function getBrand(): Brand {
     assetCode: process.env.ASSET_CODE ?? 'USDC',
     accent: HEX.test(accent) ? accent : '#ab9ff2',
     logoUrl: process.env.ANCHOR_LOGO_URL?.trim() || null,
+    network: passphrase.includes('Public Global') ? 'mainnet' : 'testnet',
   };
 }

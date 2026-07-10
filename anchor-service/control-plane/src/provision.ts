@@ -55,9 +55,17 @@ anchorsRouter.post('/', async (req: AuthedRequest, res: Response) => {
     country,
     fiu_registration_status,
     support_email,
-    branding
+    branding,
+    asset_code,
+    asset_name,
   } = req.body as any;
   if (!name) { res.status(400).json({ error: 'name is required' }); return; }
+
+  // The founder's chosen asset code (1–12 alphanumerics). Empty → derive from slug later.
+  const chosenAssetCode = String(asset_code ?? '').replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 12) || null;
+  // asset_name has no column; carry it in the open branding map so config-gen can label the asset.
+  const brandingObj: Record<string, unknown> = branding && typeof branding === 'object' ? { ...branding } : {};
+  if (asset_name && typeof asset_name === 'string') brandingObj.assetName = asset_name.trim();
 
   let slug = slugify(name);
   if (!slug) { res.status(400).json({ error: 'name must contain letters or digits' }); return; }
@@ -70,14 +78,14 @@ anchorsRouter.post('/', async (req: AuthedRequest, res: Response) => {
     const { rows: [anchor] } = await pool.query(
       `INSERT INTO tenants (
          name, slug, owner_user_id, home_domain, stack_status, status,
-         legal_entity_name, company_type, use_case, country, fiu_registration_status, support_email, branding
+         legal_entity_name, company_type, use_case, country, fiu_registration_status, support_email, branding, asset_code
        )
-       VALUES ($1, $2, $3, $4, 'pending', 'pending', $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+       VALUES ($1, $2, $3, $4, 'pending', 'pending', $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
       [
         name, slug, req.userId, `${slug}.${DOMAIN_SUFFIX}`,
         legal_entity_name || null, company_type || null, use_case || null, country || null,
         fiu_registration_status || null, support_email || null,
-        JSON.stringify(branding && typeof branding === 'object' ? branding : {}),
+        JSON.stringify(brandingObj), chosenAssetCode,
       ],
     );
     await pool.query(`INSERT INTO tenant_config (tenant_id) VALUES ($1) ON CONFLICT DO NOTHING`, [anchor.id]);
@@ -146,7 +154,7 @@ anchorsRouter.post('/:id/provision', async (req: AuthedRequest, res: Response) =
 });
 
 async function runProvision(anchor: any): Promise<void> {
-  const { id, slug, name, home_domain, legal_entity_name, branding } = anchor;
+  const { id, slug, name, home_domain, legal_entity_name, branding, asset_code } = anchor;
   // Display/brand name for the provisioned surfaces; falls back to the slug-safe name.
   const displayName = legal_entity_name || name;
   // branding is a jsonb column — pg returns it already parsed. Guard for safety.
@@ -154,7 +162,9 @@ async function runProvision(anchor: any): Promise<void> {
 
   await setStatus(id, 'provisioning', 'Generating keypairs');
   const kps = generateKeypairs();
-  const assetCode = assetCodeFromSlug(slug);
+  // Prefer the founder's chosen asset code (stored at anchor-create); fall back to slug-derived
+  // only for legacy anchors created before asset selection existed.
+  const assetCode = (asset_code && String(asset_code).trim()) || assetCodeFromSlug(slug);
 
   // Idempotent re-provision (retry after a failed attempt): clear any partial state
   // from a prior run so re-inserting keypairs can't collide. Keys are regenerated

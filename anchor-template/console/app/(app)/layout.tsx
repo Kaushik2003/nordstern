@@ -10,7 +10,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const brand = getBrand();
   return (
     <Providers>
-      <AnchorProvider slug={brand.slug} assetCode={brand.assetCode} envName={brand.displayName} logoUrl={brand.logoUrl}>
+      <AnchorProvider slug={brand.slug} assetCode={brand.assetCode} envName={brand.displayName} logoUrl={brand.logoUrl} network={brand.network}>
         <ConsoleShell>{children}</ConsoleShell>
       </AnchorProvider>
     </Providers>

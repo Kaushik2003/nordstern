@@ -42,6 +42,42 @@ export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
 );
 Input.displayName = 'Input';
 
+// ── Desktop building blocks ─────────────────────────────────────────────────────
+
+// A KPI tile for the dashboard stat row. Label on top, big value, optional sublabel/icon.
+export function StatTile({ label, value, sub, icon, className }: {
+  label: string; value: React.ReactNode; sub?: React.ReactNode; icon?: React.ReactNode; className?: string;
+}) {
+  return (
+    <div className={cn('rounded-2xl border border-line bg-canvas p-5', className)}>
+      <div className="flex items-center justify-between">
+        <p className="text-[13px] font-medium text-muted">{label}</p>
+        {icon && <span className="text-faint">{icon}</span>}
+      </div>
+      <p className="mt-2 text-2xl font-bold tracking-tight text-ink">{value}</p>
+      {sub != null && <p className="mt-1 text-xs text-muted">{sub}</p>}
+    </div>
+  );
+}
+
+// Section title + optional trailing action (e.g. "View all").
+export function SectionHeader({ title, action, className }: { title: string; action?: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn('mb-3 flex items-center justify-between', className)}>
+      <h2 className="text-[15px] font-semibold text-ink">{title}</h2>
+      {action}
+    </div>
+  );
+}
+
+// Minimal desktop table primitives — bordered card wrapper, sticky header row.
+export const Table = ({ className, ...p }: React.TableHTMLAttributes<HTMLTableElement>) =>
+  <table className={cn('w-full border-collapse text-sm', className)} {...p} />;
+export const Th = ({ className, ...p }: React.ThHTMLAttributes<HTMLTableCellElement>) =>
+  <th className={cn('border-b border-line px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-faint', className)} {...p} />;
+export const Td = ({ className, ...p }: React.TdHTMLAttributes<HTMLTableCellElement>) =>
+  <td className={cn('border-b border-line px-4 py-3 align-middle text-ink', className)} {...p} />;
+
 // ── Skeleton / Spinner ───────────────────────────────────────────────────────
 export const Skeleton = ({ className }: { className?: string }) =>
   <div className={cn('animate-pulse rounded-lg bg-surface-2', className)} />;

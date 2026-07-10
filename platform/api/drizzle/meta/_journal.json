@@ -43,6 +43,13 @@
       "when": 1783455795231,
       "tag": "0005_otp_only_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783683416479,
+      "tag": "0006_nappy_pet_avengers",
+      "breakpoints": true
     }
   ]
 }

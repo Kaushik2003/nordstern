@@ -14,6 +14,7 @@ export interface AnchorCtx {
   assetCode: string;
   name: string;
   logoUrl: string | null;
+  network: string;
   orgId: string | null;
   anchorId: string | null;
   status: string | null;
@@ -33,8 +34,8 @@ interface Resolved {
 }
 
 export function AnchorProvider({
-  slug, assetCode, envName, logoUrl = null, children,
-}: { slug: string; assetCode: string; envName: string; logoUrl?: string | null; children: React.ReactNode }) {
+  slug, assetCode, envName, logoUrl = null, network = 'testnet', children,
+}: { slug: string; assetCode: string; envName: string; logoUrl?: string | null; network?: string; children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -56,6 +57,7 @@ export function AnchorProvider({
     assetCode,
     name: data?.name ?? envName,
     logoUrl,
+    network,
     orgId: data?.organizationId ?? null,
     anchorId: data?.anchorId ?? null,
     status: data?.status ?? null,

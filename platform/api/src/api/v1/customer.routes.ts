@@ -49,19 +49,37 @@ customerRouter.patch('/me',
   }),
 );
 
-// ── Linked wallets (secondary identities) ────────────────────────────────────
+// ── Linked wallets (proven signing capabilities) ─────────────────────────────
+// A wallet is attached only after cryptographic proof of ownership (Identity Phase 1):
+//   1. POST /wallets/challenge  → server returns a challenge tx to sign
+//   2. POST /wallets/verify     → client returns the signed tx; server proves + records it
+// The old unproven POST /wallets is gone: it let a logged-in user link any address they knew
+// and read that anchor's transaction history for it (confidentiality breach).
 customerRouter.get('/wallets', requireCustomer, ah(async (req, res) => {
   res.json(await customerService.listWallets(req.customer!.id));
 }));
 
-customerRouter.post('/wallets',
+customerRouter.post('/wallets/challenge',
   requireCustomer,
-  validateBody(z.object({ address: z.string(), label: z.string().max(100).optional(), network: z.enum(['testnet', 'mainnet']).default('testnet') })),
+  validateBody(z.object({ address: z.string(), network: z.enum(['testnet', 'mainnet']).default('testnet') })),
   ah(async (req, res) => {
-    const w = await customerService.addWallet(req.customer!.id, req.body.address, req.body.label ?? null, req.body.network);
+    res.json(await customerService.createWalletChallenge(req.customer!.id, req.body.address, req.body.network));
+  }),
+);
+
+customerRouter.post('/wallets/verify',
+  requireCustomer,
+  validateBody(z.object({ address: z.string(), signedXdr: z.string(), label: z.string().max(100).optional() })),
+  ah(async (req, res) => {
+    const w = await customerService.verifyWalletChallenge(req.customer!.id, req.body.address, req.body.signedXdr, req.body.label ?? null);
     res.status(201).json(w);
   }),
 );
+
+// Deprecated: linking without ownership proof is no longer accepted.
+customerRouter.post('/wallets', requireCustomer, (_req, res) => {
+  res.status(400).json({ error: { code: 'proof_required', message: 'Linking a wallet now requires ownership proof. Use /wallets/challenge then /wallets/verify.' } });
+});
 
 customerRouter.delete('/wallets/:id', requireCustomer, ah(async (req, res) => {
   await customerService.removeWallet(req.customer!.id, req.params.id as string);

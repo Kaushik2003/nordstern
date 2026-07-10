@@ -8,6 +8,7 @@ import { startKyc } from '@/lib/anchor';
 import { useCustomer } from '@/components/customer-context';
 import { useBrand } from '@/components/brand-context';
 import { Card, CardBody, Button, Spinner } from '@/components/ui';
+import { DiditMark, NordSternMark } from '@/components/ecosystem';
 
 type View = 'intro' | 'processing' | 'approved' | 'pending' | 'declined';
 
@@ -56,8 +57,9 @@ export default function VerifyPage() {
       <h1 className="text-2xl font-bold text-ink">Verify your identity</h1>
 
       {view === 'approved' && (
-        <Result icon={<CheckCircle2 className="h-16 w-16 text-[var(--color-success)]" />} title="You’re verified"
-          body="You can now buy and sell. You won’t need to do this again." cta="Start buying" onCta={() => router.push('/buy')} />
+        <Result icon={<CheckCircle2 className="h-16 w-16 text-[var(--color-success)]" />} title="Verified for the NordStern Network"
+          body={`You can buy and sell with ${brand.name}, and across other participating services provisioned through NordStern, without verifying again.`}
+          cta="Start buying" onCta={() => router.push('/buy')} footer />
       )}
 
       {view === 'declined' && (
@@ -84,27 +86,39 @@ export default function VerifyPage() {
           <Card><CardBody className="flex flex-col items-center gap-3 py-8 text-center">
             <div className="grid h-14 w-14 place-items-center rounded-full bg-brand/15"><ShieldCheck className="h-7 w-7 text-brand-deep" /></div>
             <p className="font-semibold text-ink">A quick identity check</p>
-            <p className="max-w-xs text-sm text-muted">It takes about a minute. You’ll need a photo ID. This keeps {brand.name} safe for everyone — and you only do it once.</p>
+            <p className="max-w-sm text-sm leading-relaxed text-muted">
+              Identity verification is securely handled by DIDIT. It takes about a minute and you’ll
+              need a photo ID. Once verified, you can seamlessly use {brand.name} and any participating
+              service provisioned through NordStern — without repeating this step.
+            </p>
+            <div className="mt-1 flex items-center gap-2 text-[11px] text-faint">
+              <span>Identity by</span> <DiditMark /> <span aria-hidden>·</span> <span>Network by</span> <NordSternMark className="text-[11px]" />
+            </div>
           </CardBody></Card>
           {error && <div className="rounded-xl bg-[var(--color-danger-bg)] px-3 py-2 text-sm text-[var(--color-danger)]">{error}</div>}
           <Button size="block" disabled={busy} onClick={start}>
             {busy ? <><Spinner className="h-5 w-5" /> Starting…</> : <>Start verification <ArrowRight className="h-4 w-4" /></>}
           </Button>
-          <p className="text-center text-xs text-faint">Powered by DIDIT · your data is handled securely</p>
+          <p className="text-center text-xs text-faint">Your data is handled securely by DIDIT.</p>
         </>
       )}
     </div>
   );
 }
 
-function Result({ icon, title, body, cta, onCta, secondary }: {
-  icon: React.ReactNode; title: string; body: string; cta?: string; onCta?: () => void; secondary?: { label: string; onClick: () => void };
+function Result({ icon, title, body, cta, onCta, secondary, footer }: {
+  icon: React.ReactNode; title: string; body: string; cta?: string; onCta?: () => void; secondary?: { label: string; onClick: () => void }; footer?: boolean;
 }) {
   return (
     <Card><CardBody className="flex flex-col items-center gap-3 py-10 text-center">
       {icon}
       <p className="text-xl font-bold text-ink">{title}</p>
-      <p className="max-w-xs text-sm text-muted">{body}</p>
+      <p className="max-w-sm text-sm leading-relaxed text-muted">{body}</p>
+      {footer && (
+        <div className="flex items-center gap-2 text-[11px] text-faint">
+          <span>✓ Verified by</span> <DiditMark /> <span aria-hidden>·</span> <NordSternMark className="text-[11px]" /> <span>Network</span>
+        </div>
+      )}
       <div className="mt-2 flex w-full flex-col gap-2">
         {cta && onCta && <Button size="block" onClick={onCta}>{cta}</Button>}
         {secondary && <Button variant="outline" size="block" onClick={secondary.onClick}>{secondary.label}</Button>}

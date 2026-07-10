@@ -29,7 +29,7 @@ export default function ApiKeysPage() {
   });
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-ink">API keys</h1>

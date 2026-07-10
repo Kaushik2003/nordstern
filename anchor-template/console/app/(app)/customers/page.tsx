@@ -26,7 +26,7 @@ export default function CustomersPage() {
   const rows = (data?.users ?? []).filter((u) => !q || u.account.toLowerCase().includes(q.toLowerCase()));
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-ink">Customers</h1>
         <p className="text-sm text-subtle">Accounts that have transacted with your anchor, with real activity and KYC status.</p>

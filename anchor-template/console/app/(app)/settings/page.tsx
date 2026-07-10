@@ -13,7 +13,7 @@ export default function SettingsPage() {
   const { name, slug, assetCode, logoUrl, status, role } = useAnchor();
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-ink">Settings</h1>
         <p className="text-sm text-subtle">Your anchor&apos;s identity and configuration.</p>

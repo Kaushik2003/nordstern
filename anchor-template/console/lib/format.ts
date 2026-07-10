@@ -7,6 +7,20 @@ export const num = (v: string | number | null | undefined, dp = 2): string =>
 export const inr = (v: string | number | null | undefined): string =>
   v == null || v === '' ? '—' : `₹${num(v)}`;
 
+// USD — the token side of an INR↔USDC anchor is dollar-denominated (USDC ≈ USD).
+export const usd = (v: string | number | null | undefined): string =>
+  v == null || v === '' ? '—' : `$${num(v)}`;
+
+// Which currency a transaction leg is in: an anchor bridges INR (fiat) ↔ the token (USDC/$).
+//   deposit  (on-ramp):  in = INR,   out = token
+//   withdrawal (off-ramp): in = token, out = INR
+export const legIsInr = (kind: string, leg: 'in' | 'out'): boolean =>
+  kind === 'withdrawal' ? leg === 'out' : leg === 'in';
+
+// Format a transaction leg with the right symbol (₹ for the INR side, $ for the token side).
+export const legAmount = (kind: string, leg: 'in' | 'out', v: string | number | null | undefined): string =>
+  legIsInr(kind, leg) ? inr(v) : usd(v);
+
 // Format an on-chain amount with the anchor's asset code (e.g. "10.00 DIDITTEST"). The unit
 // is per-anchor, so always pass the code from useAnchor(); do NOT hardcode "USDC".
 export const assetAmt = (v: string | number | null | undefined, code: string): string =>

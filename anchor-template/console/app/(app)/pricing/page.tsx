@@ -58,13 +58,13 @@ export default function PricingPage() {
   const dirty = draft && data && JSON.stringify(draft) !== JSON.stringify(data);
 
   if (isLoading || !draft) {
-    return <div className="mx-auto max-w-3xl space-y-4"><Skeleton className="h-8 w-48" />{[0,1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>;
+    return <div className="space-y-4"><Skeleton className="h-8 w-48" />{[0,1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>;
   }
 
   const setField = (k: keyof Strategy, v: number) => setDraft({ ...draft, [k]: v });
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-ink">Pricing &amp; Limits</h1>

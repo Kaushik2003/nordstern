@@ -22,7 +22,7 @@ export default function AuditPage() {
   });
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
+    <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-ink">Audit log</h1>
         <p className="flex items-center gap-1.5 text-sm text-subtle">

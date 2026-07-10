@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/table';
-import { num, dateTime, shortId, txStatus } from '@/lib/format';
+import { num, dateTime, shortId, txStatus, legAmount } from '@/lib/format';
 
 interface Tx {
   id: string;
@@ -55,7 +55,7 @@ function TransactionsInner() {
   });
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-ink">Transactions</h1>
@@ -99,8 +99,8 @@ function TransactionsInner() {
                       <TR key={t.id} className="cursor-pointer hover:bg-surface" onClick={() => setSelected(t)}>
                         <TD className="pl-4 capitalize">{t.kind}</TD>
                         <TD><Badge tone={st.tone}>{st.label}</Badge></TD>
-                        <TD>{num(t.amountIn)}</TD>
-                        <TD>{num(t.amountOut)}</TD>
+                        <TD className="tabular-nums">{legAmount(t.kind, 'in', t.amountIn)}</TD>
+                        <TD className="tabular-nums">{legAmount(t.kind, 'out', t.amountOut)}</TD>
                         <TD className="font-mono text-xs text-subtle">{shortId(t.memo, 6)}</TD>
                         <TD className="text-subtle">{dateTime(t.startedAt)}</TD>
                       </TR>

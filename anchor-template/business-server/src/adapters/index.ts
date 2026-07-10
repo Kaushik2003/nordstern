@@ -4,6 +4,7 @@ import { RateProvider } from './rate/RateProvider.js';
 import { MockRateProvider } from './rate/mock.js';
 import { LiveRateProvider } from './rate/live.js';
 import { CmcRateProvider } from './rate/cmc.js';
+import { CoinGeckoRateProvider } from './rate/coingecko.js';
 
 import { DepositProvider } from './deposit/DepositProvider.js';
 import { MockDepositProvider } from './deposit/mock.js';
@@ -24,10 +25,13 @@ import { DiditKycProvider } from './kyc/didit.js';
 // in here without touching the SEP-24 flow logic.
 
 function makeRate(): RateProvider {
+  // Real live prices by DEFAULT (XLM/USD/INR via CoinGecko) — no mock, no fallback.
+  // The mock is only used if a test explicitly asks for FEE_PROVIDER=mock-fixed.
   switch (PROVIDERS.fee) {          // FEE_PROVIDER selects the FX/pricing source
-    case 'cmc':  return new CmcRateProvider();   // CoinMarketCap USDC→INR
-    case 'live': return new LiveRateProvider();  // generic USD→INR feed
-    default:     return new MockRateProvider();
+    case 'cmc':        return new CmcRateProvider();       // CoinMarketCap USDC→INR
+    case 'live':       return new LiveRateProvider();      // generic USD→INR feed
+    case 'mock-fixed': return new MockRateProvider();      // deliberate fixed rate (tests only)
+    default:           return new CoinGeckoRateProvider(); // XLM + USD + INR, live
   }
 }
 

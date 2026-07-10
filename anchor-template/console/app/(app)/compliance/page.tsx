@@ -42,7 +42,7 @@ export default function CompliancePage() {
   const openCount = all.filter((c) => isOpen(c.status)).length;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-ink">Compliance</h1>
         <p className="text-sm text-subtle">Review flagged customers and file or clear cases. {openCount > 0 && <span className="font-medium text-[var(--color-warning)]">{openCount} awaiting review.</span>}</p>

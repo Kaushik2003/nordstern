@@ -27,7 +27,7 @@ interface MaskedCredential {
 const PROVIDERS: Record<string, { label: string; blurb: string; fields: { key: string; label: string; optional?: boolean }[] }> = {
   razorpay: {
     label: 'Razorpay',
-    blurb: 'Collect INR deposits (fiat-in).',
+    blurb: 'On-ramp (fiat-in). Collects rupees when a customer buys your token — UPI, cards, netbanking — and confirms by webhook. Required to launch.',
     fields: [
       { key: 'RAZORPAY_KEY_ID', label: 'Key ID' },
       { key: 'RAZORPAY_KEY_SECRET', label: 'Key Secret' },
@@ -36,7 +36,7 @@ const PROVIDERS: Record<string, { label: string; blurb: string; fields: { key: s
   },
   cashfree: {
     label: 'Cashfree',
-    blurb: 'Disburse INR payouts (fiat-out).',
+    blurb: 'Off-ramp (fiat-out). Disburses rupees back to a customer’s bank (IMPS / NEFT / UPI) when they sell your token. Needed for withdrawals.',
     fields: [
       { key: 'CASHFREE_APP_ID', label: 'App ID' },
       { key: 'CASHFREE_SECRET_KEY', label: 'Secret Key' },
@@ -45,7 +45,7 @@ const PROVIDERS: Record<string, { label: string; blurb: string; fields: { key: s
   },
   treasury: {
     label: 'Treasury',
-    blurb: 'Signing seed for the on-chain treasury account.',
+    blurb: 'The Stellar side. Signing seed that issues your token to buyers and receives it back on redemption. Managed and encrypted by NordStern.',
     fields: [{ key: 'TREASURY_SECRET', label: 'Secret Seed' }],
   },
 };
@@ -71,7 +71,7 @@ export default function CredentialsPage() {
   const byProvider = new Map((data ?? []).map((c) => [c.provider, c]));
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-ink">Credentials</h1>
         <p className="text-sm text-subtle">
@@ -147,7 +147,30 @@ export default function CredentialsPage() {
           })}
         </div>
       )}
+
+      {/* How the keys are secured — transparency for the operator. */}
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ShieldCheck className="h-4 w-4 text-brand" /> How your keys stay safe</CardTitle></CardHeader>
+        <CardContent>
+          <ul className="space-y-2.5 text-sm text-subtle">
+            <SafeItem>Values never touch a database. They live in a dedicated secret store (AWS Secrets Manager in production), one isolated secret per anchor.</SafeItem>
+            <SafeItem>Write-only from this console. There is no API that returns a secret — you can set, rotate, or remove, but never read one back (even we can’t display it).</SafeItem>
+            <SafeItem>Accessed by IAM role, not static keys. Nothing on the server holds long-lived cloud credentials to steal.</SafeItem>
+            <SafeItem>Injected at runtime, never baked in. Keys reach your anchor as process environment at launch — not in the code, image, or git.</SafeItem>
+            <SafeItem>The treasury seed gets extra protection: it’s additionally encrypted at rest and decrypted only at the moment it signs.</SafeItem>
+          </ul>
+        </CardContent>
+      </Card>
     </div>
+  );
+}
+
+function SafeItem({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex items-start gap-2.5">
+      <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[color:var(--color-success)]" />
+      <span className="leading-relaxed">{children}</span>
+    </li>
   );
 }
 

@@ -37,7 +37,7 @@ export default function TreasuryPage() {
   const busy = summary.isLoading;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-ink">Treasury</h1>
         <p className="text-sm text-subtle">Your {assetCode} float and the emergency controls that govern money movement.</p>

@@ -16,7 +16,7 @@ interface Summary {
   network: string;
   asset: { code: string; issuer: string; id: string };
   treasury: { address: string; usdc: string | null; xlm: string | null };
-  rate?: { inrPerUsdc: string };
+  rate?: { inrPerUsdc: string; usdInr?: string; xlmUsd?: string; xlmInr?: string; source?: string; asOf?: string };
   counts: { total: number; deposits: number; withdrawals: number; completed: number; pending: number };
   volume: { inrCollected: string; usdcDeposited: string; usdcWithdrawn: string; inrPaidOut: string };
   metrics: { tokensInCirculation: string; netFiatCollected: string; avgSettlementMinutes: string | null; netFlow24h: string; dailyOutflow: string };
@@ -56,7 +56,7 @@ export default function OverviewPage() {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-6xl">
+      <div className="">
         <Card><p className="py-4 text-sm text-subtle">Live data unavailable — the anchor may still be warming up, or your session lacks operator access.</p></Card>
       </div>
     );
@@ -67,7 +67,7 @@ export default function OverviewPage() {
   const net = Number(m?.netFlow24h ?? 0);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
+    <div className="space-y-5">
       <div className="flex items-baseline justify-between" style={reveal(T.header)}>
         <div>
           <p className={cn('text-[17px] font-semibold', INK)}>Overview</p>
@@ -75,6 +75,19 @@ export default function OverviewPage() {
         </div>
         <p className="text-[11.5px] text-subtle">Live · refreshes every 15s</p>
       </div>
+
+      {/* Live market rates — real feed (XLM / USD / INR), never mocked */}
+      {data?.rate && (data.rate.xlmUsd || data.rate.usdInr) && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-black/[0.05] bg-white px-4 py-2.5 shadow-[0_1px_2px_rgba(24,22,54,0.04)]" style={reveal(T.header + 0.03)}>
+          <span className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-subtle">Live rates</span>
+          <Rate pair="XLM / USD" value={data.rate.xlmUsd ? `$${data.rate.xlmUsd}` : '—'} />
+          <Rate pair="XLM / INR" value={data.rate.xlmInr ? `₹${data.rate.xlmInr}` : '—'} />
+          <Rate pair="USD / INR" value={data.rate.usdInr ? `₹${data.rate.usdInr}` : '—'} />
+          <span className="ml-auto text-[10.5px] text-subtle">
+            {data.rate.source ?? 'live'}{data.rate.asOf ? ` · ${relativeTime(new Date(data.rate.asOf).getTime())}` : ''}
+          </span>
+        </div>
+      )}
 
       {/* KPI row — real balance-sheet + flow metrics */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -111,17 +124,21 @@ export default function OverviewPage() {
 
         {/* right — attention, reserves, health */}
         <div className="space-y-5">
-          <Card style={reveal(T.attn)}>
-            <PanelHead title="Needs attention" meta={<span className="text-[11.5px] text-subtle">{data ? attnCount(data) : 0} items</span>} />
-            {data && (
-              <>
+          {/* Only shown when something actually needs attention. */}
+          {data && attnCount(data) > 0 && (
+            <Card style={reveal(T.attn)}>
+              <PanelHead title="Needs attention" meta={<span className="text-[11.5px] text-subtle">{attnCount(data)} items</span>} />
+              {data.attention.withdrawalsAwaitingPayout.count > 0 && (
                 <QueueRow style={reveal(T.attnRow)} Icon={ArrowUpRight} tone="info" label="Withdrawals awaiting payout" meta={`${data.attention.withdrawalsAwaitingPayout.count} pending`} value={inr(data.attention.withdrawalsAwaitingPayout.amount)} href="/transactions?filter=pending" />
+              )}
+              {data.attention.depositsPending.count > 0 && (
                 <QueueRow style={reveal(T.attnRow + T.attnStep)} Icon={ArrowDownLeft} tone="info" label="Deposits pending" meta={`${data.attention.depositsPending.count} transactions`} value={inr(data.attention.depositsPending.amount)} href="/transactions?filter=pending" />
+              )}
+              {data.attention.payoutFailed.count > 0 && (
                 <QueueRow style={reveal(T.attnRow + T.attnStep * 2)} Icon={AlertTriangle} tone="down" label="Payout failed · retry" meta={`${data.attention.payoutFailed.count} to review`} value={inr(data.attention.payoutFailed.amount)} href="/transactions?filter=failed" />
-                {attnCount(data) === 0 && <p className="px-1 py-3 text-[12.5px] text-subtle">All clear — nothing needs attention.</p>}
-              </>
-            )}
-          </Card>
+              )}
+            </Card>
+          )}
 
           <Card style={reveal(T.res)}>
             <PanelHead title="Reserve accounts" />
@@ -166,6 +183,15 @@ function Kpi({ label, value, sub, accent, loading, style }: { label: string; val
       )}
       <p className="mt-2.5 text-[11.5px] text-subtle">{sub}</p>
     </Card>
+  );
+}
+
+function Rate({ pair, value }: { pair: string; value: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 text-[11.5px]">
+      <span className="font-medium text-muted-foreground">{pair}</span>
+      <span className="font-semibold tabular-nums text-ink">{value}</span>
+    </span>
   );
 }
 

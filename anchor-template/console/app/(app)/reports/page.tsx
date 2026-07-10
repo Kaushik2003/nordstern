@@ -35,7 +35,7 @@ export default function ReportsPage() {
   const loading = summary.isLoading || txns.isLoading;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-ink">Reports</h1>

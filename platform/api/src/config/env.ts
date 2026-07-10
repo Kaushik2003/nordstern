@@ -43,6 +43,12 @@ const schema = z.object({
   // Vault (tenant_secrets) — 32-byte base64
   SECRETS_KEK: z.string().optional(),
 
+  // The Stellar network the provisioner runs anchors on (PUBLIC = mainnet). Surfaced
+  // to the redeem UI so it can offer the custom self-issued-token option ONLY on
+  // testnet (custom tokens are minted, which is forbidden on mainnet). Mirrors the
+  // control-plane's own STELLAR_NETWORK; defaults to testnet.
+  STELLAR_NETWORK: z.string().default('TESTNET'),
+
   // ── SecretStore (PSP/banking credentials — NEVER stored in the DB) ──────────
   // One AWS Secrets Manager secret per anchor at `${SECRETS_PREFIX}/${SECRETS_ENV}/anchor/${slug}`
   // — the exact convention the prod Terraform + External Secrets Operator already use.

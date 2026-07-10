@@ -63,6 +63,9 @@ services:
       CONSOLE_URL: https://register.nordstern.live
       ANCHOR_DOMAIN_SUFFIX: nordstern.live
       ANCHOR_PUBLIC_SCHEME: https
+      # Network the provisioner runs on — surfaced to the redeem UI so custom
+      # self-issued tokens are only offered on testnet (minting is mainnet-forbidden).
+      STELLAR_NETWORK: ${STELLAR_NETWORK:-PUBLIC}
       ADMIN_USERNAME: ${ADMIN_USERNAME}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       # Real AWS Secrets Manager via the EC2 instance role (empty endpoint + no static creds).

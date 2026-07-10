@@ -5,6 +5,7 @@ import { provisioningJobs } from '../../db/schema.js';
 import { anchorInvitationService } from '../../services/anchorInvitation.service.js';
 import { provisionLimiter, pollLimiter, applicationLimiter } from '../../middleware/rateLimit.js';
 import { ah } from '../../lib/asyncHandler.js';
+import { env } from '../../config/env.js';
 
 // Public onboarding routes: an invitee (not yet a user) verifies + redeems their
 // anchor invitation, which triggers the REAL provisioning lifecycle, then polls
@@ -12,9 +13,12 @@ import { ah } from '../../lib/asyncHandler.js';
 export const anchorInvitationsRouter = Router();
 
 // GET /anchor-invitations/verify?token=... — redeem-page pre-check
+// Returns the platform's Stellar network so the redeem UI can gate the custom
+// self-issued-token option to testnet only (minting is forbidden on mainnet).
 anchorInvitationsRouter.get('/verify', applicationLimiter, ah(async (req, res) => {
   const inv = await anchorInvitationService.verify(String(req.query.token ?? ''));
-  res.json({ email: inv.email, valid: true });
+  const network = env.STELLAR_NETWORK.toUpperCase() === 'PUBLIC' ? 'mainnet' : 'testnet';
+  res.json({ email: inv.email, valid: true, network });
 }));
 
 // POST /anchor-invitations/redeem — create org/anchor + start real provisioning.

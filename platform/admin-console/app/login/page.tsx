@@ -32,9 +32,9 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-surface px-4">
       <div className="w-full max-w-sm">
-        <div className="mb-6 flex flex-col items-center gap-2 text-center">
+        <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-foreground text-background">
             <ShieldCheck className="h-5 w-5" />
           </div>
@@ -42,13 +42,13 @@ export default function AdminLoginPage() {
             Nord<span className="text-brand">Stern</span> <span className="text-muted-foreground font-normal">Admin</span>
           </div>
         </div>
-        <Card>
+        <Card className="rounded-card border-line shadow-none">
           <CardHeader>
             <CardTitle>Internal sign-in</CardTitle>
             <CardDescription>NordStern staff only — application review & approval.</CardDescription>
           </CardHeader>
           <CardContent>
-            {error && <div className="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
+            {error && <div className="mb-4 rounded-lg bg-destructive-50 px-3 py-2 text-sm text-destructive">{error}</div>}
             <form onSubmit={onSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
@@ -58,7 +58,7 @@ export default function AdminLoginPage() {
                 <Label htmlFor="password">Password</Label>
                 <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••" />
               </div>
-              <Button type="submit" className="w-full" disabled={busy || !username || !password}>
+              <Button type="submit" className="w-full rounded-pill" disabled={busy || !username || !password}>
                 {busy ? 'Signing in…' : 'Sign in'}
               </Button>
             </form>

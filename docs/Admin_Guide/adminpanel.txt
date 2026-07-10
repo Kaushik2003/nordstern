@@ -1,0 +1,75 @@
+The key constraint
+The admin console today is one page: an applications table with approve/reject, backed by GET /admin/applications on platform-api. Its auth is a separate realm — a single hardcoded username/password issuing an ns_admin cookie (admin.routes.ts:23-33), deliberately non-interchangeable with operator or customer auth.
+
+The data an admin god-view wants lives in four places, and that realm can currently reach only one of them cheaply:
+
+Source	Holds	Reachable from admin realm?
+platform-api controldb (same process)	applications, orgs, projects, anchors stub, customers, api_keys, secret_refs, audit_logs, provisioning_jobs	Yes, directly — same Drizzle client
+control-plane :3002 tenants	the rich anchor detail: stack_status, status_detail, container IDs, asset code/issuer, home_domain, tenant_config (limits/fees), reconciliation_alerts	Needs an HTTP proxy + service token
+aggregator :3005	fleet health, capabilities, quotes, routing	Needs a proxy
+per-anchor business-server	transactions, compliance cases, KYC status, activity	Needs a proxy, per anchor
+Two useful facts: control-plane already has GET /admin/anchors returning every tenant joined with owner email and unresolved-alert count (admin.ts:10-21), and provisioner.service.ts is already a working service-token HTTP client to control-plane — so "proxy through platform-api" is a pattern to copy, not invent.
+
+Scope correction: this is NordStern's internal staff console (admin.*), not the per-anchor operator console the founder gets (that's anchor-template/console). So the list below is oversight across all tenants and a few god-actions. Treasury, fee configuration, and transaction ops belong to the operator's own console — rebuilding them here would be scope creep.
+
+Tier 1 — Available now (data already in the admin realm's own DB)
+Applications pipeline (extend what exists)
+
+Full profile / product JSONB drill-down: legal entity, contact, country, fiat currency, target markets, registration, launch mode, rails, limits, fees. Today only six columns of this are rendered.
+Filter and search by status / mode / country; counts per status.
+Invitation state from anchor_invitations: sent, expiresAt, usedAt — i.e. "approved 6 days ago, never redeemed." Resend and revoke.
+Organizations & tenants
+
+Every org: name, slug, website, country, team size, primary goal, status (active/suspended), created.
+Members per org from memberships (owner/admin/member/billing) and pending invitations.
+Projects per org and their environment (sandbox/production/demo/testing).
+Anchors — fleet list
+
+The anchors table: name, slug, org, project, status (draft/provisioning/active/error/suspended/removed), network, branding, created.
+Provisioning jobs
+
+provisioning_jobs: type, status, attempts, startedAt/finishedAt, duration, the error text, requesting user, and the payload/result JSONB. This is the single most admin-shaped table in the schema and nothing renders it today.
+Users & sessions
+
+Global users: email, name, lastLoginAt, status; which orgs each belongs to.
+Active sessions: user agent, IP, lastUsedAt, expiry, revoked. Force-revoke is a natural god-action.
+Customers (end-users, across all anchors)
+
+customers: email, kycStatus (unverified/pending/approved/declined), diditVerifiedAt, last login.
+customer_wallets: proven Stellar addresses, proof type, provenAt, network.
+KYC funnel counts — this is real DIDIT data, not mock.
+Credentials — metadata only
+
+api_keys: name, prefix, last4, scopes, lastUsedAt, expiry, revoked, created-by. Revoke action.
+secret_refs: which provider (razorpay/cashfree/didit/treasury), secret path, keyNames, lastRotatedAt. Never a value — these tables are metadata-only by design and the UI must stay that way.
+Audit log
+
+audit_logs is append-only and already written on approve/reject: actor, action, resource, request ID, IP, user agent, metadata. A filterable global timeline, plus per-org and per-actor views.
+Tier 2 — Needs a platform-api proxy to control-plane / aggregator
+Anchor health & stack detail (the thing you actually asked about)
+
+From tenants: stack_status + status_detail (the live provisioning narrative — "Funding accounts…"), ap_container_id / biz_container_id, home_domain, subdomain, asset_code / asset_issuer.
+From aggregator /health and /capabilities: per-anchor liveness, supported assets and rails, settlement model.
+Container up/down and last health check.
+Per-anchor business rules (read-only oversight of what the operator configured)
+
+tenant_config: min/max deposit and withdrawal, daily limit, deposit/withdrawal fee %, settlement days, alert thresholds, webhook URL. Bank fields exist here too — mask them.
+Reconciliation alerts
+
+Unresolved alerts per anchor with fiat vs on-chain balance and delta; resolve action. Note these are currently demo-injected via /alerts/inject, not produced by a real reconciler.
+Compliance oversight
+
+Per-anchor compliance/cases and compliance/audit from the business-server.
+Aggregate transaction volume, deposit/withdrawal counts, stuck transactions.
+fiu_registration_status from tenants — display it as a recorded field, never as a legal verdict, per AGENTS.md §5.
+God-actions with real backing
+
+Suspend / unsuspend an anchor — PATCH /admin/anchors/:id exists, but it's metadata-only and does not stop containers. Label it honestly.
+Retry a failed provision — POST /anchors/:id/provision is idempotent.
+Teardown — DELETE /anchors/:id.
+Tier 3 — Would be mock or needs new plumbing
+Revenue and billing per tenant; SLA/uptime history and time-series charts (nothing persists health over time); infra metrics (CPU, memory, disk); notification and alerting rules; ticketing. Worth naming so nobody wires synthetic data to a page that looks live.
+
+My recommendation for the first slice: the all-anchors fleet view. anchors is already in the admin realm's own database with a real status enum, so a genuinely useful page ships with zero new plumbing — and it's the most obvious "this looks like an admin panel" upgrade over a single applications table. Add the control-plane proxy in a second pass to enrich each row with status_detail, container health, and alert count.
+
+Tell me which pages you want and I'll plan the build.

@@ -12,9 +12,10 @@ interface Step {
 }
 
 const steps: Step[] = [
-  { id: 1, title: 'Business Profile', subtitle: 'Who you are' },
-  { id: 2, title: 'Product & Rails', subtitle: 'Currency, limits & fees' },
-  { id: 3, title: 'Review & Submit', subtitle: 'Confirm & apply' },
+  { id: 1, title: 'Founder Profile', subtitle: 'Who you are' },
+  { id: 2, title: 'Business Profile', subtitle: 'Institution details' },
+  { id: 3, title: 'Product & Rails', subtitle: 'Currency, limits & fees' },
+  { id: 4, title: 'Review & Submit', subtitle: 'Confirm & apply' },
 ];
 
 interface SidebarStepsProps {
@@ -29,13 +30,9 @@ export function SidebarSteps({ currentStep, onStepClick, furthestStep }: Sidebar
   const fill = ((currentStep - 1) / (steps.length - 1)) * 100;
 
   return (
-    <div className="w-[360px] shrink-0 p-8 lg:p-12 bg-surface border-r border-line hidden lg:flex flex-col h-screen sticky top-0 overflow-y-auto">
-      <div className="mb-16 flex items-center gap-3">
-        <Image src="/logo.png" alt="NordStern Logo" width={32} height={32} className="h-8 w-8 shrink-0" />
-        <div className="font-bold text-xl tracking-tight">
-          <span className="text-ink">Nord</span>
-          <span className="text-brand">Stern</span>
-        </div>
+    <div className="w-[360px] shrink-0 p-8 lg:p-12 bg-[#eef0fc] border-r border-line hidden lg:flex flex-col h-screen sticky top-0 overflow-y-auto">
+      <div className="mb-16 flex items-center gap-4">
+        <Image src="/full-banner-logo.jpg" alt="NordStern Logo" width={320} height={180} className="w-56 h-auto shrink-0" />
       </div>
 
       <div className="space-y-12 relative ml-2">

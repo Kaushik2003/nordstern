@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
@@ -22,6 +23,11 @@ export function DetailPanel({
   footer?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  // Portal to <body> so the panel is anchored to the VIEWPORT, not to a transformed ancestor
+  // (the page-enter template wrapper would otherwise capture position:fixed and clip the panel).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   // ESC to close.
   useEffect(() => {
     if (!open) return;
@@ -42,7 +48,9 @@ export function DetailPanel({
     return () => { window.clearTimeout(id); document.removeEventListener('mousedown', onDown); };
   }, [open, onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <aside
       data-panel-keep
       aria-hidden={!open}
@@ -72,7 +80,8 @@ export function DetailPanel({
 
       {/* Footer (actions) */}
       {footer && <div className="border-t border-line px-5 py-3.5">{footer}</div>}
-    </aside>
+    </aside>,
+    document.body,
   );
 }
 

@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { provisioningJobs } from '../../db/schema.js';
+import { provisioningJobs, applications, organizations } from '../../db/schema.js';
 import { anchorInvitationService } from '../../services/anchorInvitation.service.js';
 import { provisionLimiter, pollLimiter, applicationLimiter } from '../../middleware/rateLimit.js';
 import { ah } from '../../lib/asyncHandler.js';
 import { env } from '../../config/env.js';
+import { isReservedSlug } from '../../lib/slug.js';
 
 // Public onboarding routes: an invitee (not yet a user) verifies + redeems their
 // anchor invitation, which triggers the REAL provisioning lifecycle, then polls
@@ -18,7 +19,29 @@ export const anchorInvitationsRouter = Router();
 anchorInvitationsRouter.get('/verify', applicationLimiter, ah(async (req, res) => {
   const inv = await anchorInvitationService.verify(String(req.query.token ?? ''));
   const network = env.STELLAR_NETWORK.toUpperCase() === 'PUBLIC' ? 'mainnet' : 'testnet';
-  res.json({ email: inv.email, valid: true, network });
+  // Pull the applicant's name + business from the vetted application so the redeem
+  // form can pre-fill them (the founder already told us at apply time).
+  let name = '';
+  let businessName = '';
+  if (inv.applicationId) {
+    const app = await db.query.applications.findFirst({ where: eq(applications.id, inv.applicationId) });
+    const profile = (app?.profile ?? {}) as any;
+    name = String(profile.contactPerson ?? '').trim();
+    businessName = String(profile.legalEntityName ?? '').trim();
+  }
+  res.json({ email: inv.email, valid: true, network, name, businessName });
+}));
+
+// GET /anchor-invitations/subdomain-available?slug=... — live availability check for the
+// redeem address step (PUBLIC, rate-limited). Mirrors the reserved + slug-clash rules the
+// redeem flow enforces, so the founder gets instant feedback instead of failing at launch.
+// Returns { available: true|false, reason? } — available:null when the slug is malformed.
+anchorInvitationsRouter.get('/subdomain-available', applicationLimiter, ah(async (req, res) => {
+  const raw = String(req.query.slug ?? '').toLowerCase();
+  if (!/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(raw)) { res.json({ available: null }); return; }
+  if (isReservedSlug(raw)) { res.json({ available: false, reason: 'reserved' }); return; }
+  const clash = await db.query.organizations.findFirst({ where: eq(organizations.slug, raw) });
+  res.json({ available: !clash, ...(clash ? { reason: 'taken' } : {}) });
 }));
 
 // POST /anchor-invitations/redeem — create org/anchor + start real provisioning.

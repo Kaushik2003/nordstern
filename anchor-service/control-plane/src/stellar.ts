@@ -128,7 +128,10 @@ export async function verifyExternalTreasury(treasuryPublic: string): Promise<vo
       );
     }
   } catch (err: any) {
-    if (err.status === 404) {
+    // A missing account surfaces as the SDK's NotFoundError, whose HTTP status lives at
+    // err.response.status (NOT err.status). Match both so the actionable "not funded yet"
+    // message — the most likely operator mistake — actually fires instead of a raw 404.
+    if (err?.name === 'NotFoundError' || err?.response?.status === 404) {
       throw new Error(`treasury account ${treasuryPublic} does not exist on-chain. Please create and fund it with XLM first.`);
     }
     throw err;

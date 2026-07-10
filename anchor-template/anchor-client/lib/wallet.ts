@@ -41,11 +41,22 @@ function ensureKit(): void {
   inited = true;
 }
 
+// The address for a connection ESTABLISHED this session via connect() (the auth modal). We
+// gate checkConnected() on this — not on getAddress() — because a wallet like Freighter will
+// hand back a cached public key even for a site it has never been granted access to. Signing
+// then fails ("site not connected", Confirm disabled) because connect() → authModal is what
+// runs the wallet's requestAccess/allowlist. Requiring a real connect() per session guarantees
+// the site is allowlisted before we ever ask it to sign.
+let establishedAddress: string | null = null;
+
 // Opens the wallet-picker modal, sets the chosen wallet active, and returns its address.
+// authModal() triggers the wallet's access grant (e.g. Freighter requestAccess), which
+// allowlists this site so subsequent signTransaction calls are permitted.
 export async function connect(): Promise<string> {
   ensureKit();
   const { address } = await StellarWalletsKit.authModal();
   if (!address) throw new Error('Connection cancelled');
+  establishedAddress = address;
   try {
     const id = StellarWalletsKit.selectedModule?.productId;
     if (id) window.localStorage.setItem(LS_KEY, id);
@@ -55,16 +66,11 @@ export async function connect(): Promise<string> {
   return address;
 }
 
-// Returns the address if a wallet is already connected (no prompt), else null.
+// Returns the address only if a wallet was actually connected this session (no prompt),
+// else null so the caller falls through to connect() and establishes a real, allowlisted
+// connection. Deliberately does NOT fall back to getAddress() (see establishedAddress note).
 export async function checkConnected(): Promise<string | null> {
-  try {
-    if (typeof window === 'undefined' || !window.localStorage.getItem(LS_KEY)) return null;
-    ensureKit();
-    const { address } = await StellarWalletsKit.getAddress();
-    return address || null;
-  } catch {
-    return null;
-  }
+  return establishedAddress;
 }
 
 // Signs an XDR transaction with the connected wallet. Rejects if the user declines.
@@ -76,6 +82,7 @@ export async function signTransaction(xdr: string): Promise<string> {
 
 // Forget the connected wallet (used by a "disconnect" affordance).
 export async function disconnect(): Promise<void> {
+  establishedAddress = null;
   try {
     ensureKit();
     await StellarWalletsKit.disconnect();

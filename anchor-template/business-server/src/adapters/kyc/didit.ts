@@ -237,7 +237,8 @@ export async function getStatus(account: string): Promise<KycStatus> {
         // too — otherwise the app (which polls central KYC) hangs on "Finishing verification"
         // even though DIDIT approved. (Local mode already updates local customers in persist.)
         if (NORDSTERN_API_URL && SERVICE_SECRET) {
-          await propagateKycToPlatform({ vendor_data: account, status: live.status });
+          // Include the decision so the central profile can seed verified name + country.
+          await propagateKycToPlatform({ vendor_data: account, status: live.status, decision: live.decision });
         }
         console.log(`[didit] poll ${account}: ${live.status} → ${mapped}`);
         return mapped;

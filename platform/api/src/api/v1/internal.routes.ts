@@ -31,9 +31,13 @@ internalRouter.post('/customers/kyc',
     walletAddress: z.string().optional(),
     status: z.enum(['unverified', 'pending', 'approved', 'declined']),
     diditSessionId: z.string().optional(),
+    // Verified identity attributes from the KYC decision — filled into the profile only if the
+    // customer hasn't already set their own (their edits win). Optional.
+    fullName: z.string().max(255).optional(),
+    country: z.string().max(100).optional(),
   }).refine((b) => b.customerId || b.walletAddress, { message: 'customerId or walletAddress required' })),
   ah(async (req, res) => {
-    const { customerId, walletAddress, status, diditSessionId } = req.body;
+    const { customerId, walletAddress, status, diditSessionId, fullName, country } = req.body;
 
     let id = customerId as string | undefined;
     if (!id && walletAddress) {
@@ -47,6 +51,10 @@ internalRouter.post('/customers/kyc',
     if (!c) throw notFound('Customer not found');
 
     await customersRepo.setKyc(id, status, diditSessionId);
+    // "Verify once" payoff: seed the profile with the verified name/country (fill-if-empty).
+    if (status === 'approved' && (fullName || country)) {
+      await customersRepo.fillIdentityIfEmpty(id, { fullName, country });
+    }
     logger.info({ customerId: id, status }, 'customer KYC status set via service call');
     res.json({ ok: true, customerId: id, status });
   }),

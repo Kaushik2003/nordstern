@@ -9,6 +9,7 @@ import { useBrand } from '@/components/brand-context';
 import { BrandMark } from '@/components/brand-mark';
 import { Spinner, Badge, type Tone } from '@/components/ui';
 import { ProvisionedByNordStern, ENVIRONMENT, IS_PRODUCTION } from '@/components/ecosystem';
+import { Avatar } from '@/components/avatar';
 import { cn } from '@/lib/cn';
 
 const NAV = [
@@ -54,7 +55,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const title = Object.entries(PAGE_TITLE).find(([h]) => isActive(h))?.[1] ?? brand.name;
   const kyc = kycChip(customer.kycStatus);
-  const initial = (customer.fullName || customer.email || 'U').charAt(0).toUpperCase();
 
   return (
     <div className="min-h-screen bg-surface/40 lg:flex">
@@ -94,7 +94,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         <div className="border-t border-line p-3">
           <Link href="/profile" className="flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-surface">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand/15 text-sm font-semibold text-brand-deep">{initial}</div>
+            <Avatar customer={customer} size="md" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-ink">{customer.fullName || 'Your account'}</p>
               <p className="truncate text-[11px] text-muted">{customer.email}</p>
@@ -129,8 +129,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Link href="/support" className="rounded-lg p-2 text-muted transition hover:bg-surface hover:text-ink" aria-label="Support">
               <LifeBuoy className="h-[18px] w-[18px]" />
             </Link>
-            <Link href="/profile" className="grid h-8 w-8 place-items-center rounded-full bg-brand/15 text-sm font-semibold text-brand-deep" aria-label="Profile">
-              {initial}
+            <Link href="/profile" aria-label="Profile">
+              <Avatar customer={customer} size="sm" />
             </Link>
           </div>
         </header>

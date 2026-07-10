@@ -9,9 +9,18 @@ import { ensureWalletLinked } from '@/lib/link-wallet';
 import { useCustomer } from '@/components/customer-context';
 import { useBrand } from '@/components/brand-context';
 import { Card, CardBody, Button, Input, Spinner, Badge } from '@/components/ui';
+import { Avatar, AvatarPicker, avatarEmoji } from '@/components/avatar';
 import { VerificationCard, InfrastructureSection } from '@/components/ecosystem';
 
 const mask = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+
+// A compact, common-country list for the picker; the KYC-filled value is always included even
+// if it's not here. Not exhaustive — enough to cover the pilot's users without a huge bundle.
+const COUNTRIES = [
+  'India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Singapore', 'United Arab Emirates',
+  'Germany', 'France', 'Netherlands', 'Nigeria', 'Kenya', 'South Africa', 'Brazil', 'Mexico',
+  'Japan', 'Philippines', 'Indonesia', 'Bangladesh', 'Pakistan', 'Sri Lanka', 'Nepal',
+];
 
 export default function ProfilePage() {
   const { customer, refresh, signOut } = useCustomer();
@@ -21,8 +30,11 @@ export default function ProfilePage() {
   const [wallets, setWallets] = useState<W[] | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [name, setName] = useState(customer?.fullName ?? '');
+  const [pickingAvatar, setPickingAvatar] = useState(false);
   const [linking, setLinking] = useState(false);
   const [err, setErr] = useState('');
+
+  const country = (customer?.preferences?.country as string | undefined) ?? '';
 
   useEffect(() => { api.wallets().then(setWallets).catch(() => setWallets([])); }, []);
   useEffect(() => { setName(customer?.fullName ?? ''); }, [customer?.fullName]);
@@ -30,6 +42,15 @@ export default function ProfilePage() {
   async function saveName() {
     await api.updateProfile({ fullName: name.trim() }).catch(() => {});
     await refresh(); setEditingName(false);
+  }
+  async function pickAvatar(emoji: string) {
+    setPickingAvatar(false);
+    await api.updateProfile({ preferences: { avatar: emoji } }).catch(() => {});
+    await refresh();
+  }
+  async function saveCountry(value: string) {
+    await api.updateProfile({ preferences: { country: value } }).catch(() => {});
+    await refresh();
   }
 
   // Prove-then-link: connect a wallet, sign a server-issued challenge, verify. This is the
@@ -60,7 +81,27 @@ export default function ProfilePage() {
 
       {/* Personal */}
       <Card><CardBody className="space-y-4">
-        <Field label="Email" value={customer?.email ?? '—'} />
+        {/* Avatar + identity header */}
+        <div className="flex items-center gap-4">
+          <button onClick={() => setPickingAvatar((v) => !v)} className="group relative" aria-label="Change avatar">
+            {customer && <Avatar customer={customer} size="xl" />}
+            <span className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full border border-line bg-canvas text-muted shadow-sm transition group-hover:text-ink">
+              <Pencil className="h-3 w-3" />
+            </span>
+          </button>
+          <div className="min-w-0">
+            <p className="truncate text-lg font-semibold text-ink">{customer?.fullName || 'Your account'}</p>
+            <p className="truncate text-sm text-muted">{customer?.email}</p>
+          </div>
+        </div>
+
+        {pickingAvatar && customer && (
+          <div className="rounded-xl border border-line bg-surface/50 p-3">
+            <p className="mb-2 text-xs text-muted">Pick your avatar</p>
+            <AvatarPicker value={avatarEmoji(customer)} onPick={pickAvatar} />
+          </div>
+        )}
+
         <div>
           <p className="text-xs text-muted">Full name</p>
           {editingName ? (
@@ -75,6 +116,19 @@ export default function ProfilePage() {
               <button onClick={() => setEditingName(true)} className="text-muted hover:text-ink"><Pencil className="h-4 w-4" /></button>
             </div>
           )}
+        </div>
+
+        <div>
+          <p className="text-xs text-muted">Country</p>
+          <select
+            value={COUNTRIES.includes(country) || country === '' ? country : country}
+            onChange={(e) => saveCountry(e.target.value)}
+            className="mt-1 h-10 w-full rounded-xl border border-line bg-canvas px-3 text-sm text-ink outline-none focus:border-brand"
+          >
+            <option value="">Select your country</option>
+            {country && !COUNTRIES.includes(country) && <option value={country}>{country}</option>}
+            {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
         </div>
       </CardBody></Card>
 
@@ -124,7 +178,4 @@ export default function ProfilePage() {
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
-  return <div><p className="text-xs text-muted">{label}</p><p className="mt-0.5 font-medium text-ink">{value}</p></div>;
-}
 function Skeletons() { return <div className="space-y-2"><div className="h-12 animate-pulse rounded-xl bg-surface-2" /><div className="h-12 animate-pulse rounded-xl bg-surface-2" /></div>; }

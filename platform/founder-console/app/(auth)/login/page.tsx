@@ -33,7 +33,7 @@ export default function LoginPage() {
   }
 
   return (
-    <Card>
+    <Card className="rounded-card border-line shadow-none">
       <CardHeader>
         <CardTitle>{step === 'email' ? 'Sign in' : 'Enter your code'}</CardTitle>
         <CardDescription>
@@ -41,14 +41,14 @@ export default function LoginPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {error && <div className="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
+        {error && <div className="mb-4 rounded-lg bg-destructive-50 px-3 py-2 text-sm text-destructive">{error}</div>}
         {step === 'email' ? (
           <form onSubmit={sendCode} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Work email</Label>
               <Input id="email" type="email" autoFocus placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
-            <Button type="submit" className="w-full" disabled={busy || !email}>{busy ? 'Sending…' : 'Continue'}</Button>
+            <Button type="submit" className="w-full rounded-pill" disabled={busy || !email}>{busy ? 'Sending…' : 'Continue'}</Button>
             <p className="text-center text-xs text-muted-foreground">No passwords — just a code.</p>
           </form>
         ) : (
@@ -58,7 +58,7 @@ export default function LoginPage() {
               <Input id="code" inputMode="numeric" autoFocus maxLength={6} placeholder="000000"
                 value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} className="text-center text-lg tracking-[0.4em]" />
             </div>
-            <Button type="submit" className="w-full" disabled={busy || code.length < 4}>{busy ? 'Verifying…' : 'Sign in'}</Button>
+            <Button type="submit" className="w-full rounded-pill" disabled={busy || code.length < 4}>{busy ? 'Verifying…' : 'Sign in'}</Button>
             <button type="button" onClick={() => { setStep('email'); setCode(''); setError(''); }} className="w-full text-center text-sm text-muted-foreground hover:text-foreground">Use a different email</button>
           </form>
         )}

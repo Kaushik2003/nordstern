@@ -298,7 +298,7 @@ export default function WalletSandbox() {
                 onClick={() => initiateInteractive('deposit')}
                 disabled={loading || !jwt}
                 variant="default"
-                className="w-full bg-emerald-600 hover:bg-emerald-700"
+                className="w-full bg-up text-ink hover:bg-up/90"
               >
                 <Play className="mr-2 h-4 w-4" />
                 Deposit
@@ -307,7 +307,7 @@ export default function WalletSandbox() {
                 onClick={() => initiateInteractive('withdraw')}
                 disabled={loading || !jwt}
                 variant="default"
-                className="w-full bg-amber-600 hover:bg-amber-700"
+                className="w-full"
               >
                 <Play className="mr-2 h-4 w-4" />
                 Withdraw
@@ -326,7 +326,7 @@ export default function WalletSandbox() {
                   <CardDescription>Transaction ID: <span className="font-mono text-xs">{txId}</span></CardDescription>
                 </div>
                 {txStatus && (
-                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill text-xs font-semibold bg-success-50 text-success">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     {txStatus.toUpperCase()}
                   </div>
@@ -354,8 +354,8 @@ export default function WalletSandbox() {
                     <div key={i} className="flex gap-2 leading-relaxed">
                       <span className="text-muted-foreground shrink-0">{log.time}</span>
                       <span className={
-                        log.type === 'success' ? 'text-emerald-600 font-medium' :
-                        log.type === 'error' ? 'text-red-500 font-medium' :
+                        log.type === 'success' ? 'text-success font-medium' :
+                        log.type === 'error' ? 'text-destructive font-medium' :
                         'text-foreground'
                       }>
                         {log.text}

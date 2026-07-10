@@ -1,32 +1,39 @@
+'use client';
+
 import { useFormContext } from 'react-hook-form';
-import { OnboardingFormValues } from '@/lib/validations/onboarding';
-import { Lightbulb } from 'lucide-react';
+import { OnboardingFormState } from '@/lib/validations/onboarding';
+import { Lightbulb, Pencil } from 'lucide-react';
 
 interface ReviewSubmitProps {
   onEditStep?: (stepId: number) => void;
 }
 
 export function ReviewSubmit({ onEditStep }: ReviewSubmitProps) {
-  const { getValues } = useFormContext<OnboardingFormValues>();
+  const { getValues } = useFormContext<OnboardingFormState>();
   const values = getValues();
   const p = values.companyProfile;
   const pr = values.product;
+  const d = values._display;
 
   const SectionHeader = ({ title, step }: { title: string; step: number }) => (
-    <div className="flex items-center justify-between border-b border-line pb-2 mb-3">
-      <h3 className="font-semibold text-sm text-brand">{title}</h3>
+    <div className="flex items-center justify-between border-b border-line pb-3 mb-2">
+      <h3 className="font-semibold text-base text-ink">{title}</h3>
       {onEditStep && (
-        <button type="button" onClick={() => onEditStep(step)} className="text-xs font-medium text-subtle hover:text-brand transition-colors">
-          [Edit]
+        <button
+          type="button"
+          onClick={() => onEditStep(step)}
+          className="inline-flex items-center gap-1.5 rounded-pill px-3 py-1 text-xs font-medium text-brand-700 transition-colors bg-brand-50 hover:bg-brand-100"
+        >
+          <Pencil className="h-3 w-3" /> Edit
         </button>
       )}
     </div>
   );
 
-  const Field = ({ label, value }: { label: string; value?: string }) => (
+  const Field = ({ label, value }: { label: string; value?: string | boolean }) => (
     <div>
-      <p className="text-subtle text-xs mb-1">{label}</p>
-      <p className="font-medium text-ink text-sm">{value || '—'}</p>
+      <p className="text-subtle text-sm mb-1.5 font-medium">{label}</p>
+      <p className="font-medium text-ink text-base">{value || '—'}</p>
     </div>
   );
 
@@ -39,49 +46,94 @@ export function ReviewSubmit({ onEditStep }: ReviewSubmitProps) {
           ? `Flat ${pr?.flatFeeValue ?? '—'} ${p?.supportedFiat ?? ''} + ${pr?.percentageFeeValue ?? '—'}%`
           : '—';
 
+  const integrationLabel = d?.integrationType === 'api' ? 'REST API' : d?.integrationType === 'sdk' ? 'Mobile/Web SDK' : d?.integrationType === 'dashboard' ? 'No-code Dashboard' : d?.integrationType;
+  const kycLabel = d?.kycTier === 'l1' ? 'Basic L1' : d?.kycTier === 'l2' ? 'Full Video L2' : d?.kycTier === 'both' ? 'Tiered (Both)' : d?.kycTier;
+  const slaLabel = d?.settlementSla === 'rtgs' ? 'Real-Time' : d?.settlementSla === 't0' ? 'Same Day (T+0)' : d?.settlementSla === 't1' ? 'Standard (T+1)' : d?.settlementSla;
+
   return (
     <div className="space-y-10">
       <div>
-        <h2 className="text-3xl font-bold mb-2">Step 3/3: Review & Submit</h2>
-        <p className="text-subtle text-sm leading-relaxed">
-          Confirm your details. On submission we vet the application; once approved you&apos;ll get a
-          one-time invitation to add your payment-provider keys and branding, then we provision your anchor.
+        <h2 className="text-3xl font-normal tracking-[-0.025em] mb-3">Step 3/3: Review & Submit</h2>
+        <p className="text-subtle text-base leading-relaxed max-w-3xl">
+          Review your complete institutional profile. On submission, we manually vet your application. Once approved, you&apos;ll receive a secure, one-time invitation to configure your payment-provider keys and provision your sandbox.
         </p>
       </div>
 
-      <div className="space-y-4">
-        <div className="rounded-xl border border-line bg-surface p-5 space-y-3">
-          <SectionHeader title="1. Business Profile" step={1} />
-          <div className="grid grid-cols-2 gap-y-4 gap-x-4">
-            <Field label="Business" value={p?.legalEntityName} />
-            <Field label="Contact" value={p?.contactPerson} />
-            <Field label="Email" value={p?.businessEmail} />
-            <Field label="Country" value={p?.country} />
-            <Field label="Settlement Currency" value={p?.supportedFiat} />
-            <Field label="Registration" value={p?.businessRegistrationStatus} />
-            <div className="col-span-2">
-              <Field label="Target Markets" value={p?.targetMarkets?.join(', ')} />
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
+          <SectionHeader title="Institution Profile" step={1} />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-4 mt-5">
+            <Field label="Legal Entity Name" value={p?.legalEntityName} />
+            <Field label="Doing Business As" value={d?.dba} />
+            <Field label="Entity Type" value={d?.entityType} />
+            <Field label="Industry" value={d?.industry} />
+            <Field label="Year of Incorporation" value={d?.yearOfIncorporation} />
+            <Field label="Tax ID / PAN" value={d?.taxId} />
+            <Field label="LEI" value={d?.lei} />
+            <Field label="Corporate Website" value={p?.corporateWebsiteUrl} />
+            <Field label="Employees" value={d?.companySize} />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
+          <SectionHeader title="Authorized Representative" step={1} />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-4 mt-5">
+            <Field label="Full Name" value={p?.contactPerson} />
+            <Field label="Designation" value={d?.designation} />
+            <Field label="Department" value={d?.department} />
+            <Field label="Work Email" value={p?.businessEmail} />
+            <Field label="Work Phone" value={d?.workPhone} />
+            <Field label="LinkedIn Profile" value={d?.linkedInProfile} />
+            <div className="col-span-full">
+              <Field label="Signing Authority" value={d?.signingAuthority ? 'Yes, authorized to bind institution' : '—'} />
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-line bg-surface p-5 space-y-3">
-          <SectionHeader title="2. Product & Rails" step={2} />
-          <div className="grid grid-cols-2 gap-y-4 gap-x-4">
-            <Field label="Mode" value={pr?.mode === 'production' ? 'Production (gated)' : 'Test Mode'} />
-            <Field label="Limits" value={`${pr?.minTransactionBound || 0} – ${pr?.maxTransactionBound || 0} ${p?.supportedFiat ?? ''}`} />
-            <Field label="Fees" value={fee} />
-            <div className="col-span-2">
-              <Field label="Payment Rails" value={pr?.supportedRails?.join(', ')} />
+        <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
+          <SectionHeader title="Banking & Compliance" step={1} />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-4 mt-5">
+            <Field label="Primary Bank" value={d?.primaryBank} />
+            <Field label="Source of Funds" value={d?.sourceOfFunds} />
+            <Field label="Regulatory Licenses" value={d?.regulatoryLicenses} />
+            <Field label="Compliance Officer" value={d?.complianceOfficer} />
+            <Field label="Registration Status" value={p?.businessRegistrationStatus} />
+            <Field label="Registration Number" value={p?.companyRegistrationNumber} />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
+          <SectionHeader title="Product Setup & Rails" step={2} />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-4 mt-5">
+            <Field label="Launch Mode" value={pr?.mode === 'test' ? 'Test Mode (Sandbox)' : 'Production'} />
+            <Field label="Settlement Currency" value={p?.supportedFiat} />
+            <Field label="Target Markets" value={p?.targetMarkets?.join(', ')} />
+            <div className="col-span-full border-t border-line pt-5 mt-1">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-4">
+                <Field label="Fee Architecture" value={fee} />
+                <Field label="Transaction Bounds" value={`${pr?.minTransactionBound || 0} – ${pr?.maxTransactionBound || 0} ${p?.supportedFiat ?? ''}`} />
+                <Field label="Payment Rails" value={pr?.supportedRails?.join(', ')} />
+              </div>
             </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
+          <SectionHeader title="Integration & Treasury" step={2} />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-4 mt-5">
+            <Field label="Integration Method" value={integrationLabel} />
+            <Field label="Tech Stack" value={d?.techStack} />
+            <Field label="Expected KYC Tier" value={kycLabel} />
+            <Field label="Settlement SLA" value={slaLabel} />
+            <Field label="Auto-Sweep" value={d?.autoSweep ? 'Enabled' : 'Disabled'} />
           </div>
         </div>
       </div>
 
-      <div className="mt-8 bg-surface border border-line rounded-xl p-4 flex gap-3 text-sm">
-        <Lightbulb className="h-5 w-5 text-brand shrink-0" />
+      <div className="mt-8 bg-surface border border-line rounded-2xl p-5 flex gap-4 text-base shadow-sm">
+        <Lightbulb className="h-6 w-6 text-brand shrink-0 mt-0.5" />
         <p className="text-subtle leading-relaxed">
-          <span className="font-semibold text-ink">What happens next:</span> we review your application and email a secure, one-time invitation link. That&apos;s where you&apos;ll enter your Razorpay/Cashfree keys and brand — never here.
+          <span className="font-semibold text-ink">What happens next:</span> We will review your application and email a secure, one-time invitation link. That&apos;s where you&apos;ll enter your live payment-provider keys and branding — never on this public application page.
         </p>
       </div>
     </div>

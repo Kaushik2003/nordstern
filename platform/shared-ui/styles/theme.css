@@ -1,47 +1,92 @@
-/* NordStern console — shared design tokens (premium light theme, Stripe/Mercury/Linear).
-   shadcn-style tokens exposed as Tailwind v4 theme colors. Imported by each app's
-   globals.css AFTER `@import "tailwindcss";`. Do not `@import "tailwindcss"` here. */
+/* NordStern console — shared design tokens.
+   The palette is the one from frontend/landing: light, border-led, near-monochrome,
+   with NordStern purple as the sole accent. shadcn-style semantic tokens are mapped
+   onto that palette so shared components inherit the brand without changes.
+   Imported by each app's globals.css AFTER `@import "tailwindcss";`.
+   Do not `@import "tailwindcss"` here. */
 @theme {
-  --color-background: #ffffff;
-  --color-foreground: #0a0a0b;
+  /* --- shadcn semantic tokens, bridged to the landing palette --- */
+  --color-background: #ffffff; /* canvas */
+  --color-foreground: #0b0b0b; /* ink */
 
   --color-card: #ffffff;
-  --color-card-foreground: #0a0a0b;
+  --color-card-foreground: #0b0b0b;
   --color-popover: #ffffff;
-  --color-popover-foreground: #0a0a0b;
+  --color-popover-foreground: #0b0b0b;
 
-  --color-primary: #18181b;
-  --color-primary-foreground: #fafafa;
-  --color-secondary: #f4f4f5;
-  --color-secondary-foreground: #18181b;
+  --color-primary: #0b0b0b; /* ink — the landing's primary button is bg-ink */
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f2f4f3; /* surface */
+  --color-secondary-foreground: #0b0b0b;
 
-  --color-muted: #f5f5f6;
-  --color-muted-foreground: #71717a;
-  --color-accent: #f4f4f5;
-  --color-accent-foreground: #18181b;
+  /* NOTE: shadcn `muted` is a SURFACE (bg-muted), not text. The landing's
+     #5b5b5b body-copy grey belongs on muted-foreground. Do not swap these. */
+  --color-muted: #f2f4f3; /* surface */
+  --color-muted-foreground: #5b5b5b; /* the landing's body-copy grey */
+  --color-accent: #f2f4f3; /* surface */
+  --color-accent-foreground: #0b0b0b;
 
-  --color-destructive: #ef4444;
-  --color-destructive-foreground: #fafafa;
+  /* `down` (below) is the money/chart coral. `destructive` is a UI-state colour that
+     has to carry error *text* on white, so it is darkened to clear WCAG AA (5.17:1
+     both as text-on-white and as white-on-fill; the coral only manages 3.15:1). */
+  --color-destructive: #c53d1f;
+  --color-destructive-foreground: #ffffff;
 
-  --color-border: #e7e7ea;
-  --color-input: #e7e7ea;
-  --color-ring: #a1a1aa;
+  --color-border: #e6e9e8; /* line */
+  --color-input: #e6e9e8; /* line */
+  --color-ring: #ab9ff2; /* brand — the landing's focus ring */
 
-  --color-brand: #ab9ff2; /* Exact NordStern purple from frontend */
+  /* --- Brand: NordStern purple, the sole accent --- */
+  --color-brand-50: #f4f2fd;
+  --color-brand-100: #e9e5fb;
+  --color-brand-200: #d6cff7;
+  --color-brand-300: #bcb1f2;
+  --color-brand: #ab9ff2; /* DEFAULT accent */
   --color-brand-600: #8b7ee0;
+  --color-brand-700: #6f5fd6;
+  --color-brand-800: #4b3f9e;
 
-  /* Neutral canvas + ink hierarchy (from frontend/landing) */
+  /* --- Neutral canvas + ink hierarchy (from frontend/landing) --- */
   --color-canvas: #ffffff;
   --color-surface: #f2f4f3;
   --color-surface-2: #eaeeec;
   --color-noir: #0a0a0a;
+  --color-noir-soft: #141414;
 
   --color-ink: #0b0b0b;
   --color-subtle: #9a9a9a;
   --color-line: #e6e9e8;
 
-  --radius: 0.7rem;
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /* --- Money semantics: fills, chart strokes, large numerals. These are the
+     landing's values and are NOT safe as small text on white (up manages only
+     2.33:1) — pair them with text-ink, or use the UI-state colours below. --- */
+  --color-up: #2ec08b;
+  --color-down: #f0654a;
+
+  /* --- UI state: carries small text, so each clears WCAG AA both on white and on
+     its own -50 tint (the pairing used by Badge and the error banners). --- */
+  --color-success: #047857; /* 5.48:1 on white, 5.21:1 on success-50 */
+  --color-success-50: #ecfdf5;
+  --color-warn: #b45309; /* 5.02:1 on white, 4.84:1 on warn-50 */
+  --color-warn-50: #fffbeb;
+  --color-destructive-50: #fdeeea; /* 4.58:1 with text-destructive */
+
+  /* --- Radii. Only additive names: leave Tailwind's rounded-sm/md/lg/xl scale
+     alone. (The landing remaps those onto an undefined --radius and silently
+     renders every one of them as square.) --- */
+  --radius-pill: 999px;
+  --radius-card: 2rem; /* 32px */
+  --radius-mock: 1.25rem; /* 20px inner mockups */
+
+  /* --- Motion --- */
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Clear Sans where an app loads it (founder-console), Inter otherwise
+     (admin-console). The innermost fallback is a real family, not a bare var():
+     if every var in the chain were undefined the whole declaration would be
+     invalid at computed-value time and even ui-sans-serif below would be lost. */
+  --font-sans: var(--ff-clear-display, var(--font-inter, ui-sans-serif)), ui-sans-serif, system-ui, sans-serif;
+  --font-clear-text: var(--ff-clear-text, var(--font-inter, ui-sans-serif)), ui-sans-serif, system-ui, sans-serif;
 }
 
 * {
@@ -55,5 +100,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* On-brand focus ring for keyboard users, matching the landing. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: var(--color-line); border-radius: 4px; }

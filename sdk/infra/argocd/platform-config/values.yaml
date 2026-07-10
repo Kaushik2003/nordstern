@@ -1,0 +1,8 @@
+# Default values for platform-config.
+# These will be overwritten by values passed from the bootstrap-stack chart.
+
+global:
+  clusterName: "nordstern-dev"
+  awsAccountId: "123456789012"
+  region: "ap-south-1"
+  domain: "anchors.nordstern.io"

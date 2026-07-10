@@ -1,0 +1,51 @@
+{{- $sep := include "anchor.host.sep" . -}}
+{{- $api := include "anchor.host.api" . -}}
+{{- $testnet := eq .Values.anchor.network "testnet" -}}
+# Non-secret env for the business-server (secret env comes from the ExternalSecret).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: business-server-env
+  namespace: {{ include "anchor.namespace" . }}
+  labels:
+    {{- include "anchor.labels" . | nindent 4 }}
+data:
+  PORT: "3000"
+  PLATFORM_API_URL: "http://anchor-platform:8085"
+  ASSET_CODE: "USDC"
+  HORIZON_URL: {{ if $testnet }}"https://horizon-testnet.stellar.org"{{ else }}"https://horizon.stellar.org"{{ end }}
+  NETWORK_PASSPHRASE: {{ if $testnet }}"Test SDF Network ; September 2015"{{ else }}"Public Global Stellar Network ; September 2015"{{ end }}
+  # Public base URL of the business-server (SEP-24 interactive, webhooks, more_info).
+  PUBLIC_BASE_URL: "https://{{ $api }}"
+  KYC_PROVIDER: {{ .Values.adapters.kyc | quote }}
+  DEPOSIT_PROVIDER: {{ .Values.adapters.deposit | quote }}
+  PAYOUT_PROVIDER: {{ .Values.adapters.payout | quote }}
+  FEE_PROVIDER: {{ .Values.adapters.fee | quote }}
+---
+# SEP-1 service file wallets fetch. Rendered with PUBLIC hosts (never localhost).
+# ASSET_ISSUER_PUBLIC + SIGNING_KEY come from the anchor's config at provision time;
+# placeholders here are overwritten by the provisioning step / values.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ap-stellar-toml
+  namespace: {{ include "anchor.namespace" . }}
+  labels:
+    {{- include "anchor.labels" . | nindent 4 }}
+data:
+  stellar.toml: |
+    ACCOUNTS = []
+    VERSION = "0.1.0"
+    NETWORK_PASSPHRASE = {{ if $testnet }}"Test SDF Network ; September 2015"{{ else }}"Public Global Stellar Network ; September 2015"{{ end }}
+    SIGNING_KEY = "${SIGNING_KEY}"
+    TRANSFER_SERVER_SEP0024 = "https://{{ $sep }}/sep24"
+    WEB_AUTH_ENDPOINT = "https://{{ $sep }}/auth"
+    KYC_SERVER = "https://{{ $sep }}/sep12"
+    ANCHOR_QUOTE_SERVER = "https://{{ $sep }}/sep38"
+
+    [[CURRENCIES]]
+    code = "USDC"
+    issuer = "${ASSET_ISSUER_PUBLIC}"
+    is_asset_anchored = true
+    anchor_asset_type = "fiat"
+    status = "test"

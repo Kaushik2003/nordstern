@@ -1,0 +1,13 @@
+# Next.js app — matches the house style used by sibling apps (client/, console/).
+# This file was previously missing, which is why .next/ got committed (R6 M1).
+/node_modules
+/.next
+/out
+/build
+next-env.d.ts
+*.tsbuildinfo
+
+# local env (templates excepted)
+.env
+.env.*
+!.env.example

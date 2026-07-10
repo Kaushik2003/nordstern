@@ -1,0 +1,156 @@
+name: nordstern-anchor-template
+
+# Single-anchor stack (INR ↔ USDC, testnet). Run `node scripts/setup-testnet.mjs`
+# first — it writes the `.env` this file interpolates and renders config/.
+
+services:
+  # ── Postgres — Anchor Platform transaction state (anchordb) ───────────────────
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-anchor}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-anchor}
+      POSTGRES_DB: anchordb
+    ports:
+      # Host port overridable (default 5432) so this stack can coexist with others.
+      - "${DB_HOST_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-anchor} -d anchordb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Anchor Platform (official image) — SEP server + Platform API + Observer ────
+  anchor-platform:
+    image: stellar/anchor-platform:latest
+    command: ["-s", "-p", "-o"]
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"   # SEP server — wallets/users
+      - "8085:8085"   # Platform API — business-server
+    volumes:
+      - ./config:/config:ro
+    environment:
+      STELLAR_ANCHOR_CONFIG: /config/anchor-platform.yaml
+      SECRET_SEP10_SIGNING_SEED: ${SIGNING_SECRET}
+      SECRET_SEP10_JWT_SECRET: ${SEP10_JWT_SECRET}
+      SECRET_DATA_USERNAME: ${DB_USER:-anchor}
+      SECRET_DATA_PASSWORD: ${DB_PASSWORD:-anchor}
+      SECRET_SEP24_INTERACTIVE_URL_JWT_SECRET: ${SEP24_INTERACTIVE_JWT_SECRET}
+      SECRET_SEP24_MORE_INFO_URL_JWT_SECRET: ${SEP24_MORE_INFO_JWT_SECRET}
+      SECRET_SEP6_MORE_INFO_URL_JWT_SECRET: ${SEP6_MORE_INFO_JWT_SECRET}
+
+  # ── business-server — our callbacks + SEP-24 interactive + Stellar ops ─────────
+  business-server:
+    build: ./business-server
+    restart: unless-stopped
+    depends_on:
+      anchor-platform:
+        condition: service_started
+      db:
+        condition: service_healthy
+    ports:
+      # Host port overridable (default 3000). The SEP-24 interactive_url in
+      # config/anchor-platform.yaml assumes 3000 — change both together if you
+      # remap this for a real wallet flow.
+      - "${BIZ_HOST_PORT:-3000}:3000"
+    environment:
+      PORT: 3000
+      PLATFORM_API_URL: http://anchor-platform:8085
+      ASSET_CODE: ${ASSET_CODE:-USDC}
+      ASSET_ISSUER_PUBLIC: ${ASSET_ISSUER_PUBLIC}
+      TREASURY_PUBLIC: ${TREASURY_PUBLIC}
+      TREASURY_SECRET: ${TREASURY_SECRET}
+      HORIZON_URL: ${HORIZON_URL:-https://horizon-testnet.stellar.org}
+      NETWORK_PASSPHRASE: "${NETWORK_PASSPHRASE:-Test SDF Network ; September 2015}"
+      # Adapter selection. KYC defaults to REAL (didit) and fails closed — never mock
+      # by default. Mock is dev-only and requires ALLOW_MOCK_KYC=true (forbidden on
+      # mainnet). FX defaults to live; deposit/payout stay mock until creds provided.
+      KYC_PROVIDER: ${KYC_PROVIDER:-didit}
+      ALLOW_MOCK_KYC: ${ALLOW_MOCK_KYC:-}
+      FEE_PROVIDER: ${FEE_PROVIDER:-live}
+      DEPOSIT_PROVIDER: ${DEPOSIT_PROVIDER:-mock}
+      PAYOUT_PROVIDER: ${PAYOUT_PROVIDER:-mock}
+      # Vendor config (used only when the matching provider is selected).
+      RATE_INR_USD: ${RATE_INR_USD:-88.50}
+      FX_URL: ${FX_URL:-https://open.er-api.com/v6/latest/USD}
+      # CoinMarketCap USDC→INR (active when FEE_PROVIDER=cmc). Key is a server-side secret.
+      CMC_API_KEY: ${CMC_API_KEY:-}
+      CMC_USDC_ID: ${CMC_USDC_ID:-3408}
+      CMC_TTL_MS: ${CMC_TTL_MS:-3600000}
+      SUREPASS_BASE_URL: ${SUREPASS_BASE_URL:-https://sandbox.surepass.io}
+      SUREPASS_TOKEN: ${SUREPASS_TOKEN:-}
+      CASHFREE_APP_ID: ${CASHFREE_APP_ID:-}
+      CASHFREE_SECRET: ${CASHFREE_SECRET:-}
+      CASHFREE_API_VERSION: ${CASHFREE_API_VERSION:-2024-01-01}
+      CASHFREE_BASE_URL: ${CASHFREE_BASE_URL:-https://sandbox.cashfree.com/payout}
+      ANCHOR_UPI_VPA: ${ANCHOR_UPI_VPA:-nordstern.anchor@upi}
+      ANCHOR_UPI_NAME: "${ANCHOR_UPI_NAME:-NordStern Anchor}"
+      # Durable KYC store — reuse the stack's Postgres (nordstern schema).
+      DATABASE_URL: ${DATABASE_URL:-postgres://${DB_USER:-anchor}:${DB_PASSWORD:-anchor}@db:5432/anchordb}
+      # DIDIT KYC (active when KYC_PROVIDER=didit). Secrets come from .env.
+      DIDIT_API_KEY: ${DIDIT_API_KEY:-}
+      DIDIT_WEBHOOK_SECRET: ${DIDIT_WEBHOOK_SECRET:-}
+      DIDIT_WORKFLOW_ID: ${DIDIT_WORKFLOW_ID:-6caaf537-a69b-48db-9141-c6180edaea88}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3000}
+      KYC_REVERIFY_TTL_SECONDS: ${KYC_REVERIFY_TTL_SECONDS:-300}
+      # Razorpay deposit collection (active when DEPOSIT_PROVIDER=razorpay). KEY_ID
+      # is public; KEY_SECRET + WEBHOOK_SECRET are server-side secrets from .env.
+      # Webhook is delivered to ${PUBLIC_BASE_URL}/webhooks/razorpay.
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
+      RAZORPAY_BUSINESS_NAME: ${RAZORPAY_BUSINESS_NAME:-NordStern}
+
+  # ── cloudflared — public HTTPS tunnel to business-server (Cloudflare Quick Tunnel) ─
+  # DIDIT delivers webhooks (the SOURCE OF TRUTH for a KYC result) and the hosted-flow
+  # redirect to a PUBLIC https URL, which localhost can't provide. A Cloudflare Quick
+  # Tunnel needs NO account or domain, and its encrypted transport isn't caught by ISPs
+  # that DPI-block ngrok. It prints a RANDOM https://<id>.trycloudflare.com URL on start
+  # that CHANGES on every restart — copy it into PUBLIC_BASE_URL (.env) AND the DIDIT
+  # dashboard webhook, then recreate business-server. Get the URL any time with:
+  #   docker compose logs cloudflared | grep trycloudflare
+  # For a STABLE hostname instead, use a named tunnel (needs a free Cloudflare account
+  # + a domain) with `--token`.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    depends_on:
+      - business-server
+    command: ["tunnel", "--no-autoupdate", "--url", "http://business-server:3000"]
+
+  # ── client — Next.js operator console / management frontend (live data) ────────
+  client:
+    build: ./client
+    restart: unless-stopped
+    depends_on:
+      - business-server
+    ports:
+      - "${CLIENT_HOST_PORT:-3001}:3001"
+    environment:
+      BIZ_INTERNAL_URL: http://business-server:3000
+
+  # ── aggregator-service — routes and pools dynamic client flows ─────────────────
+  aggregator-service:
+    build: ./aggregator-service
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3005:3005"
+    environment:
+      PORT: 3005
+      DATABASE_URL: postgres://${DB_USER:-anchor}:${DB_PASSWORD:-anchor}@db:5432/anchordb
+      QUOTE_TTL_SECONDS: 300
+      HEALTH_CHECK_INTERVAL_MS: 15000
+      FEE_REFRESH_INTERVAL_MS: 60000
+
+volumes:
+  pgdata:

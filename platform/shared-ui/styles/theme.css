@@ -81,12 +81,13 @@
   /* --- Motion --- */
   --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
 
-  /* Clear Sans where an app loads it (founder-console), Inter otherwise
-     (admin-console). The innermost fallback is a real family, not a bare var():
-     if every var in the chain were undefined the whole declaration would be
-     invalid at computed-value time and even ui-sans-serif below would be lost. */
-  --font-sans: var(--ff-clear-display, var(--font-inter, ui-sans-serif)), ui-sans-serif, system-ui, sans-serif;
-  --font-clear-text: var(--ff-clear-text, var(--font-inter, ui-sans-serif)), ui-sans-serif, system-ui, sans-serif;
+  /* Clear Sans — the brand face. Every consumer (founder-console, admin-console)
+     binds --ff-clear-* via next/font/local in its root layout. The fallback inside
+     var() is a real family, not a bare var(): if the chain resolved to nothing the
+     whole declaration would be invalid at computed-value time and even the
+     ui-sans-serif below would be lost. */
+  --font-sans: var(--ff-clear-display, ui-sans-serif), ui-sans-serif, system-ui, sans-serif;
+  --font-clear-text: var(--ff-clear-text, ui-sans-serif), ui-sans-serif, system-ui, sans-serif;
 }
 
 * {

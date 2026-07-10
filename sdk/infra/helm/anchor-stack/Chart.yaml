@@ -1,0 +1,11 @@
+apiVersion: v2
+name: anchor-stack
+description: One NordStern anchor stack (Anchor Platform + business-server + operator console) for EKS.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+# Deploys the same workloads as the local docker-compose, one release per anchor
+# (namespace = anchor-<slug>). Parameterized so the factory can stamp it out later.
+# Model A (DEC Q1): the anchor's own rails keys come from its Secrets Manager secret
+# via External Secrets — never baked into this chart.

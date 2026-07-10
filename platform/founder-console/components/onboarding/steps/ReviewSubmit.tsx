@@ -53,7 +53,7 @@ export function ReviewSubmit({ onEditStep }: ReviewSubmitProps) {
   return (
     <div className="space-y-10">
       <div>
-        <h2 className="text-3xl font-normal tracking-[-0.025em] mb-3">Step 3/3: Review & Submit</h2>
+        <h2 className="text-3xl font-normal tracking-[-0.025em] mb-3">Step 4/4: Review & Submit</h2>
         <p className="text-subtle text-base leading-relaxed max-w-3xl">
           Review your complete institutional profile. On submission, we manually vet your application. Once approved, you&apos;ll receive a secure, one-time invitation to configure your payment-provider keys and provision your sandbox.
         </p>
@@ -61,7 +61,7 @@ export function ReviewSubmit({ onEditStep }: ReviewSubmitProps) {
 
       <div className="space-y-6">
         <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
-          <SectionHeader title="Institution Profile" step={1} />
+          <SectionHeader title="Institution Profile" step={2} />
           <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-4 mt-5">
             <Field label="Legal Entity Name" value={p?.legalEntityName} />
             <Field label="Doing Business As" value={d?.dba} />
@@ -91,7 +91,7 @@ export function ReviewSubmit({ onEditStep }: ReviewSubmitProps) {
         </div>
 
         <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
-          <SectionHeader title="Banking & Compliance" step={1} />
+          <SectionHeader title="Banking & Compliance" step={2} />
           <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-4 mt-5">
             <Field label="Primary Bank" value={d?.primaryBank} />
             <Field label="Source of Funds" value={d?.sourceOfFunds} />
@@ -103,7 +103,7 @@ export function ReviewSubmit({ onEditStep }: ReviewSubmitProps) {
         </div>
 
         <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
-          <SectionHeader title="Product Setup & Rails" step={2} />
+          <SectionHeader title="Product Setup & Rails" step={3} />
           <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-4 mt-5">
             <Field label="Launch Mode" value={pr?.mode === 'test' ? 'Test Mode (Sandbox)' : 'Production'} />
             <Field label="Settlement Currency" value={p?.supportedFiat} />
@@ -119,7 +119,7 @@ export function ReviewSubmit({ onEditStep }: ReviewSubmitProps) {
         </div>
 
         <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
-          <SectionHeader title="Integration & Treasury" step={2} />
+          <SectionHeader title="Integration & Treasury" step={3} />
           <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-4 mt-5">
             <Field label="Integration Method" value={integrationLabel} />
             <Field label="Tech Stack" value={d?.techStack} />

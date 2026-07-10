@@ -1,0 +1,163 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: {{ include "anchor.namespace" . }}
+  labels:
+    {{- include "anchor.labels" . | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: {{ include "anchor.namespace" . }}
+  labels:
+    {{- include "anchor.labels" . | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: anchor-platform
+  namespace: {{ include "anchor.namespace" . }}
+  labels:
+    {{- include "anchor.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app: anchor-platform
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Ingress from Ingress controller / public on port 8080 (SEP)
+  - ports:
+    - protocol: TCP
+      port: 8080
+  # Ingress from business-server on port 8085 (Platform API)
+  - from:
+    - podSelector:
+        matchLabels:
+          app: business-server
+    ports:
+    - protocol: TCP
+      port: 8085
+  egress:
+  # Egress to business-server on port 3000 (Callbacks)
+  - to:
+    - podSelector:
+        matchLabels:
+          app: business-server
+    ports:
+    - protocol: TCP
+      port: 3000
+  # Egress to database (Aurora Serverless v2 Postgres)
+  - ports:
+    - protocol: TCP
+      port: {{ .Values.database.port }}
+  # Egress to external APIs (Stellar Horizon, etc.)
+  - ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: business-server
+  namespace: {{ include "anchor.namespace" . }}
+  labels:
+    {{- include "anchor.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app: business-server
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Ingress from Ingress controller / public on port 3000 (Interactive flow, webhooks, more_info)
+  - ports:
+    - protocol: TCP
+      port: 3000
+  # Ingress from anchor-platform on port 3000 (Callbacks)
+  - from:
+    - podSelector:
+        matchLabels:
+          app: anchor-platform
+    ports:
+    - protocol: TCP
+      port: 3000
+  # Ingress from client on port 3000 (Operator admin endpoints / proxy)
+  - from:
+    - podSelector:
+        matchLabels:
+          app: client
+    ports:
+    - protocol: TCP
+      port: 3000
+  egress:
+  # Egress to anchor-platform on port 8085 (Platform API)
+  - to:
+    - podSelector:
+        matchLabels:
+          app: anchor-platform
+    ports:
+    - protocol: TCP
+      port: 8085
+  # Egress to database (Aurora Serverless v2 Postgres)
+  - ports:
+    - protocol: TCP
+      port: {{ .Values.database.port }}
+  # Egress to external APIs (Horizon, Razorpay, Cashfree, Didit)
+  - ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: client
+  namespace: {{ include "anchor.namespace" . }}
+  labels:
+    {{- include "anchor.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app: client
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Ingress from Ingress controller / public on port 3001 (Operator console UI)
+  - ports:
+    - protocol: TCP
+      port: 3001
+  egress:
+  # Egress to business-server on port 3000 (API proxy)
+  - to:
+    - podSelector:
+        matchLabels:
+          app: business-server
+    ports:
+    - protocol: TCP
+      port: 3000
+{{- end }}

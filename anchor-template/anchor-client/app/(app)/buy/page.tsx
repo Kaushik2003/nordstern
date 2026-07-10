@@ -2,16 +2,19 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowDownToLine, ShieldCheck, Wallet, ArrowRight, ExternalLink, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowDownToLine, ShieldCheck, Wallet, ArrowRight, ExternalLink, Loader2, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { useBrand } from '@/components/brand-context';
 import { useCustomer } from '@/components/customer-context';
-import { Card, CardBody, Button, Spinner, Badge } from '@/components/ui';
+import { Panel, PanelHead, Button, Spinner, Badge, reveal } from '@/components/ui';
+import { FadeUp } from '@/components/motion';
 import { getQuote, startBuy, myTransaction, type CustomerTx } from '@/lib/anchor';
 import { ensureWalletLinked } from '@/lib/link-wallet';
 import { settler, type SettlementSession } from '@/lib/settlement';
 import { inr } from '@/lib/format';
 import { getAccount, friendbot, buildTrustlineXdr, submitXdr } from '@/lib/api';
 import { signTransaction } from '@/lib/wallet';
+import { DiditMark } from '@/components/ecosystem';
 
 type Step = 'amount' | 'confirm' | 'pay' | 'processing' | 'done' | 'error';
 
@@ -103,7 +106,7 @@ export default function BuyPage() {
     setError('');
     try {
       const addr = (await settler.available()) ?? (await settler.connect());
-      
+
       const balances = await getAccount(addr);
       if (balances.error === 'Account not found' || balances.xlm === null) {
         if (process.env.NEXT_PUBLIC_IS_MAINNET === 'true') {
@@ -133,7 +136,7 @@ export default function BuyPage() {
     try {
       // Connect a wallet if needed, then the "secure confirmation" (wallet signs).
       const addr = (await settler.available()) ?? (await settler.connect());
-      
+
       // Verify trustline is established
       const balances = await getAccount(addr);
       if (balances.error === 'Account not found' || balances.xlm === null) {
@@ -144,7 +147,7 @@ export default function BuyPage() {
           await new Promise((resolve) => setTimeout(resolve, 2500));
         }
       }
-      
+
       const freshBalances = await getAccount(addr);
       if (freshBalances.anch === null) {
         throw new Error('trustline not found — please enable this asset in your wallet first.');
@@ -168,94 +171,115 @@ export default function BuyPage() {
     } finally { setBusy(false); }
   }
 
+  const TrustlineButton = ({ className }: { className?: string }) => (
+    <Button size="block" variant="outline" disabled={addingTrustline} onClick={addTrustline} className={className}>
+      {addingTrustline
+        ? <span className="flex items-center justify-center gap-2"><Spinner className="h-4 w-4" /> Enabling asset…</span>
+        : <span>Enable {brand.assetCode} in wallet</span>}
+    </Button>
+  );
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2"><ArrowDownToLine className="h-5 w-5 text-brand-deep" /><h1 className="text-2xl font-bold text-ink">Buy</h1></div>
+    <div className="mx-auto max-w-3xl space-y-5">
+      <FadeUp>
+        <div className="flex items-center gap-2.5">
+          <span className="grid size-9 place-items-center rounded-xl bg-brand-50 text-brand-700"><ArrowDownToLine className="h-5 w-5" /></span>
+          <div>
+            <h1 className="text-[19px] font-semibold tracking-tight text-ink">Buy {brand.assetCode}</h1>
+            <p className="text-[12px] text-subtle">Convert INR to {brand.assetCode} and receive it in your wallet.</p>
+          </div>
+        </div>
+      </FadeUp>
 
       {!verified && step === 'amount' && (
-        <Card className="border-[var(--color-warning)]/40 bg-[var(--color-warning-bg)]/40">
-          <CardBody className="flex items-center gap-3">
-            <ShieldCheck className="h-5 w-5 text-[var(--color-warning)]" />
-            <p className="flex-1 text-sm text-ink">Verify your identity first — it only takes a minute.</p>
-            <Button size="sm" variant="outline" onClick={() => router.push('/verify')}>Verify</Button>
-          </CardBody>
-        </Card>
+        <Panel style={reveal(0.04)} className="flex items-center gap-3 border-[color:color-mix(in_srgb,var(--color-warning)_40%,transparent)] bg-[var(--color-warning-bg)]/40 p-4">
+          <ShieldCheck className="h-5 w-5 shrink-0 text-[var(--color-warning)]" />
+          <p className="flex-1 text-sm text-ink">Verify your identity first — it only takes a minute.</p>
+          <Button size="sm" variant="outline" onClick={() => router.push('/verify')}>Verify</Button>
+        </Panel>
       )}
 
       {step === 'amount' && (
-        <>
-          <Card><CardBody className="space-y-4">
-            <div>
-              <label className="text-sm text-muted">You buy</label>
-              <div className="mt-1 flex items-baseline gap-2">
-                <input autoFocus inputMode="decimal" placeholder="0" value={amount}
-                  onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-                  className="w-full bg-transparent text-4xl font-bold text-ink outline-none" />
-                <span className="text-lg font-semibold text-muted">{brand.assetCode}</span>
+        <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
+          {/* Converter */}
+          <div className="space-y-4">
+            <Panel style={reveal(0.06)} className="space-y-5 p-5 sm:p-6">
+              <div>
+                <label className="text-[12.5px] font-medium text-muted">You buy</label>
+                <div className="mt-2 flex items-baseline gap-2 rounded-xl border border-black/[0.06] bg-surface px-4 py-3 transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20">
+                  <input autoFocus inputMode="decimal" placeholder="0" value={amount}
+                    onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+                    className="w-full bg-transparent text-4xl font-bold tracking-tight text-ink outline-none" />
+                  <span className="text-lg font-semibold text-brand-700">{brand.assetCode}</span>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center justify-between border-t border-line pt-3 text-sm">
-              <span className="text-muted">You pay</span>
-              <span className="font-semibold text-ink">{quote ? inr(quote.inrAmount) : '—'}</span>
-            </div>
-            {quote && !limitError && <p className="text-xs text-faint">1 {brand.assetCode} ≈ {inr(quote.inrPerUnit)}</p>}
-            {limitError
-              ? <p className="text-xs font-medium text-[var(--color-danger)]">{limitError}</p>
-              : (limits.min != null && limits.max != null) &&
-                <p className="text-xs text-faint">Between {limits.min} and {limits.max} {brand.assetCode} per transaction</p>}
-          </CardBody></Card>
-          {error && (
-            <div className="space-y-3">
-              <Msg tone="error" text={error} />
-              {needsTrustline && (
-                <Button
-                  size="block"
-                  variant="outline"
-                  disabled={addingTrustline}
-                  onClick={addTrustline}
-                >
-                  {addingTrustline ? (
-                    <span className="flex items-center justify-center gap-2"><Spinner className="h-4 w-4" /> Enabling asset…</span>
-                  ) : (
-                    <span>Enable {brand.assetCode} in wallet</span>
-                  )}
-                </Button>
+
+              <div className="flex items-center justify-between rounded-xl bg-surface px-4 py-3 text-sm">
+                <span className="text-muted">You pay</span>
+                <span className="text-lg font-bold tabular-nums text-ink">{quote ? inr(quote.inrAmount) : '—'}</span>
+              </div>
+
+              {quote && !limitError && (
+                <p className="flex items-center justify-between text-xs text-subtle">
+                  <span>Rate</span>
+                  <span className="font-medium text-muted">1 {brand.assetCode} ≈ {inr(quote.inrPerUnit)}</span>
+                </p>
               )}
+              {limitError
+                ? <p className="text-xs font-medium text-[var(--color-danger)]">{limitError}</p>
+                : (limits.min != null && limits.max != null) &&
+                  <p className="text-xs text-subtle">Between {limits.min} and {limits.max} {brand.assetCode} per transaction</p>}
+            </Panel>
+
+            {error && (
+              <div className="space-y-3">
+                <Msg tone="error" text={error} />
+                {needsTrustline && <TrustlineButton />}
+              </div>
+            )}
+
+            <Button variant="gradient" size="block" disabled={!quote || busy || !!limitError} onClick={() => setStep('confirm')}>
+              Continue <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Side info */}
+          <div className="space-y-5">
+            <Panel style={reveal(0.1)} className="p-5">
+              <PanelHead title="How it works" />
+              <div className="space-y-3">
+                <StepRow Icon={ShieldCheck} title="Verify once" desc="A one-time identity check with DIDIT." />
+                <StepRow Icon={ArrowDownToLine} title="Pay in INR" desc="Card or UPI, at the live rate." />
+                <StepRow Icon={ArrowRight} title={`Receive ${brand.assetCode}`} desc="Delivered to your linked wallet." />
+              </div>
+            </Panel>
+
+            <div className="flex items-start gap-3 rounded-mock border border-black/[0.05] bg-canvas p-4 text-[13px] text-muted" style={reveal(0.14)}>
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-700" />
+              <p>Identity is verified securely with <DiditMark className="text-[13px]" />. Your wallet approval only proves ownership — it never moves money out.</p>
             </div>
-          )}
-          <Button size="block" disabled={!quote || busy || !!limitError} onClick={() => setStep('confirm')}>Continue <ArrowRight className="h-4 w-4" /></Button>
-        </>
+          </div>
+        </div>
       )}
 
       {step === 'confirm' && (
-        <>
-          <Card><CardBody className="space-y-3">
+        <div className="mx-auto max-w-md space-y-4">
+          <Panel style={reveal(0.04)} className="space-y-3 p-5 sm:p-6">
             <Row label="You buy" value={`${amount} ${brand.assetCode}`} />
             <Row label="You pay" value={inr(quote?.inrAmount)} strong />
             <div className="flex items-start gap-2 rounded-xl bg-surface px-3 py-2.5 text-xs text-muted">
               <Wallet className="mt-0.5 h-4 w-4 shrink-0" />
               <span>Your wallet will ask you to approve — this just proves the wallet is yours so we deliver to the right place. It never moves money out of your wallet. Then you pay with UPI.</span>
             </div>
-          </CardBody></Card>
+          </Panel>
           {error && (
             <div className="space-y-3">
               <Msg tone="error" text={error} />
               {needsTrustline && (
                 <>
-                  <Button
-                    size="block"
-                    variant="outline"
-                    disabled={addingTrustline}
-                    onClick={addTrustline}
-                  >
-                    {addingTrustline ? (
-                      <span className="flex items-center justify-center gap-2"><Spinner className="h-4 w-4" /> Enabling asset…</span>
-                    ) : (
-                      <span>Enable {brand.assetCode} in wallet</span>
-                    )}
-                  </Button>
+                  <TrustlineButton />
                   {assetIssuer && (
-                    <p className="text-center text-[11px] text-faint break-all">
+                    <p className="text-center text-[11px] text-subtle break-all">
                       Official {brand.assetCode} issuer: {assetIssuer.slice(0, 6)}…{assetIssuer.slice(-6)}
                     </p>
                   )}
@@ -263,77 +287,69 @@ export default function BuyPage() {
               )}
             </div>
           )}
-          <Button size="block" disabled={busy} onClick={confirmAndAuthorize}>
+          <Button variant="gradient" size="block" disabled={busy} onClick={confirmAndAuthorize}>
             {busy ? <><Spinner className="h-5 w-5" /> Confirming…</> : <><ShieldCheck className="h-4 w-4" /> Confirm securely</>}
           </Button>
-          <button className="w-full text-center text-sm text-muted hover:text-ink" onClick={() => setStep('amount')}>Back</button>
-        </>
+          <button className="w-full text-center text-sm text-muted transition-colors hover:text-ink" onClick={() => setStep('amount')}>Back</button>
+        </div>
       )}
 
       {step === 'pay' && payUrl && (
-        <>
-          <Card><CardBody className="flex flex-col items-center gap-3 py-6 text-center">
-            <div className="grid h-12 w-12 place-items-center rounded-full bg-brand/15"><ExternalLink className="h-6 w-6 text-brand-deep" /></div>
-            <p className="font-medium text-ink">Complete your payment</p>
+        <div className="mx-auto max-w-md">
+          <Panel style={reveal(0.04)} className="flex flex-col items-center gap-3 p-6 text-center sm:p-8">
+            <div className="grid h-12 w-12 place-items-center rounded-full bg-brand-50 text-brand-700"><ExternalLink className="h-6 w-6" /></div>
+            <p className="font-semibold text-ink">Complete your payment</p>
             <p className="max-w-xs text-sm text-muted">A secure payment window opens. Pay {inr(quote?.inrAmount)} with UPI or card — you’ll come back here automatically and we’ll deliver {amount} {brand.assetCode} to your wallet.</p>
-            <Button size="block" onClick={() => { openPaymentWindow(payUrl); setStep('processing'); }}>Continue to payment · {inr(quote?.inrAmount)}</Button>
-            <button className="text-sm text-muted hover:text-ink" onClick={() => setStep('processing')}>I’ve paid — track my money</button>
-          </CardBody></Card>
-        </>
+            <Button variant="gradient" size="block" onClick={() => { openPaymentWindow(payUrl); setStep('processing'); }}>Continue to payment · {inr(quote?.inrAmount)}</Button>
+            <button className="text-sm text-muted transition-colors hover:text-ink" onClick={() => setStep('processing')}>I’ve paid — track my money</button>
+          </Panel>
+        </div>
       )}
 
       {step === 'processing' && (
-        <Card><CardBody className="flex flex-col items-center gap-4 py-10 text-center">
-          <Loader2 className="h-10 w-10 animate-spin text-brand" />
-          <div>
-            <p className="font-semibold text-ink">{PHASE_LABEL[tx?.phase ?? 'processing']}</p>
-            <p className="mt-1 text-sm text-muted">This usually takes a minute. You can leave this screen — it’ll keep going.</p>
-          </div>
-          <Steps phase={tx?.phase ?? 'processing'} />
-        </CardBody></Card>
+        <div className="mx-auto max-w-md">
+          <Panel style={reveal(0.04)} className="flex flex-col items-center gap-4 p-8 text-center sm:p-10">
+            <Loader2 className="h-10 w-10 animate-spin text-brand" />
+            <div>
+              <p className="font-semibold text-ink">{PHASE_LABEL[tx?.phase ?? 'processing']}</p>
+              <p className="mt-1 text-sm text-muted">This usually takes a minute. You can leave this screen — it’ll keep going.</p>
+            </div>
+            <Steps phase={tx?.phase ?? 'processing'} />
+          </Panel>
+        </div>
       )}
 
       {step === 'done' && (
-        <Card><CardBody className="space-y-4">
-          <div className="flex flex-col items-center gap-2 py-2 text-center">
-            <CheckCircle2 className="h-14 w-14 text-[var(--color-success)]" />
-            <p className="text-xl font-bold text-ink">Money added</p>
-            <p className="text-sm text-muted">{amount} {brand.assetCode} is now in your wallet.</p>
-          </div>
-          <div className="space-y-2 rounded-xl bg-surface p-4">
-            <Row label="Amount" value={`${tx?.assetAmount ?? amount} ${brand.assetCode}`} />
-            <Row label="You paid" value={inr(tx?.inrAmount ?? quote?.inrAmount)} />
-            <Row label="Reference" value={tx?.reference ?? txId?.slice(0, 8).toUpperCase() ?? '—'} />
-            <Row label="Completed" value={tx?.completedAt ? new Date(tx.completedAt).toLocaleString() : 'Just now'} />
-            <div className="flex items-center justify-between"><span className="text-sm text-muted">Status</span><Badge tone="success">Completed</Badge></div>
-          </div>
-          <Advanced tx={tx} />
-          <Button variant="outline" size="block" onClick={() => router.push('/home')}>Done</Button>
-        </CardBody></Card>
+        <div className="mx-auto max-w-md">
+          <Panel style={reveal(0.04)} className="space-y-4 p-5 sm:p-6">
+            <div className="flex flex-col items-center gap-2 py-2 text-center">
+              <CheckCircle2 className="h-14 w-14 text-[var(--color-success)]" />
+              <p className="text-xl font-bold text-ink">Money added</p>
+              <p className="text-sm text-muted">{amount} {brand.assetCode} is now in your wallet.</p>
+            </div>
+            <div className="space-y-2 rounded-xl bg-surface p-4">
+              <Row label="Amount" value={`${tx?.assetAmount ?? amount} ${brand.assetCode}`} />
+              <Row label="You paid" value={inr(tx?.inrAmount ?? quote?.inrAmount)} />
+              <Row label="Reference" value={tx?.reference ?? txId?.slice(0, 8).toUpperCase() ?? '—'} />
+              <Row label="Completed" value={tx?.completedAt ? new Date(tx.completedAt).toLocaleString() : 'Just now'} />
+              <div className="flex items-center justify-between"><span className="text-sm text-muted">Status</span><Badge tone="success">Completed</Badge></div>
+            </div>
+            <Advanced tx={tx} />
+            <Button variant="outline" size="block" onClick={() => router.push('/home')}>Done</Button>
+          </Panel>
+        </div>
       )}
 
       {step === 'error' && (
-        <Card><CardBody className="flex flex-col items-center gap-3 py-10 text-center">
-          <AlertCircle className="h-12 w-12 text-[var(--color-danger)]" />
-          <p className="text-lg font-bold text-ink">Couldn’t complete</p>
-          <p className="max-w-xs text-sm text-muted">{error}</p>
-          {needsTrustline && (
-            <Button
-              size="block"
-              variant="outline"
-              disabled={addingTrustline}
-              onClick={addTrustline}
-              className="mt-2"
-            >
-              {addingTrustline ? (
-                <span className="flex items-center justify-center gap-2"><Spinner className="h-4 w-4" /> Enabling asset…</span>
-              ) : (
-                <span>Enable {brand.assetCode} in wallet</span>
-              )}
-            </Button>
-          )}
-          <Button variant="outline" size="block" onClick={() => { setStep('amount'); setError(''); setTx(null); setNeedsTrustline(false); }}>Try again</Button>
-        </CardBody></Card>
+        <div className="mx-auto max-w-md">
+          <Panel style={reveal(0.04)} className="flex flex-col items-center gap-3 p-8 text-center sm:p-10">
+            <AlertCircle className="h-12 w-12 text-[var(--color-danger)]" />
+            <p className="text-lg font-bold text-ink">Couldn’t complete</p>
+            <p className="max-w-xs text-sm text-muted">{error}</p>
+            {needsTrustline && <TrustlineButton className="mt-2" />}
+            <Button variant="outline" size="block" onClick={() => { setStep('amount'); setError(''); setTx(null); setNeedsTrustline(false); }}>Try again</Button>
+          </Panel>
+        </div>
       )}
     </div>
   );
@@ -365,11 +381,22 @@ function friendly(msg: string): string {
   return 'Something went wrong starting your buy. Please try again.';
 }
 
+function StepRow({ Icon, title, desc }: { Icon: typeof Info; title: string; desc: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-brand-50 text-brand-700"><Icon className="h-[18px] w-[18px]" /></span>
+      <div>
+        <p className="text-[13px] font-medium text-ink">{title}</p>
+        <p className="text-[11.5px] text-subtle">{desc}</p>
+      </div>
+    </div>
+  );
+}
 function Row({ label, value, strong }: { label: string; value: string | null | undefined; strong?: boolean }) {
-  return <div className="flex items-center justify-between"><span className="text-sm text-muted">{label}</span><span className={strong ? 'text-lg font-bold text-ink' : 'font-medium text-ink'}>{value ?? '—'}</span></div>;
+  return <div className="flex items-center justify-between"><span className="text-sm text-muted">{label}</span><span className={strong ? 'text-lg font-bold tabular-nums text-ink' : 'font-medium tabular-nums text-ink'}>{value ?? '—'}</span></div>;
 }
 function Msg({ tone, text }: { tone: 'error'; text: string }) {
-  return <div className="rounded-xl bg-[var(--color-danger-bg)] px-3 py-2 text-sm text-[var(--color-danger)]">{text}</div>;
+  return <div className="rounded-xl bg-[var(--color-danger-bg)] px-3 py-2.5 text-sm text-[var(--color-danger)]">{text}</div>;
 }
 // Technical blockchain details, hidden by default — only for the curious.
 function Advanced({ tx }: { tx: CustomerTx | null }) {
@@ -377,7 +404,7 @@ function Advanced({ tx }: { tx: CustomerTx | null }) {
   if (!tx) return null;
   return (
     <div>
-      <button onClick={() => setOpen(!open)} className="text-xs text-faint hover:text-muted">{open ? 'Hide' : 'Advanced'} details</button>
+      <button onClick={() => setOpen(!open)} className="text-xs text-subtle transition-colors hover:text-muted">{open ? 'Hide' : 'Advanced'} details</button>
       {open && (
         <div className="mt-2 space-y-1 rounded-lg bg-surface p-3 font-mono text-[11px] text-muted">
           <div>tx: {tx.id}</div>
@@ -396,9 +423,15 @@ function Steps({ phase }: { phase: string }) {
   return (
     <div className="flex w-full items-center justify-between px-2">
       {labels.map((l, i) => (
-        <div key={l} className="flex flex-col items-center gap-1">
-          <div className={`h-2.5 w-2.5 rounded-full ${i <= idx ? 'bg-brand' : 'bg-surface-2'}`} />
-          <span className={`text-[10px] ${i <= idx ? 'text-ink' : 'text-faint'}`}>{l}</span>
+        <div key={l} className="flex flex-1 flex-col items-center gap-1.5">
+          <div className="flex w-full items-center">
+            <span className={`h-1 flex-1 rounded-full ${i === 0 ? 'bg-transparent' : i <= idx ? 'bg-brand' : 'bg-surface-2'}`} />
+            <span className={`grid size-4 shrink-0 place-items-center rounded-full ${i <= idx ? 'bg-brand text-white' : 'bg-surface-2'}`}>
+              {i <= idx && <span className="size-1.5 rounded-full bg-white" />}
+            </span>
+            <span className={`h-1 flex-1 rounded-full ${i === labels.length - 1 ? 'bg-transparent' : i < idx ? 'bg-brand' : 'bg-surface-2'}`} />
+          </div>
+          <span className={`text-[10px] ${i <= idx ? 'font-medium text-ink' : 'text-subtle'}`}>{l}</span>
         </div>
       ))}
     </div>

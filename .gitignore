@@ -40,3 +40,5 @@ Thumbs.db
 .bashrc
 .zsh_history
 .bash_history
+
+.mcp.json

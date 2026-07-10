@@ -71,10 +71,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             return (
               <Link key={href} href={href}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
-                  active ? 'bg-brand/12 text-brand-deep' : 'text-muted hover:bg-surface hover:text-ink',
+                  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                  active ? 'bg-brand-50 text-brand-800' : 'text-muted hover:bg-surface hover:text-ink',
                 )}>
-                <Icon className={cn('h-[18px] w-[18px]', active ? 'text-brand-deep' : 'text-faint')} />
+                <Icon className={cn('h-[18px] w-[18px]', active ? 'text-brand-700' : 'text-subtle')} />
                 {label}
               </Link>
             );
@@ -83,9 +83,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Verification nudge — the money gate lives at the foot of the rail */}
         {customer.kycStatus !== 'approved' && (
-          <Link href="/verify" className="mx-3 mb-2 block rounded-xl border border-line bg-surface/60 p-3 transition hover:border-brand">
+          <Link href="/verify" className="mx-3 mb-2 block rounded-mock border border-line bg-surface/60 p-4 transition-colors hover:border-brand-200">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-[var(--color-warning)]" />
+              <ShieldCheck className="h-4 w-4 text-brand-700" />
               <span className="text-xs font-semibold text-ink">Verify your identity</span>
             </div>
             <p className="mt-1 text-[11px] leading-snug text-muted">One quick check unlocks buying and selling.</p>
@@ -147,7 +147,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {NAV.map(({ href, label, icon: Icon }) => {
             const active = isActive(href);
             return (
-              <Link key={href} href={href} className={cn('flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition', active ? 'text-brand-deep' : 'text-faint hover:text-muted')}>
+              <Link key={href} href={href} className={cn('flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors', active ? 'text-brand-700' : 'text-subtle hover:text-muted')}>
                 <Icon className="h-5 w-5" />
                 {label}
               </Link>

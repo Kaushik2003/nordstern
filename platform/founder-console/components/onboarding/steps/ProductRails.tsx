@@ -9,6 +9,7 @@ import { Label } from '@nordstern/shared-ui';
 import { Input } from '@nordstern/shared-ui';
 import { cn } from '@nordstern/shared-ui';
 import { FlaskConical, Rocket, Lightbulb, ChevronDown } from 'lucide-react';
+import Image from 'next/image';
 
 // Copy stays factual about availability. It must not state a regulatory or licensing
 // rationale — see AGENTS.md §5: we do not publish compliance conclusions in the UI.
@@ -52,7 +53,7 @@ export function ProductRails() {
   return (
     <div className="space-y-10">
       <div>
-        <h2 className="text-3xl font-normal tracking-[-0.025em] mb-3">Step 2/3: Product & Rails</h2>
+        <h2 className="text-3xl font-normal tracking-[-0.025em] mb-3">Step 3/4: Product & Rails</h2>
         <p className="text-subtle text-base leading-relaxed max-w-3xl">
           Choose how you want to launch and how fiat moves. NordStern turns this into a live
           anchor — you never configure Stellar or SEP servers yourself.
@@ -140,7 +141,7 @@ export function ProductRails() {
             <label htmlFor="product.minTransactionBound" className="rounded-2xl border border-line bg-surface p-6 flex flex-col justify-center cursor-text transition-all focus-within:border-brand focus-within:ring-1 focus-within:ring-brand hover:border-brand/50">
               <span className="mb-3 text-xs font-semibold text-subtle uppercase tracking-wider">Minimum Limit</span>
               <div className="flex items-center gap-3">
-               
+                <span className="text-2xl font-medium text-subtle">{fiat}</span>
                 <input 
                   id="product.minTransactionBound" 
                   type="number" 
@@ -155,6 +156,7 @@ export function ProductRails() {
             <label htmlFor="product.maxTransactionBound" className="rounded-2xl border border-line bg-surface p-6 flex flex-col justify-center cursor-text transition-all focus-within:border-brand focus-within:ring-1 focus-within:ring-brand hover:border-brand/50">
               <span className="mb-3 text-xs font-semibold text-subtle uppercase tracking-wider">Maximum Limit</span>
               <div className="flex items-center gap-3">
+                <span className="text-2xl font-medium text-subtle">{fiat}</span>
                 <input 
                   id="product.maxTransactionBound" 
                   type="number" 
@@ -307,11 +309,17 @@ export function ProductRails() {
         </div>
       </div>
 
-      <div className="mt-8 bg-surface border border-line rounded-2xl p-5 flex gap-4 text-base shadow-sm">
-        <Lightbulb className="h-6 w-6 text-brand shrink-0 mt-0.5" />
-        <p className="text-subtle leading-relaxed">
-          <span className="font-semibold text-ink">Identity is on us.</span> Your customers verify once through NordStern&apos;s central KYC — you don&apos;t pick or integrate a KYC vendor.
-        </p>
+      <div className="mt-8 bg-surface border border-line rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-base shadow-sm">
+        <div className="flex gap-4">
+          <Lightbulb className="h-6 w-6 text-brand shrink-0 mt-0.5" />
+          <p className="text-subtle leading-relaxed">
+            <span className="font-semibold text-ink">Identity is on us.</span> Your customers verify once through NordStern&apos;s central KYC.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0 sm:pl-4 sm:border-l border-line">
+          <span className="text-[10px] font-semibold text-subtle uppercase tracking-wider">Powered by</span>
+          <Image src="/primary-horizontal-dark.svg" alt="Didit" width={80} height={24} className="opacity-90 dark:invert" />
+        </div>
       </div>
     </div>
   );

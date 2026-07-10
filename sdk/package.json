@@ -1,0 +1,10 @@
+{
+  "name": "nordstern-anchor-template",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "NordStern anchor template — setup + smoke-test scripts for the single INR<>USDC anchor.",
+  "dependencies": {
+    "@stellar/stellar-sdk": "^13.0.0"
+  }
+}

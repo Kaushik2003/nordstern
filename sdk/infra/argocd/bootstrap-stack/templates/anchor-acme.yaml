@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: anchor-{{ .Values.tenant.slug }}
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: {{ .Values.global.repoURL | quote }}
+    targetRevision: {{ .Values.global.targetRevision | quote }}
+    path: anchor-template/infra/helm/anchor-stack
+    helm:
+      values: |
+        anchor:
+          slug: {{ .Values.tenant.slug | quote }}
+          network: {{ .Values.tenant.network | quote }}
+        domain: {{ .Values.global.domain | quote }}
+        images:
+          registry: {{ .Values.tenant.images.registry | quote }}
+          businessServer:
+            tag: {{ .Values.tenant.images.businessServer.tag | quote }}
+          client:
+            tag: {{ .Values.tenant.images.client.tag | quote }}
+        database:
+          host: {{ .Values.tenant.dbHost | quote }}
+        externalSecrets:
+          dbSecretName: {{ .Values.tenant.dbSecretName | quote }}
+          anchorSecretName: {{ .Values.tenant.anchorSecretName | quote }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: anchor-{{ .Values.tenant.slug }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

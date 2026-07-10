@@ -1,0 +1,13 @@
+# Secrets and generated config — never commit
+.env
+.env.*
+!.env.example
+config/stellar.toml
+config/assets.yaml
+
+# Node
+**/node_modules
+**/dist
+npm-debug.log*
+bun.lock
+**/bun.lock

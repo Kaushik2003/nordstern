@@ -1,0 +1,45 @@
+{{- $sep := include "anchor.host.sep" . -}}
+{{- $api := include "anchor.host.api" . -}}
+{{- $console := include "anchor.host.console" . -}}
+# Host-based routing on a shared ALB:
+#   <slug>.<domain>          → Anchor Platform :8080  (SEP protocol + stellar.toml)
+#   api.<slug>.<domain>      → business-server :3000  (SEP-24 interactive, webhooks, more_info)
+#   console.<slug>.<domain>  → client :3001           (operator console — keep private/SSO)
+# The AP Platform API (:8085) is intentionally NOT routed here (internal only).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: anchor
+  namespace: {{ include "anchor.namespace" . }}
+  labels:
+    {{- include "anchor.labels" . | nindent 4 }}
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/group.name: anchor-{{ .Values.anchor.slug }}
+    {{- if .Values.ingress.tls }}
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    # cert-manager (Let's Encrypt) or an ACM cert ARN — wired in Task #11.
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    - hosts: [{{ $sep | quote }}, {{ $api | quote }}, {{ $console | quote }}]
+      secretName: anchor-tls
+  {{- end }}
+  rules:
+    - host: {{ $sep | quote }}
+      http:
+        paths:
+          - { path: /, pathType: Prefix, backend: { service: { name: anchor-platform, port: { number: 8080 } } } }
+    - host: {{ $api | quote }}
+      http:
+        paths:
+          - { path: /, pathType: Prefix, backend: { service: { name: business-server, port: { number: 3000 } } } }
+    - host: {{ $console | quote }}
+      http:
+        paths:
+          - { path: /, pathType: Prefix, backend: { service: { name: client, port: { number: 3001 } } } }

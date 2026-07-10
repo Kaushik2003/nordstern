@@ -1,0 +1,35 @@
+{{- if .Values.addons.karpenter.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: karpenter
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: public.ecr.aws/karpenter
+    chart: karpenter
+    targetRevision: {{ .Values.addons.karpenter.version | quote }}
+    helm:
+      values: |
+        serviceAccount:
+          create: true
+          name: karpenter
+          annotations:
+            eks.amazonaws.com/role-arn: arn:aws:iam::{{ .Values.global.awsAccountId }}:role/{{ .Values.global.clusterName }}-karpenter-controller
+        settings:
+          clusterName: {{ .Values.global.clusterName | quote }}
+          clusterEndpoint: "https://{{ .Values.global.clusterName }}.gr7.{{ .Values.global.region }}.eks.amazonaws.com"
+          interruptionQueue: {{ .Values.global.clusterName | quote }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+{{- end }}

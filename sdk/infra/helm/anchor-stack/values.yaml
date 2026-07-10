@@ -1,0 +1,71 @@
+# One anchor stack. Override per anchor with -f <slug>-values.yaml.
+# Nothing anchor-specific is hardcoded — every such value lives here.
+
+anchor:
+  slug: acme                     # → namespace anchor-acme, hostnames below
+  network: testnet               # testnet | mainnet (gates real money — see GO_LIVE_GATING.md)
+
+# Public hostnames (Route 53 + ACM/cert-manager). Default scheme: <slug>.<domain>.
+# The SEP server, the business-server interactive/callback, and the console each get
+# a host; the AP config + stellar.toml are rendered from these (no localhost in prod).
+domain: anchors.nordstern.io
+hosts:
+  sep: ""                        # default: <slug>.<domain>           (SEP server :8080)
+  api: ""                        # default: api.<slug>.<domain>       (business-server :3000)
+  console: ""                    # default: console.<slug>.<domain>   (client :3001)
+
+images:
+  registry: ""                   # <acct>.dkr.ecr.ap-south-1.amazonaws.com
+  businessServer: { repo: nordstern/business-server, tag: "0.1.0" }
+  client:         { repo: nordstern/client,          tag: "0.1.0" }
+  anchorPlatform: { repo: stellar/anchor-platform,   tag: "latest" }
+
+# External Secrets: the anchor's own rails + the RDS-managed DB credential.
+externalSecrets:
+  enabled: true
+  secretStore: aws-secretsmanager          # ClusterSecretStore name (from Task #11)
+  anchorSecretName: "nordstern/dev/anchor/acme"   # per-anchor Secrets Manager secret
+  dbSecretName: ""                          # RDS-managed master secret ARN/name
+
+database:
+  host: ""                       # Aurora writer endpoint (from terraform output)
+  name: anchordb
+  port: 5432
+
+adapters:                        # provider selection (mirrors .env; real by default for KYC)
+  kyc: didit                     # didit | surepass  (mock forbidden on mainnet — DEC-008)
+  deposit: razorpay
+  payout: cashfree
+  fee: cmc
+
+resources:
+  businessServer:
+    requests: { cpu: 100m, memory: 192Mi }
+    limits:   { cpu: 500m, memory: 512Mi }
+  anchorPlatform:
+    requests: { cpu: 250m, memory: 768Mi }
+    limits:   { cpu: "1",  memory: 1536Mi }
+  client:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits:   { cpu: 250m, memory: 384Mi }
+
+autoscaling:
+  businessServer: { enabled: true, minReplicas: 2, maxReplicas: 6, targetCPU: 70 }
+
+# The Anchor Platform runs -s -p -o (SEP + Platform API + Observer). The Observer is a
+# single-writer ledger watcher, so this Deployment MUST stay at 1 replica.
+anchorPlatform:
+  replicas: 1
+
+ingress:
+  className: alb
+  # cert-manager clusterissuer + ALB annotations filled in Task #11.
+  tls: true
+
+networkPolicy:
+  enabled: true                  # default-deny + explicit allows (see networkpolicy.yaml)
+
+serviceAccount:
+  create: true
+  name: "business-server"
+  annotations: {}

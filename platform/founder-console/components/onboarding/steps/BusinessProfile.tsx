@@ -1,16 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { AnimatePresence, motion } from 'framer-motion';
-import { OnboardingFormState, isPublicEmail } from '@/lib/validations/onboarding';
+import { OnboardingFormState } from '@/lib/validations/onboarding';
 import { COUNTRIES, EXPANDING_SOON, FIAT, MARKETS, Option } from '@/lib/onboarding/availability';
-import { COMPANY_SIZES, DEPARTMENTS, ENTITY_TYPES, INDUSTRIES, MONTHLY_VOLUMES } from '@/lib/onboarding/institution';
+import { COMPANY_SIZES, ENTITY_TYPES, INDUSTRIES, MONTHLY_VOLUMES } from '@/lib/onboarding/institution';
 import { OptionPill } from '@/components/onboarding/OptionPill';
 import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { Label } from '@nordstern/shared-ui';
 import { Input } from '@nordstern/shared-ui';
-import { Lightbulb, Loader2, CheckCircle2, Clock, Globe, ChevronDown } from 'lucide-react';
+import { Lightbulb, Globe, ChevronDown } from 'lucide-react';
 
 // Fields registered as `_display.*` are presentation-only: react-hook-form holds them
 // so they survive step navigation, but they sit outside `onboardingSchema` and the
@@ -119,12 +118,10 @@ function Field({
 
 /** A titled block of related fields — the spine of the form's structure. */
 function Section({
-  step,
   title,
   description,
   children,
 }: {
-  step: string;
   title: string;
   description: string;
   children: React.ReactNode;
@@ -132,7 +129,6 @@ function Section({
   return (
     <section className="space-y-10 border-t border-line pt-14 first:border-t-0 first:pt-0">
       <div className="space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-800">{step}</p>
         <h3 className="text-2xl font-normal tracking-[-0.015em] text-ink">{title}</h3>
         <p className="text-base text-subtle leading-relaxed max-w-3xl">{description}</p>
       </div>
@@ -141,33 +137,10 @@ function Section({
   );
 }
 
-export function BusinessProfile({ onEmailTakenChange }: { onEmailTakenChange?: (taken: boolean) => void }) {
+export function BusinessProfile() {
   const { register, watch, setValue, formState: { errors } } = useFormContext<OnboardingFormState>();
 
   const selectedMarkets = watch('companyProfile.targetMarkets') || [];
-  const businessEmail = watch('companyProfile.businessEmail') || '';
-
-  // Live "is this email already a founder?" check — warn while typing so the founder fixes it
-  // now instead of hitting a collision later at approval. Debounced; only runs on a valid email.
-  const [emailCheck, setEmailCheck] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
-  useEffect(() => {
-    const email = businessEmail.trim().toLowerCase();
-    if (!/.+@.+\..+/.test(email)) { setEmailCheck('idle'); onEmailTakenChange?.(false); return; }
-    setEmailCheck('checking');
-    const ctrl = new AbortController();
-    const t = setTimeout(async () => {
-      try {
-        const r = await fetch(`/api/v1/applications/email-available?email=${encodeURIComponent(email)}`, { signal: ctrl.signal });
-        const j = await r.json();
-        const taken = j.available === false;
-        setEmailCheck(taken ? 'taken' : 'available');
-        onEmailTakenChange?.(taken);
-      } catch (e) {
-        if ((e as Error).name !== 'AbortError') { setEmailCheck('idle'); onEmailTakenChange?.(false); }
-      }
-    }, 450);
-    return () => { clearTimeout(t); ctrl.abort(); };
-  }, [businessEmail, onEmailTakenChange]);
 
   const toggleMarket = (m: string) => {
     if (selectedMarkets.includes(m)) {
@@ -180,20 +153,16 @@ export function BusinessProfile({ onEmailTakenChange }: { onEmailTakenChange?: (
   return (
     <div className="space-y-14">
       <div>
-        <h2 className="text-4xl font-normal tracking-[-0.025em] mb-4">Step 1/3: Business Profile</h2>
+        <h2 className="text-4xl font-normal tracking-[-0.025em] mb-4">Step 2/4: Business Profile</h2>
         <p className="text-subtle text-base leading-relaxed max-w-2xl">
           Tell us about your institution and who is registering on its behalf. This is all we need to
           get you a sandbox anchor — no Stellar keys, no infrastructure, no compliance setup.
           NordStern handles all of that for you.
         </p>
-        <p className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-brand-800">
-          <Clock className="h-4 w-4" aria-hidden /> This usually takes about two minutes.
-        </p>
       </div>
 
       <div className="space-y-16">
         <Section
-          step="Section 01"
           title="The institution"
           description="The legal entity that will operate the anchor and hold the banking relationship."
         >
@@ -239,81 +208,6 @@ export function BusinessProfile({ onEmailTakenChange }: { onEmailTakenChange?: (
         </Section>
 
         <Section
-          step="Section 02"
-          title="Authorized representative"
-          description="The person registering on behalf of the institution. This is who we contact, and who signs in to the operator console."
-        >
-          <div className="grid gap-x-12 gap-y-10 md:grid-cols-2">
-            <Field htmlFor="companyProfile.contactPerson" label="Full Name" error={errors.companyProfile?.contactPerson?.message}>
-              <Input id="companyProfile.contactPerson" placeholder="e.g., Priya Sharma" className={FIELD_CLASS} {...register('companyProfile.contactPerson')} />
-            </Field>
-            <Field htmlFor="_display.designation" label="Designation">
-              <Input id="_display.designation" placeholder="e.g., Head of Treasury" className={FIELD_CLASS} {...register('_display.designation')} />
-            </Field>
-          </div>
-
-          <div className="grid gap-x-12 gap-y-10 md:grid-cols-2">
-            <Field htmlFor="_display.department" label="Department">
-              <PlainSelect id="_display.department" options={DEPARTMENTS} placeholder="Select department…" {...register('_display.department')} />
-            </Field>
-            <Field htmlFor="_display.workPhone" label="Work Phone" optional>
-              <Input id="_display.workPhone" type="tel" placeholder="+91 98765 43210" className={FIELD_CLASS} {...register('_display.workPhone')} />
-            </Field>
-          </div>
-
-          <div className="grid gap-x-12 gap-y-10 md:grid-cols-2">
-            <Field htmlFor="_display.linkedInProfile" label="LinkedIn Profile URL" optional>
-              <Input id="_display.linkedInProfile" placeholder="https://linkedin.com/in/..." className={FIELD_CLASS} {...register('_display.linkedInProfile')} />
-            </Field>
-            <Field htmlFor="_display.nationality" label="Nationality" optional>
-              <Input id="_display.nationality" placeholder="e.g., Indian" className={FIELD_CLASS} {...register('_display.nationality')} />
-            </Field>
-          </div>
-
-          <Field
-            htmlFor="companyProfile.businessEmail"
-            label="Work Email"
-            tooltip="Your invitation link and operator sign-in are both tied to this address."
-            error={errors.companyProfile?.businessEmail?.message}
-          >
-              <Input id="companyProfile.businessEmail" type="email" placeholder="priya@mizupay.io" className={FIELD_CLASS} {...register('companyProfile.businessEmail')} />
-              <AnimatePresence mode="wait">
-                {emailCheck === 'checking' && (
-                  <motion.p key="checking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mt-1 flex items-center gap-1.5 text-sm text-subtle">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Checking availability…
-                  </motion.p>
-                )}
-                {emailCheck === 'taken' && (
-                  <motion.p key="taken" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-1 text-sm font-medium text-destructive">
-                    This email is already registered as a founder. Use a different email or sign in to your existing console.
-                  </motion.p>
-                )}
-                {emailCheck === 'available' && (
-                  <motion.p key="available" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-1 flex items-center gap-1.5 text-sm font-medium text-success">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Email is available.
-                  </motion.p>
-                )}
-              </AnimatePresence>
-              {emailCheck !== 'taken' && businessEmail && isPublicEmail(businessEmail) && (
-                <p className="text-sm text-warn mt-1 font-medium">A corporate email speeds up review (a personal email is fine for Test Mode).</p>
-              )}
-          </Field>
-
-          <label className="flex cursor-pointer items-start gap-3.5 rounded-2xl border border-line bg-surface p-5">
-            <input
-              type="checkbox"
-              className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded accent-brand"
-              {...register('_display.signingAuthority')}
-            />
-            <span className="text-base leading-relaxed text-subtle">
-              <span className="font-semibold text-ink">I am authorized to register on behalf of this institution</span>{' '}
-              and to enter into agreements binding it. We may ask for evidence of this authority before you go live.
-            </span>
-          </label>
-        </Section>
-
-        <Section
-          step="Section 03"
           title="Operating footprint"
           description="Where the anchor operates and what it settles in. We're live in India today; other markets are on the roadmap."
         >
@@ -354,7 +248,6 @@ export function BusinessProfile({ onEmailTakenChange }: { onEmailTakenChange?: (
         </Section>
 
         <Section
-          step="Section 04"
           title="Registered address"
           description="The address on the institution's incorporation documents. Leave blank to experiment in Test Mode."
         >
@@ -386,7 +279,6 @@ export function BusinessProfile({ onEmailTakenChange }: { onEmailTakenChange?: (
 
         {/* Optional registration — never blocks Test Mode */}
         <Section
-          step="Section 05"
           title="Business registration"
           description="An anchor that moves real money has to be traceable to a registered entity. Leave these blank to experiment in Test Mode — nothing here blocks you."
         >
@@ -427,7 +319,6 @@ export function BusinessProfile({ onEmailTakenChange }: { onEmailTakenChange?: (
         </Section>
 
         <Section
-          step="Section 06"
           title="Banking & Compliance Profile"
           description="High-level banking relationships and compliance standing to help tailor your onboarding and risk profile."
         >

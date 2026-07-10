@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+/* ============================================================
+   NordStern — premium developer infrastructure
+   Minimal, light mode, fintech-grade aesthetics.
+   ============================================================ */
+
+@theme {
+  /* Surfaces */
+  --color-canvas:    #ffffff;
+  --color-surface:   #f2f4f3;
+  --color-surface-2: #eaeeec;
+  --color-line:      #e6e9e8;
+  --color-line-strong: #d1d5db; /* keep for stronger borders if needed */
+
+  /* Brand — NordStern purple */
+  --color-brand-50:  #f4f2fd;
+  --color-brand-100: #e9e5fb;
+  --color-brand:     #ab9ff2;
+  --color-brand-strong: #8b7ee0;
+  --color-brand-deep:   #6f5fd6;
+  
+  /* Text */
+  --color-ink:   #0b0b0b;
+  --color-muted: #5b5b5b;
+  --color-faint: #9a9a9a;
+
+  /* Text on the brand accent (readable on light purple) */
+  --color-brand-ink: #1a1530;
+
+  /* Semantic status palette (fills + tints) — one language across the app */
+  --color-success:    #059669;
+  --color-success-bg: #d1fae5;
+  --color-warning:    #b45309;
+  --color-warning-bg: #fef3c7;
+  --color-danger:     #dc2626;
+  --color-danger-bg:  #fee2e2;
+  --color-info:       #4f46e5;
+  --color-info-bg:    #e0e7ff;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius-xl: 1rem;
+}
+
+html { color-scheme: light; }
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+iframe { border: 0; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.1); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.2); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.4s ease both; }

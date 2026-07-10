@@ -7,9 +7,9 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { onboardingSchema, OnboardingFormState } from '@/lib/validations/onboarding';
 import { LIVE_COUNTRY, LIVE_FIAT } from '@/lib/onboarding/availability';
 import { SidebarSteps } from '@/components/onboarding/SidebarSteps';
-import { StepProgress } from '@/components/onboarding/StepProgress';
 import { TrustStrip } from '@/components/onboarding/TrustStrip';
 import { ConfirmSubmitModal } from '@/components/onboarding/ConfirmSubmitModal';
+import { FounderProfile } from '@/components/onboarding/steps/FounderProfile';
 import { BusinessProfile } from '@/components/onboarding/steps/BusinessProfile';
 import { ProductRails } from '@/components/onboarding/steps/ProductRails';
 import { ReviewSubmit } from '@/components/onboarding/steps/ReviewSubmit';
@@ -51,8 +51,9 @@ export default function RegisterWizard() {
     let fieldsToValidate: string[] = [];
 
     switch (currentStep) {
-      case 1: fieldsToValidate = ['companyProfile']; break;
-      case 2: fieldsToValidate = ['product']; break;
+      case 1: fieldsToValidate = ['companyProfile.contactPerson', 'companyProfile.businessEmail']; break;
+      case 2: fieldsToValidate = ['companyProfile']; break;
+      case 3: fieldsToValidate = ['product']; break;
     }
 
     const isValid = await trigger(fieldsToValidate as any);
@@ -60,7 +61,7 @@ export default function RegisterWizard() {
     // Don't let the founder proceed past step 1 with an email that's already in use.
     if (currentStep === 1 && emailTaken) return;
 
-    if (isValid && currentStep < 3) {
+    if (isValid && currentStep < 4) {
       const nextStep = currentStep + 1;
       setCurrentStep(nextStep);
       if (nextStep > furthestStep) setFurthestStep(nextStep);
@@ -175,9 +176,10 @@ export default function RegisterWizard() {
                       exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
                       transition={{ duration: reduceMotion ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }}
                     >
-                      {currentStep === 1 && <BusinessProfile onEmailTakenChange={setEmailTaken} />}
-                      {currentStep === 2 && <ProductRails />}
-                      {currentStep === 3 && <ReviewSubmit onEditStep={(step) => setCurrentStep(step)} />}
+                      {currentStep === 1 && <FounderProfile onEmailTakenChange={setEmailTaken} />}
+                      {currentStep === 2 && <BusinessProfile />}
+                      {currentStep === 3 && <ProductRails />}
+                      {currentStep === 4 && <ReviewSubmit onEditStep={(step) => setCurrentStep(step)} />}
                     </motion.div>
                   </AnimatePresence>
                 </div>
@@ -197,7 +199,7 @@ export default function RegisterWizard() {
 
                 {/* Progress + Back/Continue row — dots sit right above the action buttons */}
                 <div className="mt-20 pt-10 border-t border-line pb-10 flex flex-col items-center gap-8">
-                  <StepProgress currentStep={currentStep} />
+                  
                   <div className="flex w-full max-w-sm items-center gap-4">
                     <Button
                       type="button"
@@ -210,11 +212,11 @@ export default function RegisterWizard() {
                     </Button>
                     <Button
                       type="button"
-                      onClick={currentStep < 3 ? validateAndProceed : openConfirm}
+                      onClick={currentStep < 4 ? validateAndProceed : openConfirm}
                       disabled={isSubmitting}
                       className="h-12 flex-2 rounded-pill bg-brand text-base font-semibold text-ink hover:bg-brand-600 transition-colors"
                     >
-                      {currentStep < 3 ? 'Continue' : 'Review & submit'}
+                      {currentStep < 4 ? 'Continue' : 'Review & submit'}
                     </Button>
                   </div>
                 </div>

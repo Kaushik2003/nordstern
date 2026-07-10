@@ -248,6 +248,38 @@ export async function getStatus(account: string): Promise<KycStatus> {
   return rec.status as KycStatus;
 }
 
+// ─── Background KYC reconciler ──────────────────────────────────────────────────
+// A single DIDIT account serves every anchor, and DIDIT delivers its decision webhook to ONE
+// configured URL — so the callback can't reach a per-anchor subdomain (<slug>.nordstern.live),
+// and PROCESSING sessions never advance. The customer app polls the CENTRAL profile, which only
+// the webhook updates → "Finishing verification" hangs forever even though DIDIT approved.
+// This reconciler makes KYC self-healing without webhooks: periodically re-run getStatus() for
+// every PROCESSING session (getStatus polls DIDIT and, on a resolved decision, persists it AND
+// propagates to the central customer). Applies to all anchors.
+const KYC_RECONCILE_MS = 15000;
+
+export async function reconcilePendingKyc(): Promise<void> {
+  if (!DIDIT_API_KEY) return; // no real provider configured → nothing to poll
+  const { rows } = await pool.query(
+    `SELECT vendor_data FROM nordstern.kyc_verifications
+     WHERE status = 'PROCESSING' AND didit_session_id IS NOT NULL
+       AND updated_at > now() - interval '2 days'`,
+  );
+  for (const r of rows) {
+    // getStatus() polls DIDIT for this session and, when it has advanced past PROCESSING,
+    // persists the decision + propagates it to the central profile the app polls.
+    await getStatus(r.vendor_data).catch((e) =>
+      console.warn(`[kyc-reconcile] ${r.vendor_data}: ${e?.message ?? e}`),
+    );
+  }
+}
+
+export function startKycReconciler(): void {
+  if (!DIDIT_API_KEY) return;
+  console.log(`[kyc-reconcile] DIDIT session reconciler every ${KYC_RECONCILE_MS / 1000}s`);
+  setInterval(() => { reconcilePendingKyc().catch(() => {}); }, KYC_RECONCILE_MS);
+}
+
 // Create (or reuse) a DIDIT session for an account. Reuses a still-open PROCESSING
 // session URL so repeat clicks / reloads don't mint new sessions. Throws on API
 // failure (e.g. 400 "not enough credits", 403 bad key) — the caller surfaces it.

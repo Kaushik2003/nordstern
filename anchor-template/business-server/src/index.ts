@@ -1,9 +1,10 @@
 import { createApp } from './app.js';
 import { startWithdrawalPoller } from './poller.js';
 import { reconcileDepositReleases, startReleaseReconciler } from './releases.js';
+import { startKycReconciler } from './adapters/kyc/didit.js';
 import { runMigrations } from './migrate.js';
 import {
-  PORT, ASSET_CODE, ASSET_ISSUER_PUBLIC, TREASURY_PUBLIC, PLATFORM_API_URL, IS_MAINNET,
+  PORT, ASSET_CODE, ASSET_ISSUER_PUBLIC, TREASURY_PUBLIC, PLATFORM_API_URL, IS_MAINNET, PROVIDERS,
 } from './config.js';
 
 // Migrate-on-start (R6 M4.2) — replaces runtime initSchema() DDL. The idempotent
@@ -20,6 +21,9 @@ await reconcileDepositReleases().catch((e) =>
 const app = createApp();
 startWithdrawalPoller();
 startReleaseReconciler();
+// DIDIT webhooks can't reach per-anchor subdomains (one DIDIT account, many anchors) — poll
+// PROCESSING sessions so KYC resolves without the callback. No-op unless the provider is DIDIT.
+if (PROVIDERS.kyc === 'didit') startKycReconciler();
 
 app.listen(PORT, () => {
   console.log(`\nNordStern Anchor — business-server on :${PORT}`);

@@ -36,6 +36,54 @@ const schema = z.object({
 
 type Form = z.infer<typeof schema>;
 
+// The real provisioning stages the control-plane emits, as a visible timeline. Each user-facing
+// step lights up (pending → running → done) as the polled `stage` string advances.
+const STEPS = [
+  { label: 'Funding accounts & issuing your asset on Stellar' },
+  { label: 'Creating your isolated database & containers' },
+  { label: 'Bringing your anchor online & wiring routing' },
+] as const;
+
+// Map a control-plane stage string to the index of the step currently in progress.
+function stageToStep(stage: string | null | undefined): number {
+  const s = stage ?? '';
+  if (/database|container|creat/i.test(s)) return 1;
+  if (/health|live|active|complete|running|route|routing/i.test(s)) return 2;
+  return 0; // queued / provisioning started / funding / issuing
+}
+
+type Evidence = { assetCode?: string; issuer?: string; webAuth?: string; network?: 'testnet' | 'public' };
+
+// A labelled row in the post-launch evidence panel.
+function EvidenceRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <span className="shrink-0 text-muted-foreground">{label}</span>
+      <span className="text-right">{children}</span>
+    </div>
+  );
+}
+
+// Read the live anchor's SEP-1 TOML — the authoritative proof the anchor is real: it advertises
+// the issued asset + issuer + web-auth endpoint that wallets discover. Best-effort; if it can't be
+// fetched (CORS/not-ready), we still show the links so the founder can verify manually.
+async function loadEvidence(domain: string): Promise<Evidence | null> {
+  try {
+    const r = await fetch(`https://${domain}/.well-known/stellar.toml`, { cache: 'no-store' });
+    if (!r.ok) return null;
+    const t = await r.text();
+    const pass = /NETWORK_PASSPHRASE\s*=\s*"([^"]+)"/.exec(t)?.[1];
+    return {
+      assetCode: /code\s*=\s*"([^"]+)"/.exec(t)?.[1],
+      issuer: /issuer\s*=\s*"([^"]+)"/.exec(t)?.[1],
+      webAuth: /WEB_AUTH_ENDPOINT\s*=\s*"([^"]+)"/.exec(t)?.[1],
+      network: pass?.includes('Test') ? 'testnet' : 'public',
+    };
+  } catch {
+    return null;
+  }
+}
+
 function RedeemForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -44,6 +92,10 @@ function RedeemForm() {
   const [provisioning, setProvisioning] = useState(false);
   const [gated, setGated] = useState(false);
   const [success, setSuccess] = useState(false);
+  // Live provisioning detail for the step timeline + the launched anchor's coordinates/evidence.
+  const [slug, setSlug] = useState('');
+  const [homeDomain, setHomeDomain] = useState<string | null>(null);
+  const [evidence, setEvidence] = useState<Evidence | null>(null);
 
   const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(schema),
@@ -61,7 +113,13 @@ function RedeemForm() {
     try {
       const s = await api.get(`/anchor-invitations/status/${jobId}`) as any;
       setStage(s.stage ?? 'Working…');
-      if (s.status === 'completed') { setSuccess(true); return; }
+      if (s.homeDomain) setHomeDomain(s.homeDomain);
+      if (s.status === 'completed') {
+        const domain = s.homeDomain ?? (slug ? `${slug}.nordstern.live` : null);
+        if (domain) setEvidence(await loadEvidence(domain));
+        setSuccess(true);
+        return;
+      }
       if (s.status === 'failed') { setError(s.error || 'Provisioning failed'); setProvisioning(false); return; }
       setTimeout(() => pollStatus(jobId), 3000);
     } catch {
@@ -71,6 +129,7 @@ function RedeemForm() {
 
   async function onSubmit(v: Form) {
     setError('');
+    setSlug(v.subdomain);
     const credentials: Record<string, Record<string, string>> = {};
     if (v.razorpayKeyId && v.razorpayKeySecret) {
       credentials.razorpay = { RAZORPAY_KEY_ID: v.razorpayKeyId, RAZORPAY_KEY_SECRET: v.razorpayKeySecret };
@@ -101,6 +160,10 @@ function RedeemForm() {
   }
 
   if (success) {
+    const domain = homeDomain ?? (slug ? `${slug}.nordstern.live` : null);
+    const consoleUrl = slug ? `https://console-${slug}.nordstern.live` : null;
+    const net = evidence?.network ?? 'testnet';
+    const expert = (acct: string) => `https://stellar.expert/explorer/${net}/account/${acct}`;
     return (
       <Card className="w-full max-w-lg mx-auto">
         <CardHeader className="text-center">
@@ -108,9 +171,52 @@ function RedeemForm() {
           <CardTitle>Anchor Provisioned Successfully!</CardTitle>
           <CardDescription>Your isolated stack is live and routing is up.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6 text-center">
-          <p className="text-sm text-muted-foreground">Sign in to your operator console to manage treasury, pricing, and credentials.</p>
-          <Button onClick={() => router.push('/login')} className="w-full">Proceed to Login</Button>
+        <CardContent className="space-y-5">
+          {/* Evidence — real, verifiable coordinates of the launched anchor. */}
+          <div className="space-y-3 rounded-lg border border-line bg-surface p-4 text-sm">
+            {domain && (
+              <EvidenceRow label="Anchor (customer app)">
+                <a href={`https://${domain}`} target="_blank" rel="noreferrer" className="text-brand hover:underline break-all">{domain}</a>
+              </EvidenceRow>
+            )}
+            {domain && (
+              <EvidenceRow label="SEP-1 service file">
+                <a href={`https://${domain}/.well-known/stellar.toml`} target="_blank" rel="noreferrer" className="text-brand hover:underline break-all">/.well-known/stellar.toml</a>
+              </EvidenceRow>
+            )}
+            {evidence?.assetCode && (
+              <EvidenceRow label="Issued asset">
+                <span className="font-medium text-foreground">{evidence.assetCode}</span>
+                <span className="text-muted-foreground"> · {net}</span>
+              </EvidenceRow>
+            )}
+            {evidence?.issuer && (
+              <EvidenceRow label="Asset issuer">
+                <a href={expert(evidence.issuer)} target="_blank" rel="noreferrer" className="font-mono text-xs text-brand hover:underline break-all">
+                  {evidence.issuer.slice(0, 8)}…{evidence.issuer.slice(-6)} ↗
+                </a>
+              </EvidenceRow>
+            )}
+            {evidence?.webAuth && (
+              <EvidenceRow label="SEP-10 auth">
+                <span className="font-mono text-xs text-muted-foreground break-all">{evidence.webAuth}</span>
+              </EvidenceRow>
+            )}
+          </div>
+
+          <p className="text-sm text-muted-foreground text-center">
+            Your operator console is ready — manage treasury, pricing, KYC, and credentials there.
+          </p>
+          {consoleUrl ? (
+            <div className="space-y-2">
+              <a href={consoleUrl} target="_blank" rel="noreferrer" className="block">
+                <Button className="w-full">Open your operator console ↗</Button>
+              </a>
+              <p className="text-center text-xs text-muted-foreground break-all">{consoleUrl.replace('https://', '')}</p>
+            </div>
+          ) : (
+            <Button onClick={() => router.push('/login')} className="w-full">Proceed to Login</Button>
+          )}
         </CardContent>
       </Card>
     );
@@ -136,6 +242,7 @@ function RedeemForm() {
   }
 
   if (provisioning) {
+    const current = stageToStep(stage);
     return (
       <Card className="w-full max-w-lg mx-auto">
         <CardHeader className="text-center">
@@ -143,10 +250,29 @@ function RedeemForm() {
           <CardDescription>Launching your dedicated infrastructure on Stellar testnet.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-3 rounded-lg border border-line bg-surface p-4 text-sm">
-            <Loader2 className="h-5 w-5 text-brand animate-spin shrink-0" />
-            <span className="font-medium text-foreground">{stage}</span>
-          </div>
+          <ol className="space-y-3">
+            {STEPS.map((s, i) => {
+              const state = i < current ? 'done' : i === current ? 'running' : 'pending';
+              return (
+                <li key={i} className={`flex items-start gap-3 rounded-lg border p-3 text-sm ${state === 'running' ? 'border-brand/40 bg-brand/5' : 'border-line bg-surface'}`}>
+                  <span className="mt-0.5 shrink-0">
+                    {state === 'done' && <CheckCircle2 className="h-5 w-5 text-brand" />}
+                    {state === 'running' && <Loader2 className="h-5 w-5 text-brand animate-spin" />}
+                    {state === 'pending' && <span className="block h-5 w-5 rounded-full border-2 border-line" />}
+                  </span>
+                  <div className="flex-1">
+                    <span className={state === 'pending' ? 'text-muted-foreground' : 'font-medium text-foreground'}>{s.label}</span>
+                    {state === 'running' && <p className="mt-0.5 text-xs text-muted-foreground">{stage}</p>}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+          {homeDomain && (
+            <p className="mt-4 text-center text-xs text-muted-foreground">
+              Your anchor will be live at <span className="font-mono text-foreground break-all">{homeDomain}</span>
+            </p>
+          )}
           {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
         </CardContent>
       </Card>

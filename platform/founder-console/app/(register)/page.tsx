@@ -11,6 +11,7 @@ import { ReviewSubmit } from '@/components/onboarding/steps/ReviewSubmit';
 import { Button } from '@nordstern/shared-ui';
 import { ChevronLeft, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function RegisterWizard() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -108,21 +109,27 @@ export default function RegisterWizard() {
       />
       
       <div className="flex-1 flex flex-col h-screen overflow-y-auto bg-canvas relative">
-        
-        <div className="w-full max-w-3xl mx-auto px-6 py-12 lg:px-12 flex flex-col min-h-full">
-          
+
+        <div className="w-full max-w-3xl mx-auto px-6 py-10 lg:px-12 lg:py-12 flex flex-col min-h-full">
+
+          {/* Mobile brand header (sidebar is desktop-only) */}
+          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
+            <Image src="/logo.png" alt="NordStern" width={28} height={28} className="h-7 w-7" />
+            <span className="text-lg font-bold tracking-tight"><span className="text-ink">Nord</span><span className="text-brand">Stern</span></span>
+          </div>
+
           {/* Top Navigation Row */}
-          <div className="flex items-center justify-between mb-12">
-            <Button 
-              type="button" 
-              variant="ghost" 
+          <div className="flex items-center justify-between mb-10">
+            <Button
+              type="button"
+              variant="ghost"
               className="text-subtle hover:text-ink px-0"
               disabled={currentStep === 1}
               onClick={() => currentStep > 1 && setCurrentStep(prev => prev - 1)}
             >
               <ChevronLeft className="mr-2 h-4 w-4" /> Back
             </Button>
-            <div className="text-sm font-medium text-brand bg-brand-50 px-3 py-1 rounded-full border border-brand-100">
+            <div className="text-xs font-semibold text-brand-800 bg-brand-50 px-3 py-1.5 rounded-full border border-brand-100">
               Step {currentStep} of 3
             </div>
           </div>

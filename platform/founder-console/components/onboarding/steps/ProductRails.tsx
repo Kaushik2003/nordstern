@@ -1,11 +1,18 @@
 import { useFormContext } from 'react-hook-form';
-import { OnboardingFormValues } from '@/lib/validations/onboarding';
+import { OnboardingFormValues, PRESET_ASSETS } from '@/lib/validations/onboarding';
 import { Label } from '@nordstern/shared-ui';
 import { Input } from '@nordstern/shared-ui';
 import { cn } from '@nordstern/shared-ui';
-import { FlaskConical, Rocket, Lightbulb } from 'lucide-react';
+import { FlaskConical, Rocket, Lightbulb, CircleDollarSign, Coins } from 'lucide-react';
 
 const AVAILABLE_RAILS = ['UPI (India)', 'IMPS / Bank Transfer (India)', 'Pix (Brazil)', 'ACH / FedWire (US)', 'SEPA (Europe)', 'Mobile Money (Africa)'];
+
+// Asset options the founder chooses from: two well-known stablecoins + a "name your own" custom.
+const ASSET_OPTIONS = [
+  { type: 'USDC' as const, code: 'USDC', name: 'USD Coin', desc: 'Issue and settle in USD Coin.', icon: <CircleDollarSign className="h-5 w-5" /> },
+  { type: 'EURC' as const, code: 'EURC', name: 'Euro Coin', desc: 'Issue and settle in Euro Coin.', icon: <CircleDollarSign className="h-5 w-5" /> },
+  { type: 'custom' as const, code: '', name: 'Custom token', desc: 'Name your own branded token.', icon: <Coins className="h-5 w-5" /> },
+];
 
 const MODES = [
   {
@@ -28,6 +35,7 @@ export function ProductRails() {
   const selectedRails = watch('product.supportedRails') || [];
   const feeType = watch('product.feeArchitectureType');
   const mode = watch('product.mode');
+  const assetType = watch('product.assetType');
   const fiat = watch('companyProfile.supportedFiat') || 'INR';
 
   const toggleRail = (rail: string) => {
@@ -78,6 +86,55 @@ export function ProductRails() {
               Production is a gated, counsel-reviewed path. Your application is accepted, but provisioning waits until your regulatory standing is verified.
             </p>
           )}
+        </div>
+
+        {/* Asset */}
+        <div className="space-y-3 pt-6 border-t border-line">
+          <Label>Your Asset</Label>
+          <p className="text-xs text-subtle">The token your customers buy and sell. This is issued on Stellar as your anchor&apos;s asset.</p>
+          <div className="grid gap-3 md:grid-cols-3">
+            {ASSET_OPTIONS.map((a) => {
+              const isSelected = assetType === a.type;
+              return (
+                <div
+                  key={a.type}
+                  onClick={() => setValue('product.assetType', a.type, { shouldValidate: true })}
+                  className={cn(
+                    'p-4 rounded-xl border cursor-pointer transition-all',
+                    isSelected ? 'border-brand bg-brand-50/50 ring-1 ring-brand' : 'border-line bg-surface hover:border-brand/50'
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className={cn(isSelected ? 'text-brand' : 'text-subtle')}>{a.icon}</span>
+                    <h3 className="font-semibold text-sm text-ink">{a.type === 'custom' ? 'Custom token' : a.code}</h3>
+                  </div>
+                  <p className="text-xs text-subtle leading-relaxed">{a.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+          {assetType === 'custom' && (
+            <div className="mt-2 grid gap-4 md:grid-cols-2 p-4 bg-surface rounded-xl border border-line">
+              <div>
+                <Label htmlFor="product.assetCode">Token code</Label>
+                <Input
+                  id="product.assetCode"
+                  placeholder="e.g. MIZU"
+                  maxLength={12}
+                  className="mt-2 bg-canvas uppercase"
+                  {...register('product.assetCode')}
+                />
+                <p className="mt-1 text-xs text-subtle">1–12 letters or digits. Shown on Stellar.</p>
+                {errors.product?.assetCode && <p className="text-xs text-destructive mt-1">{errors.product.assetCode.message}</p>}
+              </div>
+              <div>
+                <Label htmlFor="product.assetName">Display name <span className="text-subtle font-normal">(optional)</span></Label>
+                <Input id="product.assetName" placeholder="e.g. Mizu Rupee" className="mt-2 bg-canvas" {...register('product.assetName')} />
+                <p className="mt-1 text-xs text-subtle">A friendly name customers see.</p>
+              </div>
+            </div>
+          )}
+          {errors.product?.assetType && <p className="text-xs text-destructive mt-1">{errors.product.assetType.message}</p>}
         </div>
 
         {/* Rails */}

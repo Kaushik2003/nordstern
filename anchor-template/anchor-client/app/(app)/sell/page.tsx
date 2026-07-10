@@ -7,7 +7,7 @@ import { useBrand } from '@/components/brand-context';
 import { useCustomer } from '@/components/customer-context';
 import { Card, CardBody, Button, Spinner, Badge } from '@/components/ui';
 import { getQuote, startSell, myTransaction, withdrawInstructions, sendWithdrawal, type CustomerTx } from '@/lib/anchor';
-import { customer as customerApi } from '@/lib/customer';
+import { ensureWalletLinked } from '@/lib/link-wallet';
 import { settler, type SettlementSession } from '@/lib/settlement';
 import { inr } from '@/lib/format';
 
@@ -80,8 +80,10 @@ export default function SellPage() {
     setBusy(true); setError('');
     try {
       const addr = (await settler.available()) ?? (await settler.connect());
-      // Link this wallet to the central customer so KYC (verified once) is reused. Best-effort.
-      customerApi.addWallet(addr).catch(() => {});
+      // Link this wallet to the central customer (proven ownership) so KYC (verified once) is
+      // reused and this sell shows in the customer's history. Best-effort — a decline won't
+      // block the sell.
+      await ensureWalletLinked(addr).catch(() => {});
       const s = await settler.authorize(addr); setSession(s);
       const { id } = await startSell(s, Number(amount).toFixed(2), brand.assetCode);
       setTxId(id); setStep('send');

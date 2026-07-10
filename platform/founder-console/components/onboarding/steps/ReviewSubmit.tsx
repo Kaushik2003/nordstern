@@ -69,6 +69,7 @@ export function ReviewSubmit({ onEditStep }: ReviewSubmitProps) {
           <SectionHeader title="2. Product & Rails" step={2} />
           <div className="grid grid-cols-2 gap-y-4 gap-x-4">
             <Field label="Mode" value={pr?.mode === 'production' ? 'Production (gated)' : 'Test Mode'} />
+            <Field label="Asset" value={pr?.assetType === 'custom' ? `${(pr?.assetCode || '').toUpperCase()}${pr?.assetName ? ` (${pr.assetName})` : ''}` : (pr?.assetType ?? '—')} />
             <Field label="Limits" value={`${pr?.minTransactionBound || 0} – ${pr?.maxTransactionBound || 0} ${p?.supportedFiat ?? ''}`} />
             <Field label="Fees" value={fee} />
             <div className="col-span-2">

@@ -27,14 +27,22 @@
   --color-input: #e7e7ea;
   --color-ring: #a1a1aa;
 
-  --color-brand: #ab9ff2; /* Exact NordStern purple from frontend */
+  /* Brand — NordStern purple scale (matches frontend/landing exactly) */
+  --color-brand-50: #f4f2fd;
+  --color-brand-100: #e9e5fb;
+  --color-brand-200: #d6cff7;
+  --color-brand-300: #bcb1f2;
+  --color-brand: #ab9ff2; /* DEFAULT accent */
   --color-brand-600: #8b7ee0;
+  --color-brand-700: #6f5fd6;
+  --color-brand-800: #4b3f9e;
 
   /* Neutral canvas + ink hierarchy (from frontend/landing) */
   --color-canvas: #ffffff;
   --color-surface: #f2f4f3;
   --color-surface-2: #eaeeec;
   --color-noir: #0a0a0a;
+  --color-noir-soft: #141414;
 
   --color-ink: #0b0b0b;
   --color-subtle: #9a9a9a;

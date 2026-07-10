@@ -23,12 +23,29 @@ function mapStatus(raw: string | undefined): PlatformKyc {
 // central profile is resolved by whichever it is.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Pull the verified full name + country out of a DIDIT decision, tolerant of both the v3
+// plural arrays (id_verifications[]/ip_analyses[]) and v2 singular objects. Returns undefined
+// fields when absent — the platform fills identity only when values are present AND empty.
+function extractIdentity(body: Record<string, any>): { fullName?: string; country?: string } {
+  const d = body?.decision ?? body;
+  const idv = d?.id_verifications?.[0] ?? d?.id_verification ?? {};
+  const ip = d?.ip_analyses?.[0] ?? d?.ip_analysis ?? {};
+  const name = [idv.first_name, idv.last_name].filter(Boolean).join(' ').trim();
+  const country = idv.nationality ?? idv.issuing_state ?? ip.country ?? ip.ip_country_code ?? ip.ip_country;
+  return {
+    fullName: name || undefined,
+    country: typeof country === 'string' && country ? country : undefined,
+  };
+}
+
 export async function propagateKycToPlatform(body: Record<string, any>): Promise<void> {
   if (!NORDSTERN_API_URL || !SERVICE_SECRET) return; // not wired (standalone dev) — skip quietly
   const ref = body?.vendor_data ?? body?.session?.vendor_data;
   const status = mapStatus(body?.status ?? body?.session?.status ?? body?.decision?.status);
   if (!ref) return;
-  const payload = UUID_RE.test(ref) ? { customerId: ref, status } : { walletAddress: ref, status };
+  const identity = status === 'approved' ? extractIdentity(body) : {};
+  const base = UUID_RE.test(ref) ? { customerId: ref, status } : { walletAddress: ref, status };
+  const payload = { ...base, ...identity };
   try {
     const res = await fetch(`${NORDSTERN_API_URL}/api/v1/internal/customers/kyc`, {
       method: 'POST',

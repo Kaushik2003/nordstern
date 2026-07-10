@@ -392,15 +392,43 @@ export const otps = pgTable('otps', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [index('otps_email_audience_idx').on(t.email, t.audience)]);
 
-// A Stellar wallet linked to a customer account (secondary identity, 0..N per customer).
+// A Stellar wallet PROVEN to belong to a customer (a "signing capability", 0..N per customer).
+// A row only exists after cryptographic ownership proof (Identity Phase 1) — an unproven address
+// grants nothing, so it is never stored. `proof_*` records that proof; it is the first concrete
+// instance of the future `credentials` proven-capability model (see IDENTITY_ARCHITECTURE.md §12).
+// The bond is GLOBALLY unique on `address`: a wallet belongs to at most one identity.
+export const walletProofType = pgEnum('wallet_proof_type', ['signed_challenge']);
 export const customerWallets = pgTable('customer_wallets', {
   id: uuid('id').primaryKey().defaultRandom(),
   customerId: uuid('customer_id').notNull().references(() => customers.id, { onDelete: 'cascade' }),
   address: varchar('address', { length: 64 }).notNull(),         // Stellar public key (G...)
   label: varchar('label', { length: 100 }),
   network: network('network').default('testnet').notNull(),
+  // Ownership proof (never null in practice — a row is written only on successful verify).
+  provenAt: timestamp('proven_at', { withTimezone: true }),
+  proofType: walletProofType('proof_type'),                      // how ownership was proven
+  proofNonce: varchar('proof_nonce', { length: 64 }),            // the challenge nonce that was signed
+  proofSignature: text('proof_signature'),                       // the wallet's signature over the challenge
   ...timestamps,
-}, (t) => [uniqueIndex('customer_wallets_uq').on(t.customerId, t.address)]);
+}, (t) => [uniqueIndex('customer_wallets_address_uq').on(t.address)]);
+
+// Short-lived, single-use ownership challenges. The server issues a nonce bound to
+// (customer, address); the wallet signs a SEP-10-style challenge transaction carrying it;
+// verify consumes the row. This is the replay/expiry guard for the link path — ephemeral
+// state, distinct from the durable proof recorded on customer_wallets.
+export const customerWalletChallenges = pgTable('customer_wallet_challenges', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id').notNull().references(() => customers.id, { onDelete: 'cascade' }),
+  address: varchar('address', { length: 64 }).notNull(),
+  nonce: varchar('nonce', { length: 64 }).notNull(),
+  network: network('network').default('testnet').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  consumedAt: timestamp('consumed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index('customer_wallet_challenges_lookup_idx').on(t.customerId, t.address),
+  uniqueIndex('customer_wallet_challenges_nonce_uq').on(t.nonce),
+]);
 
 export const customersRelations = relations(customers, ({ many }) => ({
   wallets: many(customerWallets),

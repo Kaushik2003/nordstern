@@ -50,6 +50,22 @@ function sanitizeBranding(input: Branding | undefined): Record<string, string> {
   return out;
 }
 
+// Resolve the anchor's asset from the vetted application's product config. The founder either
+// picked a preset (USDC/EURC) or named a custom token; either way we produce a valid Stellar
+// asset code (1–12 alphanumerics, upper-cased) + a display name. Returns { code: undefined } for
+// a legacy application that predates the asset field, so the control-plane can derive as before.
+const PRESET_ASSETS: Record<string, { code: string; name: string }> = {
+  USDC: { code: 'USDC', name: 'USD Coin' },
+  EURC: { code: 'EURC', name: 'Euro Coin' },
+};
+function resolveChosenAsset(product: any): { code?: string; name?: string } {
+  const preset = PRESET_ASSETS[product?.assetType];
+  if (preset) return preset;
+  const raw = String(product?.assetCode ?? '').replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 12);
+  if (!raw) return {}; // legacy application: let the control-plane derive from slug
+  return { code: raw, name: String(product?.assetName ?? '').trim() || raw };
+}
+
 // Map the application's launch mode + supplied credentials to concrete adapters.
 // No-mock-rails rule (2026-07-10): every launched anchor uses REAL identity (DIDIT) and a
 // REAL on-ramp — mock KYC / mock fiat-in are not allowed. `mode` still selects the network
@@ -94,6 +110,9 @@ export const anchorInvitationService = {
       : null;
     const product = (application?.product ?? {}) as any;
     const mode: 'test' | 'production' = product.mode === 'production' ? 'production' : 'test';
+    // The founder's chosen asset (preset USDC/EURC or a custom code+name). Falls back only if a
+    // legacy application predates the asset field. Code is normalised to a valid Stellar code.
+    const asset = resolveChosenAsset(product);
     const creds = input.credentials ?? {};
     // No-mock-rails hard gate (2026-07-10): an anchor may not launch on a mock on-ramp.
     // Require a real fiat-in PSP (Razorpay Key ID + Secret) at redeem. Identity is already
@@ -196,6 +215,8 @@ export const anchorInvitationService = {
           mode,
           adapters,
           branding,
+          assetCode: asset.code,
+          assetName: asset.name,
         }
       }).returning();
 
@@ -290,6 +311,8 @@ export const anchorInvitationService = {
               displayName: payload.orgName, // business name → per-anchor branding
               adapters: payload.adapters ?? { kyc: 'mock', deposit: 'mock', payout: 'mock', fee: 'mock' },
               branding: payload.branding ?? {},
+              assetCode: payload.assetCode, // founder's chosen token (undefined → control-plane derives)
+              assetName: payload.assetName,
             });
         const base = { cpAnchorId: handle.cpAnchorId, slug: handle.slug, homeDomain: handle.homeDomain };
         await setJob({ result: { ...base, stage: 'Provisioning started' } });

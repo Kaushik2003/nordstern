@@ -2,19 +2,23 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { LogOut, Book, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { Nav } from '@/components/nav';
 import { useAnchor } from '@/components/anchor-context';
-import { api } from '@/lib/api';
+import { api, bizGet } from '@/lib/api';
 import { cn } from '@/lib/cn';
 
 // Operator console shell — a collapsible dark rail + brand/environment top bar, matching the
 // landing console mock. The rail carries the NORDSTERN mark (the console is a NordStern product);
 // the anchor's own name/logo live in the top bar. The console ALWAYS uses NordStern's palette.
 export function ConsoleShell({ children }: { children: React.ReactNode }) {
-  const { name, assetCode, logoUrl, network } = useAnchor();
+  const { name, assetCode, logoUrl: envLogo, network } = useAnchor();
   const router = useRouter();
   const isMainnet = network === 'mainnet' || network === 'public';
+  // Prefer the operator's live logo override (Settings) over the provisioned env logo.
+  const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: () => bizGet<{ logoUrl: string | null }>('/admin/settings'), staleTime: 30000 });
+  const logoUrl = settings?.logoUrl ?? envLogo;
 
   // Expand/collapse, remembered across visits.
   const [expanded, setExpanded] = useState(false);

@@ -81,6 +81,30 @@ internalRouter.get('/customers/kyc', ah(async (req, res) => {
   res.json({ customerId: c.id, status: c.kycStatus });
 }));
 
+// Resolve central customer PROFILES for a set of wallet addresses. Lets an anchor's operator
+// console show who its customers are (name / email / country / KYC) for the accounts that have
+// transacted with it — the "verify once" identity, surfaced to the operator of the anchor the
+// customer actually used. Service-gated; only proven wallets resolve (unproven never stored).
+internalRouter.post('/customers/profiles',
+  validateBody(z.object({ addresses: z.array(z.string()).max(500) })),
+  ah(async (req, res) => {
+    const profiles: Record<string, { fullName: string | null; email: string; country: string | null; kycStatus: string }> = {};
+    for (const address of new Set(req.body.addresses as string[])) {
+      const w = await customerWalletsRepo.findByAddressAnyCustomer(address);
+      if (!w) continue;
+      const c = await customersRepo.findById(w.customerId);
+      if (!c) continue;
+      profiles[address] = {
+        fullName: c.fullName,
+        email: c.email,
+        country: (c.preferences as Record<string, unknown> | null)?.country as string ?? null,
+        kycStatus: c.kycStatus,
+      };
+    }
+    res.json({ profiles });
+  }),
+);
+
 // A customer's PROVEN wallet addresses. Lets the anchor business-server scope "my
 // transactions" to the authenticated customer without holding the wallet list itself.
 // Proven-only is the confidentiality boundary: history is visible only for wallets the

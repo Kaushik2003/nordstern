@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { listTransactions, patchTransaction } from './platform.js';
 import { getTreasuryBalances } from './stellar.js';
-import { ASSET_CODE, ASSET_ISSUER_PUBLIC, TREASURY_PUBLIC, IS_MAINNET, assetId, PROVIDERS } from './config.js';
+import { ASSET_CODE, ASSET_ISSUER_PUBLIC, TREASURY_PUBLIC, IS_MAINNET, assetId, PROVIDERS, NORDSTERN_API_URL, SERVICE_SECRET } from './config.js';
 import { rate } from './adapters/index.js';
 import { pool } from './db.js';
 import { releaseDeposit } from './sep24.js';
@@ -16,6 +16,26 @@ import crypto from 'crypto';
 export const adminRouter = Router();
 
 const num = (v: any) => Number(v ?? 0);
+
+// Resolve central customer identities (name/email/country/KYC) for a set of Stellar accounts,
+// via the platform-api internal endpoint (service-secret). Best-effort — returns {} if the
+// platform isn't wired (standalone) or is unreachable, so the console degrades to accounts only.
+type CustomerProfile = { fullName: string | null; email: string; country: string | null; kycStatus: string };
+async function fetchCustomerProfiles(addresses: string[]): Promise<Record<string, CustomerProfile>> {
+  if (!NORDSTERN_API_URL || !SERVICE_SECRET || addresses.length === 0) return {};
+  try {
+    const res = await fetch(`${NORDSTERN_API_URL}/api/v1/internal/customers/profiles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-service-secret': SERVICE_SECRET },
+      body: JSON.stringify({ addresses }),
+    });
+    if (!res.ok) return {};
+    const body = (await res.json()) as { profiles?: Record<string, CustomerProfile> };
+    return body.profiles ?? {};
+  } catch {
+    return {};
+  }
+}
 
 function normalize(tx: Record<string, any>) {
   return {
@@ -119,9 +139,13 @@ adminRouter.get('/summary', async (_req, res) => {
       completedAt: t.completedAt,
     }));
 
+    // Operator-set logo override (falls back to the provisioned env logo in the console).
+    const logoOverride = await getSetting('logoUrl');
+
     res.json({
       network: IS_MAINNET ? 'mainnet' : 'testnet',
       asset: { code: ASSET_CODE, issuer: ASSET_ISSUER_PUBLIC, id: assetId() },
+      branding: { logoUrl: logoOverride },
       treasury: { address: TREASURY_PUBLIC, usdc: balances.usdc, xlm: balances.xlm },
       rate: q,
       counts: {
@@ -271,6 +295,20 @@ adminRouter.get('/users', async (_req, res) => {
     }
 
     const users = Array.from(map.values()).sort((a, b) => b.lastSeen - a.lastSeen);
+
+    // Enrich with the central NordStern identity (name / email / country) for accounts that
+    // belong to a proven customer wallet — the "verify once" profile, shown to this anchor's
+    // operator. Best-effort: identity stays blank if the platform is unreachable.
+    const profiles = await fetchCustomerProfiles(users.map((u) => u.account));
+    for (const u of users) {
+      const p = profiles[u.account];
+      if (p) {
+        u.fullName = p.fullName ?? null;
+        u.email = p.email ?? null;
+        u.country = p.country ?? null;
+        if (p.kycStatus) u.kycStatus = u.kycStatus ?? p.kycStatus;
+      }
+    }
     res.json({ users });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
@@ -458,6 +496,40 @@ adminRouter.get('/developer/webhooks/deliveries', async (_req, res) => {
       'SELECT id, event, status, attempts, ms, created_at as at FROM nordstern.webhook_deliveries ORDER BY created_at DESC LIMIT 100',
     );
     res.json({ deliveries: rows.map(r => ({ ...r, at: new Date(r.at).getTime() })) });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+// ─── Runtime settings (logo override) ────────────────────────────────────────────
+// Read a single setting (best-effort; returns null if the table/row is absent).
+async function getSetting(key: string): Promise<string | null> {
+  try {
+    const { rows } = await pool.query('SELECT value FROM nordstern.anchor_settings WHERE key = $1', [key]);
+    return rows[0]?.value ?? null;
+  } catch { return null; }
+}
+
+// GET current settings (logo override). The provisioned env logo remains the fallback.
+adminRouter.get('/settings', async (_req, res) => {
+  res.json({ logoUrl: await getSetting('logoUrl') });
+});
+
+// Update the anchor's logo (a URL). Used as the app logo AND the browser favicon. An empty
+// value clears the override (reverts to the provisioned/default logo).
+adminRouter.post('/settings/logo', async (req, res) => {
+  const raw = String((req.body ?? {}).logoUrl ?? '').trim();
+  if (raw && !/^https?:\/\/.+/i.test(raw)) {
+    res.status(400).json({ error: 'Logo must be an http(s) URL' });
+    return;
+  }
+  try {
+    await pool.query(
+      `INSERT INTO nordstern.anchor_settings (key, value, updated_at) VALUES ('logoUrl', $1, now())
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
+      [raw || null],
+    );
+    res.json({ ok: true, logoUrl: raw || null });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }

@@ -16,7 +16,7 @@ import { cn } from '@/lib/cn';
 
 // Real, transaction-derived customers (see backend /users). We show only what we truly
 // know; contact identity, tiers and account-freeze have no backend and are not faked.
-interface Customer { id: string; account: string; txCount: number; completedVolume: number; firstSeen: number; lastSeen: number; kycStatus: string | null }
+interface Customer { id: string; account: string; txCount: number; completedVolume: number; firstSeen: number; lastSeen: number; kycStatus: string | null; fullName?: string | null; email?: string | null; country?: string | null }
 interface Tx { id: string; kind: string; status: string; amountIn: string | null; amountOut: string | null; destination: string | null; startedAt: string | null }
 
 const kycTone = (s: string | null): BadgeTone => (s == null ? 'neutral' : s === 'approved' || s === 'verified' ? 'success' : s === 'declined' ? 'danger' : 'warning');
@@ -26,7 +26,9 @@ export default function CustomersPage() {
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState<Customer | null>(null);
 
-  const rows = (data?.users ?? []).filter((u) => !q || u.account.toLowerCase().includes(q.toLowerCase()));
+  const ql = q.toLowerCase();
+  const rows = (data?.users ?? []).filter((u) =>
+    !q || u.account.toLowerCase().includes(ql) || (u.fullName ?? '').toLowerCase().includes(ql) || (u.email ?? '').toLowerCase().includes(ql));
 
   const shownRef = useRef<Customer | null>(null);
   if (selected) shownRef.current = selected;
@@ -41,7 +43,7 @@ export default function CustomersPage() {
 
       <div className="flex items-center rounded-lg border border-input bg-background px-3">
         <Search className="h-4 w-4 text-subtle" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by account…" className="w-full bg-transparent px-2 py-2 text-sm text-ink outline-none" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, email, or account…" className="w-full bg-transparent px-2 py-2 text-sm text-ink outline-none" />
       </div>
 
       <div data-panel-keep>
@@ -54,7 +56,7 @@ export default function CustomersPage() {
             ) : (
               <div className="overflow-x-auto">
                 <Table>
-                  <THead><TR className="border-line"><TH className="pl-4">Account</TH><TH>KYC</TH><TH>Transactions</TH><TH>Volume</TH><TH>Last active</TH></TR></THead>
+                  <THead><TR className="border-line"><TH className="pl-4">Customer</TH><TH>KYC</TH><TH>Transactions</TH><TH>Volume</TH><TH>Last active</TH></TR></THead>
                   <TBody>
                     {rows.map((u) => {
                       const active = selected?.id === u.id;
@@ -63,7 +65,13 @@ export default function CustomersPage() {
                           onClick={() => setSelected(active ? null : u)}
                           className={cn('cursor-pointer transition-colors', active ? 'bg-brand/[0.07] hover:bg-brand/[0.09]' : 'hover:bg-surface')}>
                           <TD className={cn('relative pl-4', active && 'before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-brand-700')}>
-                            <ExplorerLink kind="account" value={u.account} className="font-mono text-xs">{shortId(u.account, 8)}</ExplorerLink>
+                            <div className="flex items-center gap-2.5">
+                              <Avatar name={u.fullName} email={u.email} account={u.account} />
+                              <div className="min-w-0">
+                                <p className="truncate text-[13px] font-medium text-ink">{u.fullName || u.email || 'Wallet customer'}</p>
+                                <p className="truncate font-mono text-[11px] text-subtle">{shortId(u.account, 8)}{u.country ? ` · ${u.country}` : ''}</p>
+                              </div>
+                            </div>
                           </TD>
                           <TD><Badge tone={kycTone(u.kycStatus)}>{u.kycStatus ?? 'unknown'}</Badge></TD>
                           <TD>{u.txCount}</TD>
@@ -93,7 +101,7 @@ function CustomerDetail({ c, open, onClose }: { c: Customer; open: boolean; onCl
     <DetailPanel
       open={open}
       onClose={onClose}
-      title="Customer"
+      title={c.fullName || c.email || 'Wallet customer'}
       subtitle={<span className="font-mono">{shortId(c.account, 10)}</span>}
       badge={<Badge tone={kycTone(c.kycStatus)}>{c.kycStatus ?? 'unknown'}</Badge>}
       footer={
@@ -116,6 +124,9 @@ function CustomerDetail({ c, open, onClose }: { c: Customer; open: boolean; onCl
 
       {/* Identity */}
       <PanelSection title="Identity">
+        <PanelRow label="Name" value={c.fullName || <span className="text-subtle">Not provided</span>} />
+        <PanelRow label="Email" value={c.email || <span className="text-subtle">—</span>} />
+        <PanelRow label="Country" value={c.country || <span className="text-subtle">—</span>} />
         <PanelRow label="KYC status" value={<Badge tone={kycTone(c.kycStatus)}>{c.kycStatus ?? 'unknown'}</Badge>} />
         <PanelRow label="Wallet" value={<ExplorerLink kind="account" value={c.account} className="font-mono text-xs">{shortId(c.account, 8)}</ExplorerLink>} />
       </PanelSection>
@@ -136,5 +147,21 @@ function CustomerDetail({ c, open, onClose }: { c: Customer; open: boolean; onCl
         )}
       </PanelSection>
     </DetailPanel>
+  );
+}
+
+// Small initial avatar — a soft brand-tinted circle with the customer's first initial (name,
+// else email, else 'W' for a wallet-only customer). Deterministic hue per account.
+function Avatar({ name, email, account }: { name?: string | null; email?: string | null; account: string }) {
+  const initial = (name?.trim()?.[0] || email?.trim()?.[0] || 'W').toUpperCase();
+  const hue = [...account].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 360, 7);
+  return (
+    <span
+      className="grid size-8 shrink-0 place-items-center rounded-full text-[12px] font-semibold text-white"
+      style={{ backgroundColor: `hsl(${hue} 55% 62%)` }}
+      aria-hidden
+    >
+      {initial}
+    </span>
   );
 }

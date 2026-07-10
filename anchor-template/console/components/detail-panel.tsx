@@ -36,31 +36,32 @@ export function DetailPanel({
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  // Click outside (anything not inside a [data-panel-keep] region) closes.
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      const t = e.target as HTMLElement | null;
-      if (t && !t.closest('[data-panel-keep]')) onClose();
-    };
-    // Defer so the opening click doesn't immediately close it.
-    const id = window.setTimeout(() => document.addEventListener('mousedown', onDown), 0);
-    return () => { window.clearTimeout(id); document.removeEventListener('mousedown', onDown); };
-  }, [open, onClose]);
+  // Outside-click is handled by the backdrop's onClick (below) — a true overlay, so the page
+  // underneath never receives the click and never reflows.
 
   if (!mounted) return null;
 
   return createPortal(
-    <aside
-      data-panel-keep
-      aria-hidden={!open}
-      className={cn(
-        'fixed right-0 top-0 z-40 flex h-screen flex-col border-l border-line bg-canvas',
-        'w-full sm:w-[min(32rem,92vw)] lg:w-[var(--panel-w)]',
-        'shadow-[-24px_0_60px_-30px_rgba(24,22,54,0.28)] transition-transform duration-[220ms] ease-out',
-        open ? 'translate-x-0' : 'pointer-events-none translate-x-full',
-      )}
-    >
+    <>
+      {/* Backdrop — dims the page and captures outside clicks. Never reflows the content. */}
+      <div
+        onClick={onClose}
+        aria-hidden
+        className={cn(
+          'fixed inset-0 z-40 bg-ink/20 transition-opacity duration-[220ms] ease-out',
+          open ? 'opacity-100' : 'pointer-events-none opacity-0',
+        )}
+      />
+      <aside
+        data-panel-keep
+        aria-hidden={!open}
+        className={cn(
+          'fixed right-0 top-0 z-50 flex h-screen flex-col border-l border-line bg-canvas',
+          'w-full sm:w-[min(32rem,92vw)] lg:w-[var(--panel-w)]',
+          'shadow-[-24px_0_60px_-30px_rgba(24,22,54,0.28)] transition-transform duration-[220ms] ease-out',
+          open ? 'translate-x-0' : 'pointer-events-none translate-x-full',
+        )}
+      >
       {/* Header */}
       <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
         <div className="min-w-0">
@@ -80,15 +81,16 @@ export function DetailPanel({
 
       {/* Footer (actions) */}
       {footer && <div className="border-t border-line px-5 py-3.5">{footer}</div>}
-    </aside>,
+    </aside>
+    </>,
     document.body,
   );
 }
 
-// Wrap a page in this to get the "content compresses left when a panel is open" behaviour.
-// Only compresses on lg+ (mobile shows the panel as a full-width slide-over).
-export const panelContentClass = (open: boolean) =>
-  cn('transition-[padding] duration-[220ms] ease-out', open && 'lg:pr-[var(--panel-w)]');
+// The panel is a pure OVERLAY (shadcn Sheet style): it floats above the page and never reflows
+// it. This intentionally does nothing — kept so pages can wrap their root without caring, and so
+// the behaviour can be tuned in one place. The content keeps its full width when the panel opens.
+export const panelContentClass = (_open: boolean) => '';
 
 // ── Section + row primitives for a clear visual hierarchy inside the panel ──────
 export function PanelSection({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {

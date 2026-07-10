@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Info, Check, Loader2, ImageIcon } from 'lucide-react';
+import { Info, Loader2, ImageIcon, Upload, Trash2, CheckCircle2 } from 'lucide-react';
 import { useAnchor } from '@/components/anchor-context';
-import { bizGet, bizPost, ApiError } from '@/lib/api';
+import { bizGet, bizPost } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,18 +12,42 @@ import { Button } from '@/components/ui/button';
 export default function SettingsPage() {
   const { name, slug, assetCode, logoUrl: envLogo, status, role } = useAnchor();
   const qc = useQueryClient();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [err, setErr] = useState('');
+  const [saved, setSaved] = useState(false);
 
   // Live logo override (persisted server-side). Falls back to the provisioned env logo.
   const { data } = useQuery({ queryKey: ['settings'], queryFn: () => bizGet<{ logoUrl: string | null }>('/admin/settings') });
   const currentLogo = data?.logoUrl ?? envLogo ?? null;
 
-  const [url, setUrl] = useState('');
-  useEffect(() => { setUrl(data?.logoUrl ?? ''); }, [data?.logoUrl]);
+  const persist = (logoUrl: string) =>
+    bizPost('/admin/settings/logo', { logoUrl }).then(() => {
+      qc.invalidateQueries({ queryKey: ['settings'] });
+      qc.invalidateQueries({ queryKey: ['summary'] });
+    });
 
-  const save = useMutation({
-    mutationFn: (logoUrl: string) => bizPost('/admin/settings/logo', { logoUrl }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['settings'] }); qc.invalidateQueries({ queryKey: ['summary'] }); },
+  // Upload the chosen file to Vercel Blob (via our route), then persist the returned URL.
+  const upload = useMutation({
+    mutationFn: async (file: File) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/logo-upload', { method: 'POST', body: fd });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error ?? 'Upload failed');
+      await persist(body.url as string);
+    },
+    onMutate: () => { setErr(''); setSaved(false); },
+    onSuccess: () => setSaved(true),
+    onError: (e) => setErr(e instanceof Error ? e.message : 'Upload failed'),
   });
+
+  const clear = useMutation({
+    mutationFn: () => persist(''),
+    onMutate: () => { setErr(''); setSaved(false); },
+    onSuccess: () => setSaved(true),
+  });
+
+  const busy = upload.isPending || clear.isPending;
 
   return (
     <div className="space-y-6">
@@ -32,34 +56,45 @@ export default function SettingsPage() {
         <p className="text-sm text-subtle">Your anchor&apos;s identity and configuration.</p>
       </div>
 
-      {/* Logo — editable; used as the app logo and the browser favicon. */}
+      {/* Logo — upload to Vercel Blob; used as the app logo and the browser favicon. */}
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">Logo</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-subtle">Paste an image URL. It becomes your logo across the console and your customers&apos; app, and the browser favicon. Leave blank to use the default.</p>
-          <div className="flex items-center gap-4">
-            <div className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-xl border border-line bg-surface">
+          <div className="flex items-center gap-5">
+            <div className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-2xl border border-line bg-surface">
               {currentLogo
                 ? <img src={currentLogo} alt="logo" className="h-full w-full object-contain" />
-                : <ImageIcon className="h-6 w-6 text-subtle" />}
+                : <ImageIcon className="h-7 w-7 text-subtle" />}
             </div>
-            <div className="flex-1">
-              <div className="flex gap-2">
+            <div className="flex-1 space-y-2">
+              <div className="flex flex-wrap gap-2">
                 <input
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://…/logo.png"
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 font-mono text-sm text-ink outline-none focus:border-brand"
+                  ref={fileInput}
+                  type="file"
+                  accept="image/png,image/svg+xml,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) upload.mutate(f); e.target.value = ''; }}
                 />
-                <Button size="sm" variant="brand" disabled={save.isPending || url.trim() === (data?.logoUrl ?? '')} onClick={() => save.mutate(url.trim())}>
-                  {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Save
+                <Button size="sm" variant="brand" disabled={busy} onClick={() => fileInput.current?.click()}>
+                  {upload.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Upload logo
                 </Button>
-                {url && <Button size="sm" variant="outline" disabled={save.isPending} onClick={() => { setUrl(''); save.mutate(''); }}>Clear</Button>}
+                {currentLogo && (
+                  <Button size="sm" variant="outline" disabled={busy} onClick={() => clear.mutate()}>
+                    {clear.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />} Remove
+                  </Button>
+                )}
               </div>
-              {save.isError && <p className="mt-1.5 text-xs text-[var(--color-danger)]">{save.error instanceof ApiError ? save.error.message : 'Could not save logo'}</p>}
-              {save.isSuccess && !save.isPending && <p className="mt-1.5 text-xs text-[var(--color-success)]">Saved. Refresh to update the favicon.</p>}
+              {err && <p className="text-xs text-[var(--color-danger)]">{err}</p>}
+              {saved && !busy && <p className="flex items-center gap-1 text-xs text-[var(--color-success)]"><CheckCircle2 className="h-3.5 w-3.5" /> Saved. Refresh to update the favicon.</p>}
             </div>
           </div>
+
+          {/* Guidelines */}
+          <ul className="space-y-1 rounded-lg border border-line bg-surface/60 p-3 text-xs text-subtle">
+            <li>• <span className="font-medium text-ink">Square (1:1)</span> — it&apos;s shown in circular and rounded frames.</li>
+            <li>• <span className="font-medium text-ink">SVG or transparent PNG</span> preferred (JPG / WebP also accepted).</li>
+            <li>• At least <span className="font-medium text-ink">256×256px</span>, under 2 MB. It becomes your app logo and browser favicon.</li>
+          </ul>
         </CardContent>
       </Card>
 

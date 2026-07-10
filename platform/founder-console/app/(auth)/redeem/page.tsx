@@ -22,7 +22,6 @@ const schema = z.object({
   // Brand identity — powers the customer app + operator console. All optional; sensible
   // defaults (NordStern purple + monogram) apply when omitted.
   displayName: z.string().optional(),
-  accent: z.string().regex(/^#([0-9a-fA-F]{6})$/, 'Use a hex color like #2563EB').optional().or(z.literal('')),
   logoUrl: z.string().url('Must be a URL').optional().or(z.literal('')),
   supportEmail: z.string().email('Invalid email').optional().or(z.literal('')),
   websiteUrl: z.string().url('Must be a URL').optional().or(z.literal('')),
@@ -97,11 +96,10 @@ function RedeemForm() {
   const [homeDomain, setHomeDomain] = useState<string | null>(null);
   const [evidence, setEvidence] = useState<Evidence | null>(null);
 
-  const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<Form>({
+  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(schema),
     defaultValues: { token: searchParams.get('token') || '', subdomain: '', fullName: '' },
   });
-  const accentValue = watch('accent');
 
   useEffect(() => {
     const token = searchParams.get('token');
@@ -139,7 +137,6 @@ function RedeemForm() {
     }
     const branding: Record<string, string> = {};
     if (v.displayName) branding.displayName = v.displayName;
-    if (v.accent) branding.accent = v.accent;
     if (v.logoUrl) branding.logoUrl = v.logoUrl;
     if (v.supportEmail) branding.supportEmail = v.supportEmail;
     if (v.websiteUrl) branding.websiteUrl = v.websiteUrl;
@@ -319,8 +316,8 @@ function RedeemForm() {
             <div className="flex items-start gap-2">
               <Palette className="h-4 w-4 text-brand mt-0.5 shrink-0" />
               <p className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">Brand your anchor (optional).</span> Make it feel like
-                your product. Leave blank to use a generated monogram and the default accent.
+                <span className="font-medium text-foreground">Brand your anchor (optional).</span> Add your logo and
+                details. Your anchor uses the NordStern color palette.
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -329,14 +326,6 @@ function RedeemForm() {
                 <Input placeholder="e.g. MizuPay" {...register('displayName')} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Brand color</Label>
-                <div className="flex items-center gap-2">
-                  <input type="color" value={accentValue || '#ab9ff2'} onChange={(e) => setValue('accent', e.target.value)} className="h-10 w-12 shrink-0 cursor-pointer rounded-md border border-line bg-canvas" />
-                  <Input placeholder="#2563EB" {...register('accent')} className="font-mono" />
-                </div>
-                {errors.accent && <p className="text-xs text-destructive">{errors.accent.message}</p>}
-              </div>
-              <div className="space-y-1.5 sm:col-span-2">
                 <Label className="text-xs">Logo URL</Label>
                 <Input placeholder="https://…/logo.png" {...register('logoUrl')} />
                 {errors.logoUrl && <p className="text-xs text-destructive">{errors.logoUrl.message}</p>}

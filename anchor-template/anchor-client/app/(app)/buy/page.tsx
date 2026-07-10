@@ -40,6 +40,10 @@ export default function BuyPage() {
   const [payUrl, setPayUrl] = useState<string | null>(null);
   const [tx, setTx] = useState<CustomerTx | null>(null);
   const [addingTrustline, setAddingTrustline] = useState(false);
+  // Whether the connected wallet is missing this asset's trustline. Tracked explicitly
+  // (not by string-matching `error`) because friendly() rewrites the message and drops the
+  // word "trustline", which would hide the "Enable {asset}" button.
+  const [needsTrustline, setNeedsTrustline] = useState(false);
   const poll = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const verified = customer?.kycStatus === 'approved';
@@ -108,6 +112,7 @@ export default function BuyPage() {
       const signed = await signTransaction(xdr);
       await submitXdr(signed);
       setError('');
+      setNeedsTrustline(false);
       // Continue automatically
       await confirmAndAuthorize();
     } catch (e) {
@@ -136,8 +141,9 @@ export default function BuyPage() {
       
       const freshBalances = await getAccount(addr);
       if (freshBalances.anch === null) {
-        throw new Error('Your wallet needs to enable this asset first.');
+        throw new Error('trustline not found — please enable this asset in your wallet first.');
       }
+      setNeedsTrustline(false);
 
       // Link this wallet to the central customer profile so a KYC done once is reused
       // across anchors AND the money path (no second verification). Best-effort; a
@@ -148,6 +154,9 @@ export default function BuyPage() {
       const { id, paymentUrl } = await startBuy(s, Number(amount).toFixed(2), brand.assetCode);
       setTxId(id); setPayUrl(paymentUrl); setStep('pay');
     } catch (e) {
+      const raw = e instanceof Error ? e.message : '';
+      // Gate the "Enable {asset}" button on the RAW error, before friendly() rewrites it.
+      setNeedsTrustline(/trustline|op_no_trust/i.test(raw));
       setError(e instanceof Error ? friendly(e.message) : 'Could not start your buy');
     } finally { setBusy(false); }
   }
@@ -191,7 +200,7 @@ export default function BuyPage() {
           {error && (
             <div className="space-y-3">
               <Msg tone="error" text={error} />
-              {/trustline|op_no_trust/i.test(error) && (
+              {needsTrustline && (
                 <Button
                   size="block"
                   variant="outline"
@@ -224,7 +233,7 @@ export default function BuyPage() {
           {error && (
             <div className="space-y-3">
               <Msg tone="error" text={error} />
-              {/trustline|op_no_trust/i.test(error) && (
+              {needsTrustline && (
                 <Button
                   size="block"
                   variant="outline"
@@ -296,7 +305,7 @@ export default function BuyPage() {
           <AlertCircle className="h-12 w-12 text-[var(--color-danger)]" />
           <p className="text-lg font-bold text-ink">Couldn’t complete</p>
           <p className="max-w-xs text-sm text-muted">{error}</p>
-          {/trustline|op_no_trust/i.test(error) && (
+          {needsTrustline && (
             <Button
               size="block"
               variant="outline"
@@ -311,7 +320,7 @@ export default function BuyPage() {
               )}
             </Button>
           )}
-          <Button variant="outline" size="block" onClick={() => { setStep('amount'); setError(''); setTx(null); }}>Try again</Button>
+          <Button variant="outline" size="block" onClick={() => { setStep('amount'); setError(''); setTx(null); setNeedsTrustline(false); }}>Try again</Button>
         </CardBody></Card>
       )}
     </div>

@@ -316,8 +316,15 @@ export const anchorInvitationService = {
         });
         console.log(`[provisioner] Job ${jobId} → anchor '${outcome.slug}' live at ${outcome.homeDomain}, registered with aggregator`);
 
-        // Tell the founder their anchor is live (fire-and-forget).
-        void sendAnchorLiveEmail(payload.email, payload.orgName ?? '', `${env.CONSOLE_URL}/login`);
+        // Tell the founder their anchor is live — with its real coordinates, the console link,
+        // and the operating terms (fire-and-forget; never blocks provisioning completion).
+        void sendAnchorLiveEmail(payload.email, payload.orgName ?? '', {
+          slug: outcome.slug,
+          homeDomain: outcome.homeDomain,
+          assetCode: outcome.assetCode,
+          assetIssuer: outcome.assetIssuer,
+          network: payload.mode === 'production' ? 'mainnet' : 'testnet',
+        });
 
       } catch (err: any) {
         await setJob({ status: 'failed', error: err.message, finishedAt: new Date() });

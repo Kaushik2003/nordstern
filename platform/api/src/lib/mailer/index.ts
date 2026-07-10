@@ -149,12 +149,61 @@ export async function sendApplicationRejectedEmail(to: string, businessName: str
   }));
 }
 
-// Sent when provisioning finishes and the anchor is live.
-export async function sendAnchorLiveEmail(to: string, businessName: string, loginUrl: string) {
-  await fireAndForget('anchor.live', to, 'Your anchor is live on NordStern', layout({
+// Sent when provisioning finishes and the anchor is live. Carries the anchor's real
+// coordinates (the same evidence the redeem success screen shows), the operator console
+// link, and the operating terms.
+export interface AnchorLiveDetails {
+  slug: string;
+  homeDomain: string;               // <slug>.nordstern.live
+  assetCode?: string;
+  assetIssuer?: string;
+  network?: 'testnet' | 'mainnet';
+  termsUrl?: string;
+}
+
+function emailRow(label: string, valueHtml: string): string {
+  return `<tr>
+    <td style="padding:7px 0;font-size:13px;color:${MUTED};white-space:nowrap;vertical-align:top">${label}</td>
+    <td style="padding:7px 0 7px 16px;font-size:13px;color:${INK};text-align:right;word-break:break-all">${valueHtml}</td>
+  </tr>`;
+}
+
+export async function sendAnchorLiveEmail(to: string, businessName: string, d: AnchorLiveDetails) {
+  const net = d.network ?? 'testnet';
+  const appUrl = `https://${d.homeDomain}`;
+  const consoleUrl = `https://console-${d.slug}.nordstern.live`;
+  const termsUrl = d.termsUrl ?? 'https://www.nordstern.live/terms';
+  const link = (href: string, text: string) => `<a href="${href}" style="color:${BRAND_800};text-decoration:none">${text}</a>`;
+  const expert = (a: string) => `https://stellar.expert/explorer/${net}/account/${a}`;
+
+  const rows = [
+    emailRow('Anchor (customer app)', link(appUrl, d.homeDomain)),
+    emailRow('SEP-1 service file', link(`${appUrl}/.well-known/stellar.toml`, '/.well-known/stellar.toml')),
+    d.assetCode ? emailRow('Issued asset', `<b>${d.assetCode}</b> · ${net}`) : '',
+    d.assetIssuer ? emailRow('Asset issuer', link(expert(d.assetIssuer), `${d.assetIssuer.slice(0, 8)}…${d.assetIssuer.slice(-6)} ↗`)) : '',
+    emailRow('SEP-10 auth', `<span style="color:${MUTED}">${appUrl}/auth</span>`),
+  ].join('');
+
+  const body = `
+    <p style="margin:0 0 16px">${businessName ? `<b>${businessName}</b>’s ` : 'Your '}anchor is provisioned and running on Stellar ${net}. Here are its live coordinates:</p>
+    <div style="margin:0 0 18px;padding:6px 18px;background:${SURFACE};border-radius:16px">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+    </div>
+    <p style="margin:0">Your operator console is where you manage treasury, pricing, KYC, and credentials.</p>
+    <div style="margin:20px 0 0;padding:14px 16px;background:${SURFACE};border-radius:16px">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:${INK}">Operating terms</p>
+      <p style="margin:0;font-size:12px;line-height:1.6;color:${MUTED}">
+        NordStern provides the infrastructure; you operate the anchor and are responsible for your
+        own regulatory compliance (including any VDA/VDASP registration and FIU-IND obligations)
+        before moving real funds. This ${net} anchor is for evaluation. By launching and operating
+        it you agree to the ${link(termsUrl, 'NordStern Operator Terms')}.
+      </p>
+    </div>`;
+
+  await fireAndForget('anchor.live', to, `${businessName || 'Your'} anchor is live on NordStern 🚀`, layout({
     heading: 'Your anchor is live 🚀',
-    body: `<p style="margin:0 0 10px">${businessName ? `<b>${businessName}</b>’s ` : 'Your '}anchor is provisioned and running on Stellar testnet.</p>
-           <p style="margin:0">Sign in to your operator console to manage treasury, pricing, and credentials.</p>`,
-    cta: { label: 'Open operator console', url: loginUrl },
+    body,
+    cta: { label: 'Open your operator console ↗', url: consoleUrl },
+    footnote: `Console: ${consoleUrl.replace('https://', '')}`,
   }));
 }

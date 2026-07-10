@@ -19,6 +19,10 @@ const CLIENT_IMAGE = process.env.CLIENT_IMAGE ?? 'nordstern/anchor-client:dev';
 const CONSOLE_IMAGE = process.env.CONSOLE_IMAGE ?? 'nordstern/operator-console:dev';
 const NETWORK    = process.env.DOCKER_NETWORK ?? 'anchor-service_default';
 const PLATFORM_API_URL = process.env.PLATFORM_API_URL ?? 'http://platform-api:4000';
+// Vercel Blob token for the operator console's logo upload (Settings). Sourced from the
+// control-plane's own env (host root .env). Optional — if unset, a console renders the
+// uploader but uploads fail with a clear "not configured" message; everything else works.
+const BLOB_READ_WRITE_TOKEN = process.env.BLOB_READ_WRITE_TOKEN ?? '';
 const CONFIG_HOST_ROOT = process.env.ANCHOR_CONFIG_HOST_ROOT ?? '';
 const HORIZON_URL        = process.env.HORIZON_URL        ?? 'https://horizon-testnet.stellar.org';
 const NETWORK_PASSPHRASE = process.env.NETWORK_PASSPHRASE ?? 'Test SDF Network ; September 2015';
@@ -355,6 +359,9 @@ export async function createAnchorStack(p: StackParams): Promise<{ apId: string;
         `ANCHOR_NAME=${p.name}`,
         `ANCHOR_SLUG=${p.slug}`,
         `ASSET_CODE=${p.assetCode}`,
+        `NETWORK_PASSPHRASE=${NETWORK_PASSPHRASE}`,   // console derives testnet/mainnet badge
+        // Logo upload → Vercel Blob (only injected when the token is configured).
+        ...(BLOB_READ_WRITE_TOKEN ? [`BLOB_READ_WRITE_TOKEN=${BLOB_READ_WRITE_TOKEN}`] : []),
         ...brandEnv(p),
       ],
       Labels: labels('console', p.slug, p.homeDomain),

@@ -96,6 +96,8 @@ services:
       DIDIT_API_KEY: ${DIDIT_API_KEY}
       DIDIT_WORKFLOW_ID: ${DIDIT_WORKFLOW_ID}
       DIDIT_WEBHOOK_SECRET: ${DIDIT_WEBHOOK_SECRET}
+      # Passed through to each provisioned anchor's operator console for logo uploads (Vercel Blob).
+      BLOB_READ_WRITE_TOKEN: ${BLOB_READ_WRITE_TOKEN:-}
       SECRETS_ENDPOINT: ""
       AWS_ACCESS_KEY_ID: ""
       AWS_SECRET_ACCESS_KEY: ""

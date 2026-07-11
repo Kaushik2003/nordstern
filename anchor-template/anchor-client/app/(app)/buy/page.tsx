@@ -109,7 +109,7 @@ export default function BuyPage() {
 
       const balances = await getAccount(addr);
       if (balances.error === 'Account not found' || balances.xlm === null) {
-        if (process.env.NEXT_PUBLIC_IS_MAINNET === 'true') {
+        if (brand.network === 'mainnet') {
           throw new Error('Your Stellar account must be funded with some XLM first before enabling this asset.');
         } else {
           await friendbot(addr);
@@ -140,7 +140,7 @@ export default function BuyPage() {
       // Verify trustline is established
       const balances = await getAccount(addr);
       if (balances.error === 'Account not found' || balances.xlm === null) {
-        if (process.env.NEXT_PUBLIC_IS_MAINNET === 'true') {
+        if (brand.network === 'mainnet') {
           throw new Error('Your Stellar account must be funded with some XLM first before enabling this asset.');
         } else {
           await friendbot(addr);

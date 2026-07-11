@@ -14,11 +14,14 @@ export interface Brand {
   // (which the provisioner injects per-anchor). This must be runtime, not build-time
   // (NEXT_PUBLIC_*), because a single shared image serves both testnet and mainnet anchors.
   network: 'mainnet' | 'testnet';
+  // The exact network passphrase — the wallet kit signs SEP-10/settlement txs with THIS, so it
+  // must match the anchor's real network or the wallet (e.g. Freighter) rejects the signature.
+  networkPassphrase: string;
 }
 
 export function getBrand(): Brand {
   const e = process.env;
-  const passphrase = e.NETWORK_PASSPHRASE || '';
+  const passphrase = e.NETWORK_PASSPHRASE || 'Test SDF Network ; September 2015';
   // "Public Global Stellar Network ; September 2015" = mainnet; anything else = testnet.
   const network: 'mainnet' | 'testnet' = passphrase.includes('Public Global') ? 'mainnet' : 'testnet';
   return {
@@ -34,5 +37,6 @@ export function getBrand(): Brand {
     supportEmail: e.ANCHOR_SUPPORT_EMAIL || null,
     websiteUrl: e.ANCHOR_WEBSITE_URL || null,
     network,
+    networkPassphrase: passphrase,
   };
 }

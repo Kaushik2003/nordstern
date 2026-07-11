@@ -7,10 +7,7 @@
 // the customer's transaction history, but a decline never blocks the payment itself).
 
 import { customer as api } from './customer';
-import { signTransaction } from './wallet';
-
-const NETWORK: 'testnet' | 'mainnet' =
-  (process.env.NEXT_PUBLIC_NET_PASS ?? '').includes('Public Global') ? 'mainnet' : 'testnet';
+import { signTransaction, walletNetworkLabel } from './wallet';
 
 // Ensure `address` is a proven, linked wallet. No-op (and no signature prompt) if it is
 // already linked. Otherwise runs challenge → sign → verify. Throws on failure/decline so the
@@ -18,7 +15,8 @@ const NETWORK: 'testnet' | 'mainnet' =
 export async function ensureWalletLinked(address: string): Promise<void> {
   const linked = await api.wallets().catch(() => []);
   if (linked.some((w) => w.address === address)) return;
-  const { challengeXdr } = await api.walletChallenge(address, NETWORK);
+  // Runtime network (set from the brand passphrase), so the challenge matches the anchor's net.
+  const { challengeXdr } = await api.walletChallenge(address, walletNetworkLabel());
   const signedXdr = await signTransaction(challengeXdr);
   await api.verifyWallet(address, signedXdr);
 }

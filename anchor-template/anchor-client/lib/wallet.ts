@@ -17,8 +17,24 @@ import { LobstrModule } from '@creit.tech/stellar-wallets-kit/modules/lobstr';
 import { RabetModule } from '@creit.tech/stellar-wallets-kit/modules/rabet';
 import { HanaModule } from '@creit.tech/stellar-wallets-kit/modules/hana';
 
-const NET_PASS = process.env.NEXT_PUBLIC_NET_PASS ?? 'Test SDF Network ; September 2015';
-const NETWORK = NET_PASS.includes('Public Global') ? Networks.PUBLIC : Networks.TESTNET;
+// The wallet network is RUNTIME, not build-time: a single shared image serves both testnet and
+// mainnet anchors, so NEXT_PUBLIC_* can't carry it. The app calls setWalletNetwork() with the
+// anchor's real passphrase (from the brand context) before any wallet interaction; until then we
+// default to testnet. Signing with the wrong network makes the wallet (e.g. Freighter) reject
+// the transaction ("set to Main Net, transaction is on Test Net").
+let NET_PASS = process.env.NEXT_PUBLIC_NET_PASS ?? 'Test SDF Network ; September 2015';
+
+/** Configure the wallet network at runtime (call once, from the brand provider). */
+export function setWalletNetwork(passphrase: string): void {
+  if (passphrase && passphrase !== NET_PASS) {
+    NET_PASS = passphrase;
+    inited = false; // re-init the kit against the new network on next use
+  }
+}
+/** 'mainnet' | 'testnet' for the currently configured wallet network. */
+export function walletNetworkLabel(): 'mainnet' | 'testnet' {
+  return NET_PASS.includes('Public Global') ? 'mainnet' : 'testnet';
+}
 // Remember which wallet the customer picked so we can silently reconnect on the next visit.
 const LS_KEY = 'ns:walletId';
 
@@ -27,7 +43,7 @@ function ensureKit(): void {
   if (typeof window === 'undefined') throw new Error('Not a browser environment');
   if (inited) return;
   StellarWalletsKit.init({
-    network: NETWORK,
+    network: NET_PASS.includes('Public Global') ? Networks.PUBLIC : Networks.TESTNET,
     selectedWalletId: window.localStorage.getItem(LS_KEY) ?? undefined,
     modules: [
       new FreighterModule(),

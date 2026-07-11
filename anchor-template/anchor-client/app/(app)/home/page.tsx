@@ -16,7 +16,7 @@ import { myTransactions, getQuote, type CustomerTx } from '@/lib/anchor';
 import { customer as customerApi } from '@/lib/customer';
 import { getAccount } from '@/lib/api';
 import { inr, dateTime } from '@/lib/format';
-import { DiditMark, ENVIRONMENT } from '@/components/ecosystem';
+import { DiditMark } from '@/components/ecosystem';
 import { useRouter } from 'next/navigation';
 
 const PHASE: Record<string, { label: string; tone: Tone }> = {
@@ -71,7 +71,7 @@ export default function HomePage() {
           <p className="text-[13px] font-medium text-brand-700">Welcome back</p>
           <h1 className="mt-0.5 text-[26px] font-bold tracking-tight text-ink">Hi, {firstName}</h1>
         </div>
-        <p className="text-[12px] text-subtle">Updated just now · {ENVIRONMENT.toLowerCase()}</p>
+        <p className="text-[12px] text-subtle">Updated just now · {brand.network}</p>
       </FadeUp>
 
       {/* KPI row */}

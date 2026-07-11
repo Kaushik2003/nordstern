@@ -11,7 +11,7 @@ import { useCustomer } from '@/components/customer-context';
 import { useBrand } from '@/components/brand-context';
 import { BrandMark } from '@/components/brand-mark';
 import { Spinner, Badge, type Tone } from '@/components/ui';
-import { ProvisionedByNordStern, ENVIRONMENT, IS_PRODUCTION } from '@/components/ecosystem';
+import { ProvisionedByNordStern } from '@/components/ecosystem';
 import { Avatar } from '@/components/avatar';
 import { cn } from '@/lib/cn';
 
@@ -34,6 +34,10 @@ function kycChip(status: string | undefined): { tone: Tone; label: string } {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { customer, loading } = useCustomer();
   const brand = useBrand();
+  // Environment label from the anchor's REAL network (runtime), not a build-time flag —
+  // a mainnet anchor must never show "Sandbox".
+  const isMainnet = brand.network === 'mainnet';
+  const envLabel = isMainnet ? 'Mainnet' : 'Testnet';
   const router = useRouter();
   const pathname = usePathname();
 
@@ -105,8 +109,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Wordmark />
           </Link>
           <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide',
-            IS_PRODUCTION ? 'bg-[var(--color-success-bg)] text-[var(--color-success)]' : 'bg-[#f6eccf] text-[#8a6410]')}>
-            <span className={cn('size-1.5 rounded-full', IS_PRODUCTION ? 'bg-[var(--color-success)]' : 'bg-[#c9992e]')} /> {ENVIRONMENT}
+            isMainnet ? 'bg-[var(--color-success-bg)] text-[var(--color-success)]' : 'bg-[#f6eccf] text-[#8a6410]')}>
+            <span className={cn('size-1.5 rounded-full', isMainnet ? 'bg-[var(--color-success)]' : 'bg-[#c9992e]')} /> {envLabel}
           </span>
           <span className="hidden rounded-full border border-black/[0.06] bg-canvas/70 px-2.5 py-1 text-[11px] font-medium text-muted md:inline">
             Stellar · {brand.assetCode}

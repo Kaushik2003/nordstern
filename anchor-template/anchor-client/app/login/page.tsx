@@ -9,7 +9,7 @@ import { useBrand } from '@/components/brand-context';
 import { useCustomer } from '@/components/customer-context';
 import { Button, Spinner, Badge, ProviderChip } from '@/components/ui';
 import { BrandMark } from '@/components/brand-mark';
-import { NordSternMark, DiditMark, StellarMark, ENVIRONMENT, IS_PRODUCTION } from '@/components/ecosystem';
+import { NordSternMark, DiditMark, StellarMark } from '@/components/ecosystem';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -98,7 +98,7 @@ export default function LoginPage() {
                 <BrandMark size={36} />
                 <span className="text-lg font-semibold tracking-tight text-ink">{brand.name}</span>
               </div>
-              <Badge tone={IS_PRODUCTION ? 'success' : 'info'}>{ENVIRONMENT}</Badge>
+              <Badge tone={brand.network === 'mainnet' ? 'success' : 'info'}>{brand.network === 'mainnet' ? 'Mainnet' : 'Testnet'}</Badge>
             </div>
 
             <AnimatePresence mode="wait" initial={false}>

@@ -272,6 +272,29 @@ export default function BuyPage() {
               <span>Your wallet will ask you to approve — this just proves the wallet is yours so we deliver to the right place. It never moves money out of your wallet. Then you pay with UPI.</span>
             </div>
           </Panel>
+
+          {/* What happens next — the exact steps + the open Stellar (SEP) standards behind each,
+              so the customer understands the flow and that it's an interoperable protocol. */}
+          <Panel className="p-5 sm:p-6">
+            <p className="text-[13px] font-semibold text-ink">What happens when you confirm</p>
+            <ol className="mt-3 space-y-3">
+              {[
+                { t: 'Prove your wallet', d: `You sign a one-time challenge so we know the wallet is yours.`, sep: 'SEP-10 · authentication' },
+                { t: `Pay ${inr(quote?.inrAmount)}`, d: `A secure ${brand.fiatCurrency} payment window opens (UPI/card). We verify it before releasing anything.`, sep: 'SEP-24 · interactive deposit' },
+                { t: `Receive ${amount} ${brand.assetCode}`, d: `We transfer ${brand.assetCode} to your wallet on Stellar and confirm on-chain.`, sep: `Stellar payment · ${brand.assetCode}` },
+              ].map((s, i) => (
+                <li key={i} className="flex gap-3">
+                  <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-100 text-[11px] font-semibold text-brand-800">{i + 1}</span>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-medium text-ink">{s.t}</p>
+                    <p className="text-xs text-muted">{s.d}</p>
+                    <span className="mt-1 inline-block rounded-full bg-surface px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-subtle">{s.sep}</span>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-3 text-[11px] text-subtle">Powered by the open Stellar Ecosystem Proposals (SEPs) — the same standards every Stellar wallet and anchor uses.</p>
+          </Panel>
           {error && (
             <div className="space-y-3">
               <Msg tone="error" text={error} />

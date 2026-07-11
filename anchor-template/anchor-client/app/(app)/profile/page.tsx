@@ -10,7 +10,7 @@ import { useCustomer } from '@/components/customer-context';
 import { useBrand } from '@/components/brand-context';
 import { Panel, Button, Input, Spinner, Badge, reveal } from '@/components/ui';
 import { Avatar, AvatarPicker, avatarEmoji } from '@/components/avatar';
-import { DiditMark, NordSternMark, ENVIRONMENT, IS_PRODUCTION } from '@/components/ecosystem';
+import { DiditMark, NordSternMark } from '@/components/ecosystem';
 
 const mask = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
@@ -157,7 +157,7 @@ export default function ProfilePage() {
               <InfraRow label="Service" sub="The app you’re using"><span className="text-ink">{brand.name}</span></InfraRow>
               <InfraRow label="Provisioned by" sub="Financial infrastructure"><NordSternMark className="text-[13.5px]" /></InfraRow>
               <InfraRow label="Identity provider" sub="Verifies you once, reused across services"><DiditMark className="text-[13.5px]" /></InfraRow>
-              <InfraRow label="Environment" sub="Current network"><Badge tone={IS_PRODUCTION ? 'success' : 'info'}>{ENVIRONMENT}</Badge></InfraRow>
+              <InfraRow label="Environment" sub="Current network"><Badge tone={brand.network === 'mainnet' ? 'success' : 'info'}>{brand.network === 'mainnet' ? 'Mainnet' : 'Testnet'}</Badge></InfraRow>
             </div>
           </Panel>
 

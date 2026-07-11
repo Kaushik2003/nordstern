@@ -162,7 +162,10 @@ export function VerificationCard({ status, onAction }: { status: KycStatus; onAc
 }
 
 // ── Infrastructure section (Profile) ────────────────────────────────────────────
-export function InfrastructureSection({ anchorName }: { anchorName: string }) {
+export function InfrastructureSection({ anchorName, network }: { anchorName: string; network?: 'mainnet' | 'testnet' }) {
+  // Prefer the anchor's REAL runtime network (passed from brand); fall back to the build-time
+  // flag only if a caller doesn't provide it.
+  const isMainnet = network ? network === 'mainnet' : IS_PRODUCTION;
   return (
     <div className="rounded-2xl border border-line bg-canvas">
       <div className="border-b border-line px-5 py-3">
@@ -173,7 +176,7 @@ export function InfrastructureSection({ anchorName }: { anchorName: string }) {
         <InfraRow label="Service" value={anchorName} note="The app you’re using" />
         <InfraRow label="Provisioned by" value={<NordSternMark />} note="Financial infrastructure" />
         <InfraRow label="Identity provider" value={<DiditMark />} note="Verifies you once, reused across services" />
-        <InfraRow label="Environment" value={<Badge tone={IS_PRODUCTION ? 'success' : 'info'}>{ENVIRONMENT}</Badge>} />
+        <InfraRow label="Environment" value={<Badge tone={isMainnet ? 'success' : 'info'}>{isMainnet ? 'Mainnet' : 'Testnet'}</Badge>} />
       </div>
     </div>
   );

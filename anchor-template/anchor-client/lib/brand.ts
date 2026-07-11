@@ -10,10 +10,17 @@ export interface Brand {
   logoUrl: string | null;
   supportEmail: string | null;
   websiteUrl: string | null;
+  // The Stellar network the anchor runs on, derived at REQUEST time from NETWORK_PASSPHRASE
+  // (which the provisioner injects per-anchor). This must be runtime, not build-time
+  // (NEXT_PUBLIC_*), because a single shared image serves both testnet and mainnet anchors.
+  network: 'mainnet' | 'testnet';
 }
 
 export function getBrand(): Brand {
   const e = process.env;
+  const passphrase = e.NETWORK_PASSPHRASE || '';
+  // "Public Global Stellar Network ; September 2015" = mainnet; anything else = testnet.
+  const network: 'mainnet' | 'testnet' = passphrase.includes('Public Global') ? 'mainnet' : 'testnet';
   return {
     name: e.ANCHOR_DISPLAY_NAME || e.ANCHOR_NAME || 'Your Anchor',
     slug: e.ANCHOR_SLUG || 'anchor',
@@ -26,5 +33,6 @@ export function getBrand(): Brand {
     logoUrl: e.ANCHOR_LOGO_URL || null,
     supportEmail: e.ANCHOR_SUPPORT_EMAIL || null,
     websiteUrl: e.ANCHOR_WEBSITE_URL || null,
+    network,
   };
 }

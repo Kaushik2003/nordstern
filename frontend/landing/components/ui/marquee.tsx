@@ -36,7 +36,7 @@ const FUIHeroWithBorders = () => {
 
                 <div className=" dark:divide-dark-border flex items-start justify-center divide-y divide-white/10  px-8 sm:px-24">
                     <div className="flex w-full max-w-[80vw] flex-col items-center justify-start md:!max-w-[392px]">
-                        <a href="/docs" className="cursor-pointer w-full">
+                        <a href="https://docs.nordstern.live/docs" className="cursor-pointer w-full">
                             <div
                                 className={clsx(
                                     '!h-14 flex-col items-center justify-center rounded-none !text-base',
@@ -46,7 +46,7 @@ const FUIHeroWithBorders = () => {
                                 Learn more
                             </div>
                         </a>
-                        <a href="/docs" className="cursor-pointer w-full">
+                        <a href="https://docs.nordstern.live/docs" className="cursor-pointer w-full">
                             <div
                                 className={clsx(
                                     'text-white dark:text-black boder-2 !h-14 flex-col items-center justify-center rounded-none border-none !text-base',

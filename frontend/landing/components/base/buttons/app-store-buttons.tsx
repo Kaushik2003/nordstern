@@ -7,7 +7,7 @@ export const GooglePlayButton = ({ size = "md", ...props }: AnchorHTMLAttributes
     return (
         <a
             aria-label="Get it on Google Play"
-            href="#"
+            href="/download"
             {...props}
             className={cx(
                 "rounded-[7px] bg-black ring-1 ring-app-store-badge-border outline-focus-ring ring-inset focus-visible:outline-2 focus-visible:outline-offset-2",
@@ -157,7 +157,7 @@ export const GooglePlayWhiteButton = ({ size = "md", ...props }: AnchorHTMLAttri
     return (
         <a
             aria-label="Get it on Google Play"
-            href="#"
+            href="/download"
             {...props}
             className={cx(
                 "rounded-[7px] bg-black ring-1 ring-app-store-badge-border outline-focus-ring ring-inset focus-visible:outline-2 focus-visible:outline-offset-2",
@@ -233,7 +233,7 @@ export const AppStoreButton = ({ size = "md", ...props }: AnchorHTMLAttributes<H
     return (
         <a
             aria-label="Download on the App Store"
-            href="#"
+            href="/download"
             {...props}
             className={cx(
                 "rounded-[7px] bg-black ring-1 ring-app-store-badge-border outline-focus-ring ring-inset focus-visible:outline-2 focus-visible:outline-offset-2",
@@ -339,7 +339,7 @@ export const GalaxyStoreButton = ({ size = "md", ...props }: AnchorHTMLAttribute
     return (
         <a
             aria-label="Available on Galaxy Store"
-            href="#"
+            href="/download"
             {...props}
             className={cx(
                 "rounded-[7px] bg-black ring-1 ring-app-store-badge-border outline-focus-ring ring-inset focus-visible:outline-2 focus-visible:outline-offset-2",
@@ -464,7 +464,7 @@ export const AppGalleryButton = ({ size = "md", ...props }: AnchorHTMLAttributes
     return (
         <a
             aria-label="Explore it on AppGallery"
-            href="#"
+            href="/download"
             {...props}
             className={cx(
                 "rounded-[7px] bg-black ring-1 ring-app-store-badge-border outline-focus-ring ring-inset focus-visible:outline-2 focus-visible:outline-offset-2",

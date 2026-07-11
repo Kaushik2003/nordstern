@@ -79,7 +79,7 @@ export function Navbar() {
         <Container className="flex h-[72px] items-center justify-between lg:h-20">
           {/* left: logo + desktop nav */}
           <div className="flex items-center gap-9 xl:gap-12">
-            <Link href="#top" aria-label="NordStern home" onClick={closeAll} className="shrink-0">
+            <Link href="/" aria-label="NordStern home" onClick={closeAll} className="shrink-0">
               <Logo />
             </Link>
 

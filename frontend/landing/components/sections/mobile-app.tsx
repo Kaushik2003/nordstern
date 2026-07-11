@@ -87,7 +87,7 @@ export function MobileApp() {
               <AppStoreButton size="lg" className="transition hover:-translate-y-0.5 hover:shadow-lg" />
               <GooglePlayButton size="lg" className="transition hover:-translate-y-0.5 hover:shadow-lg" />
               <a
-                href="#"
+                href="/download"
                 className="group inline-flex h-11 items-center gap-2 rounded-[10px] border border-line bg-white px-4 text-sm font-medium text-ink transition hover:-translate-y-0.5 hover:border-brand-200 hover:bg-brand-50"
               >
                 Take the tour

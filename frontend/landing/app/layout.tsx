@@ -106,7 +106,7 @@ const websiteJsonLd = {
     "@type": "SearchAction",
     target: {
       "@type": "EntryPoint",
-      urlTemplate: `${siteConfig.url}/docs?q={search_term_string}`,
+      urlTemplate: `https://docs.nordstern.live/docs?q={search_term_string}`,
     },
     "query-input": "required name=search_term_string",
   },

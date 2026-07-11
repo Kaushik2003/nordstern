@@ -23,7 +23,7 @@ export function Footer() {
         <div className="grid gap-12 lg:grid-cols-[1fr_2.15fr] lg:gap-16">
           {/* left: brand + status, generous negative space between */}
           <div className="flex flex-col justify-between gap-16">
-            <Link href="#top" aria-label="NordStern home" className="inline-flex">
+            <Link href="/" aria-label="NordStern home" className="inline-flex">
               <LogoMark className="size-11" />
             </Link>
             <StatusBadge />
@@ -59,7 +59,7 @@ export function Footer() {
                     {items.map((it) => (
                       <li key={it}>
                         <Link
-                          href="#"
+                          href={['About', 'Careers', 'Blog', 'FAQ', 'Status', 'Changelog'].includes(it) ? `/${it.toLowerCase()}` : "#"}
                           className="text-[15px] text-ink transition-colors hover:text-brand-700"
                         >
                           {it}
@@ -78,9 +78,8 @@ export function Footer() {
       <Container className="mt-4 flex flex-col items-center justify-between gap-3 px-3 text-[13px] text-muted sm:flex-row">
         <span>© {new Date().getFullYear()} NordStern</span>
         <div className="flex gap-6">
-          <Link href="#" className="transition-colors hover:text-ink">Terms</Link>
-          <Link href="#" className="transition-colors hover:text-ink">Privacy</Link>
-          <Link href="#" className="transition-colors hover:text-ink">Cookies</Link>
+          <Link href="/terms" className="transition-colors hover:text-ink">Terms</Link>
+          <Link href="/privacy" className="transition-colors hover:text-ink">Privacy</Link>
         </div>
       </Container>
     </footer>

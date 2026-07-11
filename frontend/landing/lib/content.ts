@@ -33,8 +33,7 @@ export const NAV = [
       featured: {
         label: "Featured",
         cards: [
-          { icon: "box", title: "Sandbox", href: "#" },
-          { icon: "activity", title: "Status", href: "#" },
+          { icon: "activity", title: "Status", href: "/status" },
         ],
       },
     },
@@ -64,8 +63,7 @@ export const NAV = [
       featured: {
         label: "Featured",
         cards: [
-          { icon: "book", title: "Case studies", href: "#" },
-          { icon: "box", title: "Sandbox", href: "#" },
+          { icon: "book", title: "Case studies", href: "/case-studies" },
         ],
       },
     },
@@ -78,7 +76,6 @@ export const NAV = [
         {
           label: "Documentation",
           items: [
-            { icon: "code", title: "API Reference", desc: "Explore our APIs to start building.", href: "#build" },
             { icon: "layers", title: "SDKs", desc: "Client libraries for every stack.", href: "#build" },
             { icon: "rocket", title: "Ready-to-Launch", desc: "Embed with a single line of code.", href: "#build" },
           ],
@@ -95,8 +92,7 @@ export const NAV = [
       featured: {
         label: "Featured",
         cards: [
-          { icon: "box", title: "Sandbox", href: "#" },
-          { icon: "activity", title: "Status", href: "#" },
+          { icon: "activity", title: "Status", href: "/status" },
         ],
       },
     },
@@ -109,25 +105,24 @@ export const NAV = [
         {
           label: "Learn",
           items: [
-            { icon: "book", title: "Blog", desc: "Product news and deep dives.", href: "#resources" },
-            { icon: "book", title: "Guides", desc: "How-tos for anchor operators.", href: "#resources" },
-            { icon: "layers", title: "Changelog", desc: "What shipped, every week.", href: "#resources" },
+            { icon: "book", title: "Blog", desc: "Product news and deep dives.", href: "/blog" },
+            { icon: "layers", title: "Changelog", desc: "What shipped, every week.", href: "/changelog" },
           ],
         },
         {
           label: "Company",
           items: [
-            { icon: "users", title: "About", desc: "Our mission and team.", href: "#" },
-            { icon: "rocket", title: "Careers", desc: "Build the future of money.", href: "#" },
-            { icon: "shield", title: "Security", desc: "How we keep funds safe.", href: "#" },
+            { icon: "users", title: "About", desc: "Our mission and team.", href: "/about" },
+            { icon: "rocket", title: "Careers", desc: "Build the future of money.", href: "/careers" },
+            { icon: "shield", title: "Security", desc: "How we keep funds safe.", href: "/security" },
           ],
         },
       ],
       featured: {
         label: "Featured",
         cards: [
-          { icon: "book", title: "FAQ", href: "#" },
-          { icon: "activity", title: "Status", href: "#" },
+          { icon: "book", title: "FAQ", href: "/faq" },
+          { icon: "activity", title: "Status", href: "/status" },
         ],
       },
     },
@@ -141,7 +136,7 @@ export const HERO = {
   eyebrow: { label: "Read: why SEP-24 shifts the burden to the anchor", href: "#" },
   title: "Become a Stellar anchor without building the stack.",
   lead: "Nordstern runs the SEP servers, KYC, payment rails, treasury, and operator console behind a Stellar on/off-ramp. Bring your license, bank, and liquidity — launch on testnet, then go live when you're ready.",
-  primary: { label: "Talk to us", href: "http://localhost:4001/register" },
+  primary: { label: "Talk to us", href: "https://register.nordstern.live" },
   secondary: { label: "Explore the platform", href: "#platform" },
 } as const;
 
@@ -358,20 +353,20 @@ export const FAQ = {
 
 export const FINAL_CTA = {
   title: "Launch money solutions for your users. Unlock new revenue for your anchor.",
-  cta: { label: "Talk to us", href: "http://localhost:4001/register" },
+  cta: { label: "Try Demo", href: "https://register.nordstern.live" },
 } as const;
 
 export const FOOTER = {
   cta: {
     title: "Launch your Anchor today",
     body: "Build compliant Stellar anchors with integrated fiat rails, KYC, and on/off ramps.",
-    button: { label: "Talk to us", href: "http://localhost:4001/register" },
+    button: { label: "Talk to us", href: "https://register.nordstern.live/" },
   },
   status: "Live on Stellar",
   columns: {
     Platform: ["Anchors", "On/Off Ramp", "Treasury", "Compliance"],
-    Developers: ["Documentation", "API Reference", "SDK", "Status"],
-    Resources: ["Blog", "Guides", "Changelog", "FAQ"],
+    Developers: ["Documentation", "SDK", "Status"],
+    Resources: ["Blog", "Changelog", "FAQ"],
     Company: ["About", "Contact", "Careers", "Privacy"],
     Social: ["X", "LinkedIn", "GitHub", "Discord"],
   },

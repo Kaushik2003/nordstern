@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { adminService } from '../../services/admin.service.js';
 import { applicationService } from '../../services/application.service.js';
+import { anchorInvitationService } from '../../services/anchorInvitation.service.js';
 import { recordAudit } from '../../services/audit.service.js';
 import { signAdminToken } from '../../lib/jwt.js';
 import { setAdminCookie, clearAdminCookie } from '../../lib/cookies.js';
@@ -72,6 +73,20 @@ adminRouter.post('/applications/:id/reject', requireAdmin, ah(async (req, res) =
     metadata: { applicationId: id, via: 'admin-panel', admin: res.locals.admin.username },
   });
   res.json({ ok: true, status: updated.status });
+}));
+
+// Operator BYPASS — explicitly launch a gated provisioning job. This is the ONLY path
+// that provisions a MAINNET anchor: the public redeem flow always gates on mainnet, so a
+// real-money anchor never launches from the user side. Admin-authenticated + audited.
+adminRouter.post('/provisioning-jobs/:jobId/launch', requireAdmin, ah(async (req, res) => {
+  const jobId = req.params.jobId as string;
+  await anchorInvitationService.launchProvisioningJob(jobId);
+  await recordAudit({
+    action: 'provisioning.launched', actorType: 'system', actorUserId: null,
+    requestId: String(req.id),
+    metadata: { jobId, network: env.STELLAR_NETWORK, via: 'admin-panel', admin: res.locals.admin.username },
+  });
+  res.json({ ok: true, jobId });
 }));
 
 // ── Oversight (read-only) ───────────────────────────────────────────────────

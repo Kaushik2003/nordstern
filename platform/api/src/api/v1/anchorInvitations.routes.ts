@@ -73,7 +73,13 @@ anchorInvitationsRouter.get('/status/:jobId', pollLimiter, ah(async (req, res) =
 }));
 
 // POST /anchor-invitations/status/:jobId/retry — re-drive a failed job (Phase 2).
+// Disabled on a MAINNET platform: retry re-triggers provisioning, which would be a public
+// bypass of the mainnet launch gate. On mainnet, an operator re-launches via the admin route.
 anchorInvitationsRouter.post('/status/:jobId/retry', provisionLimiter, ah(async (req, res) => {
+  if (env.STELLAR_NETWORK.toUpperCase() === 'PUBLIC') {
+    res.status(403).json({ error: { code: 'mainnet_gated', message: 'Retry is disabled on mainnet — an operator launches anchors via the admin console.' } });
+    return;
+  }
   await anchorInvitationService.retryProvisioningJob(req.params.jobId as string);
   res.json({ ok: true });
 }));

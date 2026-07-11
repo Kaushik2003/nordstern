@@ -297,16 +297,22 @@ export const anchorInvitationService = {
     // business-server. Only a reference is written to the DB (DL-010).
     await this.storeCredentials(result.org.id, result.anchor.id, slug, creds);
 
-    // Trigger provisioning ONLY for Test Mode. Production is a deliberate,
-    // counsel-gated act (§7): the records + secret refs are created, but the job
-    // stays pending for manual go-live review rather than auto-provisioning mainnet.
-    if (mode === 'test') {
+    // Auto-provision ONLY for Test Mode on a TESTNET platform. Two independent gates:
+    //   • mode === 'production' → counsel-gated go-live review (§7); AND
+    //   • MAINNET PLATFORM (STELLAR_NETWORK=PUBLIC) → NEVER auto-provision from the public
+    //     redeem flow, regardless of application mode. Real-money anchors on mainnet are
+    //     launched ONLY by an operator via the admin bypass (launchProvisioningJob). This
+    //     is what stops any invited founder from spinning up a live-money anchor themselves.
+    const isMainnetPlatform = env.STELLAR_NETWORK.toUpperCase() === 'PUBLIC';
+    const autoProvision = mode === 'test' && !isMainnetPlatform;
+    if (autoProvision) {
       this.triggerProvisioningJob(result.job.id).catch(err => {
         console.error(`[onboarding-worker] Failed to trigger provisioning job ${result.job.id}:`, err);
       });
     } else {
+      const stage = isMainnetPlatform ? 'Awaiting operator launch (mainnet)' : 'Awaiting production go-live review';
       await db.update(provisioningJobs)
-        .set({ result: { stage: 'Awaiting production go-live review' }, updatedAt: new Date() })
+        .set({ result: { stage }, updatedAt: new Date() })
         .where(eq(provisioningJobs.id, result.job.id));
     }
 
@@ -316,8 +322,19 @@ export const anchorInvitationService = {
       anchorId: result.anchor.id,
       jobId: result.job.id,
       mode,
-      provisioning: mode === 'test' ? 'started' : 'gated',
+      provisioning: autoProvision ? 'started' : 'gated',
     };
+  },
+
+  // Operator/admin BYPASS: explicitly launch a gated job's provisioning. This is the ONLY
+  // way a mainnet anchor gets provisioned — it's called from an admin-authenticated route,
+  // never from the public redeem flow. Idempotent via triggerProvisioningJob's own guards.
+  async launchProvisioningJob(jobId: string) {
+    const job = await db.query.provisioningJobs.findFirst({ where: eq(provisioningJobs.id, jobId) });
+    if (!job) throw badRequest('Provisioning job not found');
+    if (job.status === 'running') throw badRequest('Job is already running');
+    if (job.status === 'completed') throw badRequest('Job already completed');
+    return this.triggerProvisioningJob(jobId);
   },
 
   // Write each supplied provider's credentials to the SecretStore and record only a

@@ -14,6 +14,13 @@
 exports.shorthands = undefined;
 
 exports.up = (pgm) => {
+  // Per-anchor transaction limits (in the asset, e.g. USDC) — set by the founder at redeem
+  // and injected by the control-plane. Defaults are sane sandbox bounds (NOT the old
+  // hardcoded 500 min, which would reject any small deposit). Only used to seed a FRESH
+  // anchor; an existing anchor keeps whatever the operator has since configured.
+  const MIN_TXN = Number(process.env.ANCHOR_MIN_TXN || 1);
+  const MAX_TXN = Number(process.env.ANCHOR_MAX_TXN || 100000);
+
   pgm.sql(`
     CREATE SCHEMA IF NOT EXISTS nordstern;
 
@@ -179,7 +186,7 @@ exports.up = (pgm) => {
     WHERE NOT EXISTS (SELECT 1 FROM nordstern.api_keys);
 
     INSERT INTO nordstern.strategy_config (version, config)
-    SELECT 1, '{"minDeposit":500,"maxDeposit":500000,"maxSingleTx":100000,"dailyVolumeLimit":1000000,"fixedFee":8,"percentageFee":0.05,"feeTiers":[{"limit":10000,"fee":0.05},{"limit":50000,"fee":0.03},{"limit":200000,"fee":0.01}],"supportedRails":["UPI","IMPS","NEFT"],"emergencyStop":false,"maintenanceMode":false,"autoPauseThreshold":5000,"riskScoreThreshold":75,"settlementBufferMin":30}'::jsonb
+    SELECT 1, '{"minDeposit":${MIN_TXN},"maxDeposit":${MAX_TXN},"maxSingleTx":${MAX_TXN},"dailyVolumeLimit":1000000,"fixedFee":8,"percentageFee":0.05,"feeTiers":[{"limit":10000,"fee":0.05},{"limit":50000,"fee":0.03},{"limit":200000,"fee":0.01}],"supportedRails":["UPI","IMPS","NEFT"],"emergencyStop":false,"maintenanceMode":false,"autoPauseThreshold":5000,"riskScoreThreshold":75,"settlementBufferMin":30}'::jsonb
     WHERE NOT EXISTS (SELECT 1 FROM nordstern.strategy_config);
   `);
 };

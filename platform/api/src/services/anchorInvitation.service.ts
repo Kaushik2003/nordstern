@@ -145,6 +145,8 @@ export const anchorInvitationService = {
     // (mint a custom test token — testnet only). Custom tokens carry code/name + a fixed price.
     asset?: { model?: 'external' | 'self-issued'; code?: string; name?: string; priceInr?: number };
     settlementCurrency?: string;
+    // Founder's per-transaction limits, in the asset (e.g. USDC). Optional; sandbox defaults apply.
+    limits?: { minTxn?: number; maxTxn?: number };
   }) {
     const invitation = await this.verify(input.rawToken);
     const branding = sanitizeBranding(input.branding);
@@ -159,6 +161,18 @@ export const anchorInvitationService = {
     // legacy application predates the asset field. Code is normalised to a valid Stellar code.
     const legacyAsset = resolveChosenAsset(product);
     const asset = resolveRedeemAsset(input.asset, legacyAsset, input.settlementCurrency);
+    // Per-transaction limits (asset units). Keep only positive, well-ordered values; otherwise
+    // leave undefined so the anchor's sandbox defaults apply. Never persist junk.
+    const limits = ((): { minTxn?: number; maxTxn?: number } => {
+      const lo = Number(input.limits?.minTxn);
+      const hi = Number(input.limits?.maxTxn);
+      const out: { minTxn?: number; maxTxn?: number } = {};
+      if (Number.isFinite(lo) && lo > 0) out.minTxn = lo;
+      if (Number.isFinite(hi) && hi > 0) out.maxTxn = hi;
+      // If both given but inverted, drop them rather than seed an impossible range.
+      if (out.minTxn != null && out.maxTxn != null && out.minTxn > out.maxTxn) return {};
+      return out;
+    })();
     const creds = input.credentials ?? {};
     // No-mock-rails hard gate (2026-07-10): an anchor may not launch on a mock on-ramp.
     // Require a real fiat-in PSP (Razorpay Key ID + Secret) at redeem. Identity is already
@@ -265,6 +279,8 @@ export const anchorInvitationService = {
           assetName: asset.name,
           assetModel: asset.model,
           assetPriceInr: asset.priceInr,
+          minTxn: limits.minTxn,
+          maxTxn: limits.maxTxn,
         }
       }).returning();
 
@@ -363,6 +379,8 @@ export const anchorInvitationService = {
               assetName: payload.assetName,
               assetModel: payload.assetModel, // per-anchor: external (USDC) vs self-issued (custom)
               assetPriceInr: payload.assetPriceInr, // fixed price for a custom token (no market)
+              minTxn: payload.minTxn != null ? String(payload.minTxn) : undefined,
+              maxTxn: payload.maxTxn != null ? String(payload.maxTxn) : undefined,
             });
         const base = { cpAnchorId: handle.cpAnchorId, slug: handle.slug, homeDomain: handle.homeDomain };
         await setJob({ result: { ...base, stage: 'Provisioning started' } });

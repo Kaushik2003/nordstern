@@ -27,6 +27,8 @@ export interface ProvisionSpec {
   assetName?: string;    // display name for the asset
   assetModel?: 'external' | 'self-issued'; // per-anchor: distribute Circle USDC vs mint a custom token
   assetPriceInr?: string; // fixed INR-per-token price for a custom self-issued token (no market)
+  minTxn?: string; // per-transaction minimum in asset units (founder-set)
+  maxTxn?: string; // per-transaction maximum in asset units (founder-set)
 }
 
 export interface ProvisionHandle {
@@ -72,7 +74,7 @@ export const provisionerService = {
       method: 'POST', headers: auth,
       // legal_entity_name is the display/brand name; `name` stays slug-safe so the
       // control-plane slug (and secret path) is stable. `branding` is the open brand map.
-      body: JSON.stringify({ name: spec.name, legal_entity_name: spec.displayName, adapters: spec.adapters, branding: spec.branding, asset_code: spec.assetCode, asset_name: spec.assetName, asset_model: spec.assetModel, asset_price_inr: spec.assetPriceInr }),
+      body: JSON.stringify({ name: spec.name, legal_entity_name: spec.displayName, adapters: spec.adapters, branding: spec.branding, asset_code: spec.assetCode, asset_name: spec.assetName, asset_model: spec.assetModel, asset_price_inr: spec.assetPriceInr, min_txn: spec.minTxn, max_txn: spec.maxTxn }),
     });
     if (!createRes.ok) throw new Error(`control-plane create anchor failed (${createRes.status}): ${await createRes.text()}`);
     const anchor = (await createRes.json()) as { id: string; slug: string; home_domain: string };

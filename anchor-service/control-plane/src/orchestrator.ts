@@ -98,6 +98,10 @@ export interface StackParams {
   // Fixed INR-per-token price for a custom self-issued token (no market to quote). When set,
   // the business-server prices with a fixed rate instead of the live CoinGecko feed.
   assetPriceInr?: string;
+  // Per-transaction limits in the asset (e.g. USDC), set by the founder at redeem. Seed the
+  // anchor's strategy_config; empty → sandbox defaults (1 / 100000).
+  minTxn?: string;
+  maxTxn?: string;
 }
 
 // ── Per-anchor database ────────────────────────────────────────────────────────
@@ -266,6 +270,9 @@ export async function createAnchorStack(p: StackParams): Promise<{ apId: string;
     // INR-per-token rate. USDC (no fixed price) keeps the live CoinGecko feed.
     `FEE_PROVIDER=${p.assetPriceInr ? 'mock-fixed' : p.adapters.fee}`,
     ...(p.assetPriceInr ? [`RATE_INR_USD=${p.assetPriceInr}`] : []),
+    // Founder's per-transaction limits (asset units) → seed the anchor's strategy_config.
+    ...(p.minTxn ? [`ANCHOR_MIN_TXN=${p.minTxn}`] : []),
+    ...(p.maxTxn ? [`ANCHOR_MAX_TXN=${p.maxTxn}`] : []),
     'ALLOW_MOCK_KYC=true',
     // Shared secret the money-admin API uses to verify the operator's platform session
     // (`ns_access`). Same value platform-api signs with, so a console-authenticated

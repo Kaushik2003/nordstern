@@ -25,6 +25,9 @@ const schema = z.object({
   assetName: z.string().optional(),
   assetPriceInr: z.string().optional(),
   settlementCurrency: z.string(),
+  // Per-transaction limits in the asset (e.g. USDC). Optional; sandbox defaults apply if blank.
+  minTxn: z.string().optional(),
+  maxTxn: z.string().optional(),
   displayName: z.string().optional(),
   logoUrl: z.string().url('Must be a URL').optional().or(z.literal('')),
   supportEmail: z.string().email('Invalid email').optional().or(z.literal('')),
@@ -43,6 +46,12 @@ const schema = z.object({
       ctx.addIssue({ code: 'custom', path: ['assetPriceInr'], message: 'Enter a price in INR greater than 0' });
     }
   }
+  // Transaction limits: each (if given) must be > 0, and min ≤ max.
+  const lo = v.minTxn ? Number(v.minTxn) : undefined;
+  const hi = v.maxTxn ? Number(v.maxTxn) : undefined;
+  if (v.minTxn && (!Number.isFinite(lo!) || lo! <= 0)) ctx.addIssue({ code: 'custom', path: ['minTxn'], message: 'Enter an amount greater than 0' });
+  if (v.maxTxn && (!Number.isFinite(hi!) || hi! <= 0)) ctx.addIssue({ code: 'custom', path: ['maxTxn'], message: 'Enter an amount greater than 0' });
+  if (lo != null && hi != null && lo > hi) ctx.addIssue({ code: 'custom', path: ['maxTxn'], message: 'Max must be at least the minimum' });
 });
 
 type Form = z.infer<typeof schema>;
@@ -63,10 +72,15 @@ function stageToStep(stage: string | null | undefined): number {
 // Verify an invitation token up front (before the founder fills anything in): is it genuine,
 // unused, unexpired — and which network will the anchor launch on? Returns the network so the
 // UI can gate the custom-token option, or an actionable error to show instead of the form.
-async function checkToken(token: string): Promise<{ ok: boolean; network?: 'testnet' | 'mainnet'; error?: string }> {
+async function checkToken(token: string): Promise<{ ok: boolean; network?: 'testnet' | 'mainnet'; name?: string; businessName?: string; error?: string }> {
   try {
     const r = await api.get(`/anchor-invitations/verify?token=${encodeURIComponent(token)}`) as any;
-    return { ok: true, network: r?.network === 'mainnet' ? 'mainnet' : 'testnet' };
+    return {
+      ok: true,
+      network: r?.network === 'mainnet' ? 'mainnet' : 'testnet',
+      name: typeof r?.name === 'string' ? r.name : '',
+      businessName: typeof r?.businessName === 'string' ? r.businessName : '',
+    };
   } catch (e) {
     return { ok: false, error: e instanceof ApiError ? e.message : 'This invitation is invalid or has expired.' };
   }
@@ -247,6 +261,32 @@ function RedeemTypeform() {
   });
   const assetModel = watch('assetModel');
   const settlementCurrency = watch('settlementCurrency');
+  const subdomainValue = watch('subdomain');
+
+  // Live, debounced subdomain availability. 'idle' before typing, 'checking' while the
+  // request is in flight, then a concrete verdict so the founder gets instant feedback
+  // instead of failing at launch. Only fires for a well-formed slug.
+  const [subState, setSubState] = useState<'idle' | 'checking' | 'available' | 'taken' | 'reserved' | 'invalid'>('idle');
+  useEffect(() => {
+    const s = (subdomainValue ?? '').toLowerCase();
+    if (!s) { setSubState('idle'); return; }
+    if (!/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(s)) { setSubState('invalid'); return; }
+    setSubState('checking');
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const r = await api.get(`/anchor-invitations/subdomain-available?slug=${encodeURIComponent(s)}`) as any;
+        if (cancelled) return;
+        if (r.available === true) setSubState('available');
+        else if (r.reason === 'reserved') setSubState('reserved');
+        else if (r.reason === 'taken') setSubState('taken');
+        else setSubState('invalid');
+      } catch {
+        if (!cancelled) setSubState('idle'); // network hiccup: don't block, launch re-validates
+      }
+    }, 400);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [subdomainValue]);
 
   useEffect(() => {
     const token = searchParams.get('token');
@@ -263,11 +303,19 @@ function RedeemTypeform() {
     if (token) {
       setTokenStatus('checking');
       checkToken(token).then((r) => {
-        if (r.ok) { setTokenStatus('valid'); if (r.network) setNetwork(r.network); }
-        else { setTokenStatus('invalid'); setTokenErr(r.error || 'This invitation is invalid or has expired.'); }
+        if (r.ok) {
+          setTokenStatus('valid');
+          if (r.network) setNetwork(r.network);
+          // Pre-fill from the application (the founder already told us these at apply time).
+          if (r.name && !getValues('fullName')) setValue('fullName', r.name);
+          if (r.businessName && !getValues('displayName')) setValue('displayName', r.businessName);
+        } else {
+          setTokenStatus('invalid');
+          setTokenErr(r.error || 'This invitation is invalid or has expired.');
+        }
       });
     }
-  }, [searchParams, setValue, devPreview]);
+  }, [searchParams, setValue, getValues, devPreview]);
 
   useEffect(() => {
     if (network === 'mainnet' && assetModel === 'self-issued') setValue('assetModel', 'external');
@@ -286,7 +334,7 @@ function RedeemTypeform() {
 
   const validators: Record<StepId, (keyof Form)[]> = {
     welcome: [], token: ['token'], name: ['fullName'], subdomain: ['subdomain'],
-    asset: ['assetModel', 'assetCode', 'assetName', 'assetPriceInr'], currency: ['settlementCurrency'],
+    asset: ['assetModel', 'assetCode', 'assetName', 'assetPriceInr'], currency: ['settlementCurrency', 'minTxn', 'maxTxn'],
     brand: ['logoUrl', 'supportEmail', 'websiteUrl'], payment: ['razorpayKeyId', 'razorpayKeySecret'], review: [],
   };
 
@@ -295,6 +343,11 @@ function RedeemTypeform() {
     if (fields.length) {
       const ok = await trigger(fields as any);
       if (!ok) return;
+    }
+    // Don't let the founder move past a subdomain that's taken or reserved.
+    if (id === 'subdomain' && (subState === 'taken' || subState === 'reserved')) {
+      setError(subState === 'reserved' ? 'That subdomain is reserved — choose another.' : 'That subdomain is already taken.');
+      return;
     }
     // Manual token entry (no URL token): verify it's genuine BEFORE advancing, so an invalid
     // token is caught here with immediate feedback — not after the whole flow at Launch.
@@ -364,6 +417,7 @@ function RedeemTypeform() {
       const res = await api.post('/anchor-invitations/redeem', {
         token: v.token, subdomain: v.subdomain, fullName: v.fullName,
         asset, settlementCurrency: v.settlementCurrency || 'INR',
+        ...((v.minTxn || v.maxTxn) ? { limits: { minTxn: v.minTxn ? Number(v.minTxn) : undefined, maxTxn: v.maxTxn ? Number(v.maxTxn) : undefined } } : {}),
         ...(Object.keys(credentials).length ? { credentials } : {}),
         ...(Object.keys(branding).length ? { branding } : {}),
       }) as any;
@@ -506,7 +560,16 @@ function RedeemTypeform() {
               />
               <span className="pb-2 text-xl font-medium text-subtle">.nordstern.live</span>
             </div>
-            {errors.subdomain && <p className="mt-2 text-sm text-destructive">{errors.subdomain.message}</p>}
+            {errors.subdomain ? (
+              <p className="mt-2 text-sm text-destructive">{errors.subdomain.message}</p>
+            ) : (
+              <div className="mt-2 h-5 text-sm">
+                {subState === 'checking' && <span className="inline-flex items-center gap-1.5 text-subtle"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Checking availability…</span>}
+                {subState === 'available' && <span className="inline-flex items-center gap-1.5 text-[color:var(--color-success)]"><CheckCircle2 className="h-3.5 w-3.5" /> {subdomainValue}.nordstern.live is available</span>}
+                {subState === 'taken' && <span className="text-destructive">That subdomain is already taken.</span>}
+                {subState === 'reserved' && <span className="text-destructive">That subdomain is reserved — choose another.</span>}
+              </div>
+            )}
           </Q>
         );
       case 'asset':
@@ -570,6 +633,25 @@ function RedeemTypeform() {
                   </button>
                 );
               })}
+            </div>
+
+            {/* Per-transaction limits, in the token the customer receives. Optional — leave
+                blank for sensible sandbox defaults. Enforced by the anchor on every deposit. */}
+            <div className="mt-8">
+              <p className="text-sm font-medium text-ink">Transaction limits <span className="font-normal text-subtle">(optional)</span></p>
+              <p className="mt-1 text-sm text-subtle">Min and max per transaction, in {watch('assetModel') === 'self-issued' ? (watch('assetCode') || 'your token') : 'USDC'}. Leave blank for defaults.</p>
+              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className={FIELD_LABEL}>Minimum per transaction</label>
+                  <input type="number" step="0.01" min="0" placeholder="e.g. 1" {...register('minTxn')} className={SMALL_INPUT} />
+                  {errors.minTxn && <p className="mt-1 text-xs text-destructive">{errors.minTxn.message}</p>}
+                </div>
+                <div>
+                  <label className={FIELD_LABEL}>Maximum per transaction</label>
+                  <input type="number" step="0.01" min="0" placeholder="e.g. 1000" {...register('maxTxn')} className={SMALL_INPUT} />
+                  {errors.maxTxn && <p className="mt-1 text-xs text-destructive">{errors.maxTxn.message}</p>}
+                </div>
+              </div>
             </div>
           </Q>
         );
@@ -637,6 +719,7 @@ function RedeemTypeform() {
               <ReviewRow label="Anchor" value={`${v.subdomain || '—'}.nordstern.live`} />
               <ReviewRow label="Token" value={v.assetModel === 'self-issued' ? `${v.assetCode || '—'} · ₹${v.assetPriceInr || '—'} (custom)` : 'USDC · live price'} />
               <ReviewRow label="Settlement" value={v.settlementCurrency || 'INR'} />
+              <ReviewRow label="Limits / txn" value={(v.minTxn || v.maxTxn) ? `${v.minTxn || '0'} – ${v.maxTxn || '∞'}` : 'Default'} />
               <ReviewRow label="Brand" value={v.displayName || 'NordStern default'} />
               <ReviewRow label="On-ramp" value={v.razorpayKeyId ? `Razorpay ${v.razorpayKeyId.startsWith('rzp_live_') ? 'LIVE' : 'test'}` : '—'} />
             </dl>

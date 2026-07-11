@@ -67,6 +67,8 @@ anchorsRouter.post('/', async (req: AuthedRequest, res: Response) => {
     asset_name,
     asset_model,
     asset_price_inr,
+    min_txn,
+    max_txn,
   } = req.body as any;
   if (!name) { res.status(400).json({ error: 'name is required' }); return; }
 
@@ -81,6 +83,13 @@ anchorsRouter.post('/', async (req: AuthedRequest, res: Response) => {
   // clean numeric string; ignore junk.
   if (asset_price_inr != null && Number.isFinite(Number(asset_price_inr)) && Number(asset_price_inr) > 0) {
     brandingObj.assetPriceInr = String(Number(asset_price_inr));
+  }
+  // Founder's per-transaction limits (asset units). Stored in the branding map like the above.
+  if (min_txn != null && Number.isFinite(Number(min_txn)) && Number(min_txn) > 0) {
+    brandingObj.minTxn = String(Number(min_txn));
+  }
+  if (max_txn != null && Number.isFinite(Number(max_txn)) && Number(max_txn) > 0) {
+    brandingObj.maxTxn = String(Number(max_txn));
   }
 
   let slug = slugify(name);
@@ -301,6 +310,8 @@ async function runProvision(anchor: any): Promise<void> {
       : undefined,
     // Custom self-issued token → price with the founder's fixed INR rate (no market).
     assetPriceInr: !isExternal ? (brand.assetPriceInr || undefined) : undefined,
+    minTxn: brand.minTxn || undefined,
+    maxTxn: brand.maxTxn || undefined,
   });
   await pool.query(
     `UPDATE tenants SET ap_container_id = $1, biz_container_id = $2 WHERE id = $3`,

@@ -213,7 +213,7 @@ adminRouter.get('/summary', async (_req, res) => {
 // account, transaction count, completed volume, and first/last activity. KYC identity
 // (email/phone/name), risk tier, and account-freeze have no real source on the money
 // server yet — they are omitted rather than fabricated (see kyc_verifications gap in
-// docs/project/OPERATOR_CONSOLE_AUDIT.md). Per-account KYC status is joined from the
+// the operator console). Per-account KYC status is joined from the
 // real kyc_verifications table when a linkage exists.
 // Unified activity feed — merges EXISTING real sources (transactions, audit log, KYC
 // verifications, webhook deliveries) into one time-sorted stream. Invents no data; every

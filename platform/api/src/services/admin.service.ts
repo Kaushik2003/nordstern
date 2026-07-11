@@ -9,7 +9,7 @@ import {
 // Everything here is read-only and sourced from the platform's own database. Data that
 // lives in the control-plane (`tenants`: container ids, stack_status, asset issuer) or the
 // aggregator (fleet health) is deliberately absent: reaching it needs a service-token proxy
-// that does not exist yet. See docs/project/ADMIN_CONSOLE_ROADMAP.md.
+// that does not exist yet. See docs/Admin_Guide/ADMIN_CONSOLE_ROADMAP.md.
 //
 // Secret VALUES are never selected. `secret_refs` is metadata by design (DL-010) and this
 // layer surfaces only which keys are set and when they last rotated.

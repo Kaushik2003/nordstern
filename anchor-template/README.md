@@ -26,14 +26,14 @@ well-built anchor that later becomes the template we provision from.
 
 ## Ports
 
-| Service          | Port | Role                                        |
+| Service | Port | Role |
 |------------------|------|---------------------------------------------|
-| `db` (Postgres)  | 5432 | `anchordb` (Anchor Platform state)          |
-| `anchor-platform`| 8080 | SEP server — wallets/users talk here        |
+| `db` (Postgres) | 5432 | `anchordb` (Anchor Platform state) |
+| `anchor-platform`| 8080 | SEP server — wallets/users talk here |
 | `anchor-platform`| 8085 | Platform API — the business server talks here |
 | `business-server`| 3000 | Callbacks + SEP-24 interactive + Stellar ops + `/admin` API |
-| `client`         | 3001 | Next.js operator console / management frontend (live data)  |
-| `ngrok`          | 4040 | Public HTTPS tunnel → business-server (DIDIT webhooks + hosted-flow redirect); inspector on 4040 |
+| `client` | 3001 | Next.js operator console / management frontend (live data) |
+| `ngrok` | 4040 | Public HTTPS tunnel → business-server (DIDIT webhooks + hosted-flow redirect); inspector on 4040 |
 
 ## Quick start (testnet)
 
@@ -64,20 +64,20 @@ docker compose up --build        # bring up db + anchor-platform + business-serv
 
 ## Build phases
 
-- **Phase A — Skeleton ✅:** stack boots against USDC; SEP-10 auth + SEP-24
+- **Phase A — Skeleton :** stack boots against USDC; SEP-10 auth + SEP-24
   interactive reachable; `/customer` mocked (`ACCEPTED`).
-- **Phase B — USDC on-ramp + treasury ✅:** USDC float funded; real USDC transfer on
+- **Phase B — USDC on-ramp + treasury :** USDC float funded; real USDC transfer on
   deposit with a reserve check; INR/USD FX applied to `amount_in` (mock RateProvider).
   INR declared as an off-chain `iso4217:INR` asset.
-- **Phase C — USDC off-ramp ✅:** user returns USDC with a memo → AP Observer detects
+- **Phase C — USDC off-ramp :** user returns USDC with a memo → AP Observer detects
   it → withdrawal poller disburses INR (mock payout) → completed. Admin API added.
-- **Client (console) ✅:** Next.js operator frontend (`client/`) on live data —
+- **Client (console) :** Next.js operator frontend (`client/`) on live data —
   treasury float, KPIs, and the transaction ledger.
 - **Phase D — Real adapters (sandbox), behind mock-first seams:**
-  - slice 1 ✅ — **live FX** (`FEE_PROVIDER=live`, no-key feed w/ fallback) + real
+  - slice 1 — **live FX** (`FEE_PROVIDER=live`, no-key feed w/ fallback) + real
     **SEP-38 `/rate`** (validated by the AP) + **KYC** as a `KycProvider` seam
     (mock default, Surepass real impl gated on `SUREPASS_TOKEN`).
-  - slice 2 ✅ — **Cashfree Payouts** adapter with async webhook status (HMAC-SHA256
+  - slice 2 — **Cashfree Payouts** adapter with async webhook status (HMAC-SHA256
     verified, backend re-verified) + **UPI deposit intent/QR** (`qrcode`) in the
     SEP-24 interactive flow.
 - **Phase F — Go-live hardening (gated on legal/compliance).**

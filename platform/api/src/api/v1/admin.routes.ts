@@ -93,7 +93,7 @@ adminRouter.post('/provisioning-jobs/:jobId/launch', requireAdmin, ah(async (req
 // Cross-tenant views for the internal console. Every route is a plain read of the
 // platform's own database. Anchor container health, asset issuance, and reconciliation
 // live in the control-plane/aggregator and are NOT reachable from here — that needs a
-// service-token proxy (see docs/project/ADMIN_CONSOLE_ROADMAP.md).
+// service-token proxy (see docs/Admin_Guide/ADMIN_CONSOLE_ROADMAP.md).
 
 adminRouter.get('/overview', requireAdmin, ah(async (_req, res) => {
   res.json(await adminService.overview());

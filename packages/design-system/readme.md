@@ -30,7 +30,7 @@ How copy is written across the system.
 - **Consistent verbs.** A button that says "Download Phantom" leads to a screen that confirms "Downloaded," not "Success." "Send" stays "Send" throughout a flow.
 - **Errors explain, they don't apologize.** State what happened and what to do next: *"Insufficient balance — add funds and retry."* No "Oops!", no "Sorry."
 - **Two registers:**
-  - *Marketing* — light personality, the occasional emoji (✨), playful but short phrasing ("Ready when you are").
+  - *Marketing* — light personality, the occasional emoji (), playful but short phrasing ("Ready when you are").
   - *Product* — straightforward and precise. Anything touching money, security, or fees gets **zero cuteness**: exact numbers, mono type, clear consequences.
 - **Numbers are exact and monospaced.** Balances, addresses, percentages, fees, timestamps render in JetBrains Mono so they read as trustworthy and unambiguous (`$12,480.22`, `7xKXtg2…aB91f3`, `+2.41%`).
 - **Brevity.** Headlines are one idea. Helper text is one line. Buttons are 1–2 words.
@@ -76,7 +76,7 @@ How copy is written across the system.
 - **Style:** rounded-stroke line icons — 1.5–2px stroke, 24px grid, **round joins and caps**, no sharp right angles where avoidable. This matches the friendly, rounded brand geometry.
 - **Source:** the system uses inline SVG line icons drawn to that spec (see the action icons in the wallet kit and feature icons in the site kit). For production, the recommended open sets are **[Phosphor Icons](https://phosphoricons.com)** (regular weight) or **[Lucide](https://lucide.dev)** — both already lean rounded-stroke and can be linked from CDN. Substitute either freely; keep stroke width 1.5–2px and joins/caps round.
 - **No icon font or proprietary sprite** ships here (none was provided). If you import a real Phantom codebase, copy its icon assets into `assets/` and prefer those.
-- **Emoji:** used *only* in marketing copy as an occasional accent (✨). Never in product UI.
+- **Emoji:** used *only* in marketing copy as an occasional accent (). Never in product UI.
 - **Unicode glyphs** (`▾`, `×`, `▮`) are used sparingly for tiny affordances (chevrons, dismiss, signal bars) — fine at small sizes, but prefer an SVG for anything prominent.
 - **Token/coin icons** are circular initials chips on a brand color in the kits — placeholders for real token logos.
 
@@ -88,7 +88,7 @@ How copy is written across the system.
 - `styles.css` — the single entry point consumers link. `@import`s everything below.
 - `tokens/colors.css` · `typography.css` · `spacing.css` · `radius.css` · `motion.css` · `fonts.css`
 - `guidelines/*.card.html` — foundation specimen cards (Colors, Type, Spacing, Brand) shown in the Design System tab.
-- `assets/` — `logo-mark.svg`, `wordmark.svg` (⚠️ placeholders — see Caveats).
+- `assets/` — `logo-mark.svg`, `wordmark.svg` ( placeholders — see Caveats).
 
 **Components** (`window.PhantomDesignSystem_a666e0.*`)
 - `components/buttons/` — `Button`, `IconButton`

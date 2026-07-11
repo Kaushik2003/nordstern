@@ -10,7 +10,7 @@ import {
  * `no-backend`— nothing persists this data anywhere; the page is a design placeholder.
  *
  * Anything not `live` renders a scaffold notice instead of numbers. We never fabricate
- * data to fill a screen. See docs/project/ADMIN_CONSOLE_ROADMAP.md.
+ * data to fill a screen. See docs/Admin_Guide/ADMIN_CONSOLE_ROADMAP.md.
  */
 export type NavState = 'live' | 'unwired' | 'no-backend';
 

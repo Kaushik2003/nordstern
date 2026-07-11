@@ -20,11 +20,11 @@ call in a later phase).
 - **Home: new top-level `platform/`**, separate from `anchor-service/` (3-plane split).
 
 ## Phase status
-- ✅ Phase 1 — Analysis · ✅ Phase 2 — Architecture · ✅ Phase 3 — Database
-- ✅ Phase 4 — Backend (auth + orgs + members + invitations + api-keys + audit, layered
+- Phase 1 — Analysis · Phase 2 — Architecture · Phase 3 — Database
+- Phase 4 — Backend (auth + orgs + members + invitations + api-keys + audit, layered
   Express: config → repositories → services → controllers; cookie/refresh/session auth;
   tenant guard; Resend email w/ console fallback; verified end-to-end vs Supabase)
-- ⬜ Phase 5 — Console (Next.js 16) · ⬜ 6 Wire · 7 Auth UI · 8 Onboarding · 9 Dashboard · 10 Tests
+- Phase 5 — Console (Next.js 16) · 6 Wire · 7 Auth UI · 8 Onboarding · 9 Dashboard · 10 Tests
 
 ## API (v1)
 `/api/v1/auth`: register · verify-email · login · refresh · logout · forgot-password ·

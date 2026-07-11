@@ -108,9 +108,9 @@ resume at that exact step.
   **Funding methods** (icon + label + desc rows), and a **fee / settlement / identity**
   detail card. Sticky footer: **Deposit** (primary) + **Withdraw** (secondary), 50/50.
 - **Connect pill states:** not connected → "Connect anchor", Perano text on `--brand-100`.
-  Connected → "✓ Connected · tap to remove", `--success` text on `--success-fill`.
+  Connected → " Connected · tap to remove", `--success` text on `--success-fill`.
 
-### 4. Deposit (on-ramp) — 5 steps  ⭐ core flow
+### 4. Deposit (on-ramp) — 5 steps core flow
 Sticky footer button per step; progress = 4 bars + a mono caption. Back arrow in header
 (hidden on the final status step).
 
@@ -144,7 +144,7 @@ Sticky footer button per step; progress = 4 bars + a mono caption. Back arrow in
   Converting to {ASSET} → Delivered to your wallet, advancing on a timer. On completion the
   asset balance increases. Footer "Done" returns home.
 
-### 5. Withdraw (off-ramp) — 4 steps  ⭐ core flow
+### 5. Withdraw (off-ramp) — 4 steps core flow
 Same chrome (3 progress bars).
 - **Step 0 · Amount:** mono input with asset suffix; "Available {balance}" + **MAX** chip;
   quote card (You send / fee / rate / **You receive** in fiat).

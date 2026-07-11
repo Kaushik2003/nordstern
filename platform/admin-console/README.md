@@ -8,7 +8,7 @@ A Next.js (App Router) app (`@nordstern/admin-console`) served at **`admin.nords
 
 ## Why it exists
 
-Review is a privileged, internal action. It runs as a **separate app, separate image, separate host** from the founder console so no founder-facing code is served in the admin realm and vice-versa (see [`docs/project/PLATFORM_CONSOLE_SPLIT.md`](../../docs/project/PLATFORM_CONSOLE_SPLIT.md)).
+Review is a privileged, internal action. It runs as a **separate app, separate image, separate host** from the founder console so no founder-facing code is served in the admin realm and vice-versa.
 
 ## Run it independently
 

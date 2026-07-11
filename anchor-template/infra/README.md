@@ -1,11 +1,11 @@
 # NordStern Anchor — Infrastructure (Phase 1)
 
 > **Scope: one *proven* anchor on one EKS "cell".** This is the first infra slice
-> from `docs/project/PLATFORM_TARGET_ARCHITECTURE.md` — deliberately *not* the full
+> from `docs/architecture/Platform.md` — deliberately *not* the full
 > multi-tenant platform. It is authored **template-ready** (every anchor-specific
 > value is a Helm value / Terraform variable) so the factory can stamp it out later.
 > Nothing here runs real money: testnet + sandbox adapters until the go-live gating
-> in `docs/GO_LIVE_GATING.md` is cleared.
+> in `docs/GoLive.md` is cleared.
 
 ## What this deploys
 

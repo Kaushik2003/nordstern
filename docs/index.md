@@ -50,12 +50,12 @@ docs/
 ├── Product_Overview.md
 ├── Admin_Guide/
 │   ├── Architecture.md
-│   ├── Assets_and_wallet_clients.md            ⚠ mislabeled, see gotchas
+│   ├── Assets_and_wallet_clients.md             mislabeled, see gotchas
 │   ├── Getting_Started.md
 │   └── Event_Handling/
 │       ├── Getting_Started.md
-│       ├── Integration.md                      ⚠ empty
-│       └── Delivery_Gurantees.md                ⚠ empty
+│       ├── Integration.md                       empty
+│       └── Delivery_Gurantees.md                 empty
 ├── API_References/
 │   ├── Callbacks_Server/
 │   │   ├── Create_or_Update_Customer's_Info.md
@@ -86,7 +86,7 @@ docs/
 │   │   ├── FAQ.md
 │   │   └── Set_Up_A_Production_Server.md
 │   └── Cross-Border Payments (SEP-31)/
-│       ├── Getting_Started.md                   ⚠ near-empty stub
+│       ├── Getting_Started.md                    near-empty stub
 │       ├── COnfiguration.md
 │       └── Integration.md
 └── ecosystem/
@@ -112,7 +112,7 @@ Operating the platform itself (not SEP-specific integration work).
 - `Getting_Started.md` — local TESTNET-only quick-start via Docker Compose
   (`quick-run` folder, `ap_start.sh`), testing with the Stellar Demo Wallet, and
   how to swap the bundled reference business server for your own.
-- `Assets_and_wallet_clients.md` — ⚠ **mislabeled**: despite the name, its
+- `Assets_and_wallet_clients.md` — **mislabeled**: despite the name, its
   content is a duplicate of `Getting_Started.md` (Docker Compose quick-start),
   not asset/client-wallet configuration. Asset/currency config examples
   actually live in the `SEP_GUIDE/*/Configuration.md` files (`[[CURRENCIES]]`
@@ -120,8 +120,8 @@ Operating the platform itself (not SEP-specific integration work).
 - `Event_Handling/Getting_Started.md` — the event/webhook service: what it
   notifies (business servers via `POST /event`, client apps via SEP-6/12/24/31
   schemas), and why it exists (avoids polling).
-- `Event_Handling/Integration.md` — ⚠ **empty file** (0 bytes).
-- `Event_Handling/Delivery_Gurantees.md` — ⚠ **empty file** (0 bytes). (Typo in
+- `Event_Handling/Integration.md` — **empty file** (0 bytes).
+- `Event_Handling/Delivery_Gurantees.md` — **empty file** (0 bytes). (Typo in
   filename — "Gurantees" — preserved as-is on disk.)
 
 ### `API_References/Callbacks_Server/`
@@ -195,7 +195,7 @@ transfer SEPs.
     environments, network passphrase, Horizon URL.
 - `Cross-Border Payments (SEP-31)/` — receive-only, anchor-to-anchor payments
   (no end-user wallet UI).
-  - `Getting_Started.md` — ⚠ **stub**: only contains the heading, no body content.
+  - `Getting_Started.md` — **stub**: only contains the heading, no body content.
   - `COnfiguration.md` — `stellar.toml` changes (`DIRECT_PAYMENT_SERVER`,
     `[[CURRENCIES]]`); filename has a preserved typo (capital "O").
   - `Integration.md` — required callback endpoints (customer GET/PUT/DELETE,

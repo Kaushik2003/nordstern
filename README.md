@@ -4,7 +4,7 @@
 
 ### Anchor Infrastructure as a Service — become a compliant Stellar anchor without building the stack.
 
-[Live site](https://nordstern.live) · [Documentation](https://docs.nordstern.live) · [Architecture](docs/project/ARCHITECTURE.md) · [AGENTS.md (canonical spec)](AGENTS.md)
+[Live site](https://nordstern.live) · [Documentation](https://docs.nordstern.live) · [Architecture](docs/architecture/Architecture.md) · [AGENTS.md (canonical spec)](AGENTS.md)
 
 **Testnet-first · Multi-tenant · One-command local platform · Docker-based provisioning**
 
@@ -44,7 +44,7 @@ Concretely, **one platform provisions and operates many isolated anchor stacks.*
         End customer's Stellar wallet (Lobstr / Vibrant / Freighter) — settlement
 ```
 
-> Full technical diagram and prose: **[docs/project/ARCHITECTURE.md](docs/project/ARCHITECTURE.md)** · plain-English walkthrough: **[STACK_WALKTHROUGH_PLAIN_ENGLISH.md](docs/project/STACK_WALKTHROUGH_PLAIN_ENGLISH.md)**.
+> Full technical diagram and prose: **[docs/architecture/Architecture.md](docs/architecture/Architecture.md)** · plain-English walkthrough: **[Walkthrough](docs/guides/Walkthrough.md)**.
 
 ---
 
@@ -73,22 +73,22 @@ Concretely, **one platform provisions and operates many isolated anchor stacks.*
 
 ## Features
 
-| | Feature | Description |
-|---|---|---|
-| 🏭 | **One-click anchor provisioning** | An approved founder redeems an invite and a complete anchor stack is created programmatically — keypairs, on-chain asset, database, containers, domain. |
-| 🧱 | **Docker-based provisioning** | The control-plane uses the Docker Engine API (`dockerode`) to launch each anchor's container stack on demand; Traefik routes it under a wildcard domain. |
-| 🏢 | **Multi-tenant by design** | Every anchor gets an isolated database, keypairs, secrets, cookies, and consoles. Shared infrastructure only where safe. |
-| 🗄️ | **Per-anchor database** | `anchordb_<slug>` is created at provision time and holds that anchor's money tables — no cross-tenant data. |
-| 🌐 | **Per-anchor domains** | Each anchor is served at its own host (`<slug>.anchors.127.0.0.1.sslip.io` locally, `<slug>.nordstern.live` in prod). |
-| 🎨 | **White-labelled customer app** | Branded buy / sell / KYC / history experience; the blockchain is hidden from end users. Non-custodial. |
-| 🛠️ | **White-labelled operator dashboard** | Per-anchor console: overview, transactions, treasury, customers, compliance, credentials, webhooks, API keys, team, audit. |
-| ⭐ | **Stellar Anchor Platform integration** | Runs the official `stellar/anchor-platform` image for SEP-1/10/12/24; our code answers its callbacks and owns the *business* logic. |
-| 🪪 | **Identity & DIDIT KYC** | Verify once, reuse across flows; document + liveness + face-match via [DIDIT](https://didit.me), behind a swappable `KycProvider` seam (mock default). |
-| 💳 | **Payment rails (Razorpay / Cashfree)** | UPI collection (on-ramp) and payouts (off-ramp) behind swappable adapters — [Razorpay](https://razorpay.com) and [Cashfree](https://www.cashfree.com). |
-| 💰 | **Treasury & money-safety core** | Idempotent deposit release, treasury-reserve guardrail, at-most-once withdrawal payout, fail-closed KYC. |
-| 🔐 | **Secrets never in the database** | PSP/banking credential *values* live in AWS Secrets Manager (LocalStack in dev); Postgres stores only pointers. |
-| 🧪 | **Test Mode** | Everything on Stellar **testnet** with Friendbot funding and mock rails — no business registration, no real money. |
-| 🚀 | **Production Mode** | Mainnet USDC, real KYC, real payment rails, RDS, TLS — a deliberate, gated config swap. |
+| Feature | Description |
+|---|---|
+| **One-click anchor provisioning** | An approved founder redeems an invite and a complete anchor stack is created programmatically — keypairs, on-chain asset, database, containers, domain. |
+| **Docker-based provisioning** | The control-plane uses the Docker Engine API (`dockerode`) to launch each anchor's container stack on demand; Traefik routes it under a wildcard domain. |
+| **Multi-tenant by design** | Every anchor gets an isolated database, keypairs, secrets, cookies, and consoles. Shared infrastructure only where safe. |
+| **Per-anchor database** | `anchordb_<slug>` is created at provision time and holds that anchor's money tables — no cross-tenant data. |
+| **Per-anchor domains** | Each anchor is served at its own host (`<slug>.anchors.127.0.0.1.sslip.io` locally, `<slug>.nordstern.live` in prod). |
+| **White-labelled customer app** | Branded buy / sell / KYC / history experience; the blockchain is hidden from end users. Non-custodial. |
+| **White-labelled operator dashboard** | Per-anchor console: overview, transactions, treasury, customers, compliance, credentials, webhooks, API keys, team, audit. |
+| **Stellar Anchor Platform integration** | Runs the official `stellar/anchor-platform` image for SEP-1/10/12/24; our code answers its callbacks and owns the *business* logic. |
+| **Identity & DIDIT KYC** | Verify once, reuse across flows; document + liveness + face-match via [DIDIT](https://didit.me), behind a swappable `KycProvider` seam (mock default). |
+| **Payment rails (Razorpay / Cashfree)** | UPI collection (on-ramp) and payouts (off-ramp) behind swappable adapters — [Razorpay](https://razorpay.com) and [Cashfree](https://www.cashfree.com). |
+| **Treasury & money-safety core** | Idempotent deposit release, treasury-reserve guardrail, at-most-once withdrawal payout, fail-closed KYC. |
+| **Secrets never in the database** | PSP/banking credential *values* live in AWS Secrets Manager (LocalStack in dev); Postgres stores only pointers. |
+| **Test Mode** | Everything on Stellar **testnet** with Friendbot funding and mock rails — no business registration, no real money. |
+| **Production Mode** | Mainnet USDC, real KYC, real payment rails, RDS, TLS — a deliberate, gated config swap. |
 
 ---
 
@@ -136,8 +136,9 @@ One git repository, organized into `apps/` · `services` · `packages/` · `temp
 **`docs/`**
 | Path | Role |
 |---|---|
-| [`docs/project/`](docs/project/) | **Authored, maintained context** — architecture, roadmap, readiness, audits, ADRs. |
-| [`docs/`](docs/) (non-`project`) | Saved Stellar docs (Admin Guide, SEP guides, API references) + founder research. |
+| [`docs/architecture/`](docs/architecture/) | System design — Architecture, Platform (K8s target), Identity, Blueprint, Transactions. |
+| [`docs/guides/`](docs/guides/) · [`docs/runbooks/`](docs/runbooks/) · [`docs/reference/`](docs/reference/) | Walkthrough & Testing guides · Recovery runbook · Readiness / Compliance / Roadmap. |
+| [`docs/`](docs/) (Stellar reference) | Saved Stellar docs (Admin Guide, SEP guides, API references) + founder research. |
 
 > **On `anchor-service/` vs `anchor-template/`:** the canonical provisioner lives in `anchor-service/control-plane`; the per-anchor runtime + template code (business-server, customer app, operator console, config) lives in `anchor-template/`. The four service/console folders keep their historical paths — grouped above by role — while `apps/`, `packages/`, and `infrastructure/` hold the reorganized components.
 
@@ -186,7 +187,7 @@ One git repository, organized into `apps/` · `services` · `packages/` · `temp
 
 **Money movement is asynchronous and status-driven.** Transaction state is authoritative in the Anchor Platform / per-anchor database and advanced via the Platform API and the Stellar Observer — never by blocking request/response. Fund moves are idempotent and matched by memo.
 
-**Full detail:** [ARCHITECTURE.md](docs/project/ARCHITECTURE.md) · [PLATFORM_TARGET_ARCHITECTURE.md](docs/project/PLATFORM_TARGET_ARCHITECTURE.md) · [IDENTITY_ARCHITECTURE.md](docs/project/IDENTITY_ARCHITECTURE.md).
+**Full detail:** [Architecture](docs/architecture/Architecture.md) · [Platform](docs/architecture/Platform.md) · [Identity](docs/architecture/Identity.md).
 
 ---
 
@@ -346,7 +347,7 @@ Every service also runs standalone for hot-reload development (`npm install` onc
 | Landing site | `cd apps/landing && npm install && npm run dev` | `:3000` |
 | Docs site | `cd apps/docs && npm install && npm run dev` | `:3000` |
 
-> **Zero-backend UI work:** the two consoles can proxy `/api/*` to the **live** backend, so you can style them with no local stack. Set `API_URL=https://api.nordstern.live`. See [`platform/LOCAL_DEV.md`](platform/LOCAL_DEV.md). Type-check any workspace with `npm run typecheck`.
+> **Zero-backend UI work:** the two consoles can proxy `/api/*` to the **live** backend, so you can style them with no local stack. Set `API_URL=https://api.nordstern.live`. See [`platform/LocalDev.md`](platform/LocalDev.md). Type-check any workspace with `npm run typecheck`.
 
 ---
 
@@ -384,7 +385,7 @@ With the platform up (`./scripts/dev.sh`), take an anchor from application to li
 | Money | **None — no real funds move** | Real funds — irreversible; a deliberate go-live gate |
 | Compose | `infrastructure/docker/platform.yml` | `+ infrastructure/docker/production.yml` overlay |
 
-> Testnet/sandbox is the **default**, and moving real money is a deliberate, reviewed change ([`AGENTS.md`](AGENTS.md) §7). Production readiness is tracked honestly in [`PRODUCTION_READINESS.md`](docs/project/PRODUCTION_READINESS.md).
+> Testnet/sandbox is the **default**, and moving real money is a deliberate, reviewed change ([`AGENTS.md`](AGENTS.md) §7). Production readiness is tracked honestly in [`PRODUCTION_READINESS.md`](docs/reference/Readiness.md).
 
 ---
 
@@ -406,9 +407,9 @@ npm run typecheck
 ./infrastructure/scripts/dr-drill.sh
 ```
 
-**CI (GitHub Actions, 6 workflows on every PR):** build/typecheck, DB migration apply-to-fresh-Postgres, `docker build` for changed images, gitleaks + artifact hygiene, money-flow tests, and the DR drill. See [`docs/project/R6_M2_CI_DESIGN.md`](docs/project/R6_M2_CI_DESIGN.md).
+**CI (GitHub Actions, 6 workflows on every PR):** build/typecheck, DB migration apply-to-fresh-Postgres, `docker build` for changed images, gitleaks + artifact hygiene, money-flow tests, and the DR drill. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-**Manual verification:** a persona-by-persona script is in [`docs/project/MANUAL_PRODUCT_TEST_PLAN.md`](docs/project/MANUAL_PRODUCT_TEST_PLAN.md).
+**Manual verification:** a persona-by-persona script is in [`docs/guides/Testing.md`](docs/guides/Testing.md).
 
 ---
 
@@ -424,7 +425,7 @@ We recommend reviewing the project in this order:
 6. **Provision an anchor** — redeem the link, pick a slug, and watch it stream `provisioning → active`.
 7. **Operator console** — `http://console-<slug>.anchors.127.0.0.1.sslip.io` → overview, transactions, treasury, customers, compliance.
 8. **Customer app** — `http://<slug>.anchors.127.0.0.1.sslip.io` → OTP login, KYC, **Buy** (fiat → token) and **Sell** (token → fiat), history.
-9. **Architecture review** — [`docs/project/ARCHITECTURE.md`](docs/project/ARCHITECTURE.md) and [`STACK_WALKTHROUGH_PLAIN_ENGLISH.md`](docs/project/STACK_WALKTHROUGH_PLAIN_ENGLISH.md).
+9. **Architecture review** — [`docs/architecture/Architecture.md`](docs/architecture/Architecture.md) and [`Walkthrough`](docs/guides/Walkthrough.md).
 
 ---
 
@@ -445,7 +446,7 @@ Best experienced live — every surface below runs locally in minutes via [`./sc
 | **Customer Buy flow** | Customer → Buy | `screenshots/customer/buy.png` |
 | **Customer Sell flow** | Customer → Sell | `screenshots/customer/sell.png` |
 
-> Image assets live under `apps/docs/public/screenshots/<surface>/` (relative to the docs site). Capture per the manifest, then embed with `![Surface](apps/docs/public/screenshots/<surface>/<file>.png)`.
+> Image assets live under `apps/docs/public/screenshots/<surface>/` (relative to the docs site). Capture per the manifest, then embed each with a standard Markdown image tag pointing at its published path.
 
 ---
 
@@ -454,18 +455,18 @@ Best experienced live — every surface below runs locally in minutes via [`./sc
 | Topic | Document |
 |---|---|
 | Canonical product spec (read first) | [`AGENTS.md`](AGENTS.md) |
-| Architecture (services, ports, data flow) | [`docs/project/ARCHITECTURE.md`](docs/project/ARCHITECTURE.md) |
-| Plain-English platform walkthrough | [`docs/project/STACK_WALKTHROUGH_PLAIN_ENGLISH.md`](docs/project/STACK_WALKTHROUGH_PLAIN_ENGLISH.md) |
-| Identity & KYC design | [`docs/project/IDENTITY_ARCHITECTURE.md`](docs/project/IDENTITY_ARCHITECTURE.md) |
-| Kubernetes target architecture | [`docs/project/PLATFORM_TARGET_ARCHITECTURE.md`](docs/project/PLATFORM_TARGET_ARCHITECTURE.md) |
-| Production readiness matrix | [`docs/project/PRODUCTION_READINESS.md`](docs/project/PRODUCTION_READINESS.md) |
-| Roadmap | [`docs/project/ROADMAP.md`](docs/project/ROADMAP.md) |
-| Disaster-recovery runbook | [`docs/project/DR_RUNBOOK.md`](docs/project/DR_RUNBOOK.md) |
-| Manual product test plan | [`docs/project/MANUAL_PRODUCT_TEST_PLAN.md`](docs/project/MANUAL_PRODUCT_TEST_PLAN.md) |
-| Compliance open questions | [`docs/project/COMPLIANCE_OPEN_QUESTIONS.md`](docs/project/COMPLIANCE_OPEN_QUESTIONS.md) |
+| Architecture (services, ports, data flow) | [`docs/architecture/Architecture.md`](docs/architecture/Architecture.md) |
+| Plain-English platform walkthrough | [`docs/guides/Walkthrough.md`](docs/guides/Walkthrough.md) |
+| Identity & KYC design | [`docs/architecture/Identity.md`](docs/architecture/Identity.md) |
+| Kubernetes target architecture | [`docs/architecture/Platform.md`](docs/architecture/Platform.md) |
+| Production readiness matrix | [`docs/reference/Readiness.md`](docs/reference/Readiness.md) |
+| Roadmap | [`docs/reference/Roadmap.md`](docs/reference/Roadmap.md) |
+| Disaster-recovery runbook | [`docs/runbooks/Recovery.md`](docs/runbooks/Recovery.md) |
+| Manual product test plan | [`docs/guides/Testing.md`](docs/guides/Testing.md) |
+| Compliance open questions | [`docs/reference/Compliance.md`](docs/reference/Compliance.md) |
 | Connected-platform run + curl flow | [`infrastructure/docker/README.md`](infrastructure/docker/README.md) |
 | Terraform deployment | [`infrastructure/aws/terraform/README.md`](infrastructure/aws/terraform/README.md) |
-| Anchor operations | [`anchor-template/OPERATIONS.md`](anchor-template/OPERATIONS.md) |
+| Anchor operations | [`anchor-template/Operations.md`](anchor-template/Operations.md) |
 | Hosted docs site (Fumadocs) | [docs.nordstern.live](https://docs.nordstern.live) · source in [`apps/docs/`](apps/docs/) |
 | Saved Stellar references | [`docs/`](docs/) (Admin Guide, SEP guides, API references) |
 
@@ -500,7 +501,7 @@ Best experienced live — every surface below runs locally in minutes via [`./sc
 
 **Which wallets does the customer flow work with?** Any SEP-24 Stellar wallet — Lobstr, Vibrant, Freighter. The anchor renders the interactive deposit/withdraw webview those wallets open.
 
-**Why does the provisioner mount the Docker socket?** It launches per-anchor container stacks on a single host — acceptable for the pilot. The (authored, not-yet-wired) Kubernetes target replaces this with an API + RBAC + NetworkPolicy model. See [`PRODUCTION_READINESS.md`](docs/project/PRODUCTION_READINESS.md).
+**Why does the provisioner mount the Docker socket?** It launches per-anchor container stacks on a single host — acceptable for the pilot. The (authored, not-yet-wired) Kubernetes target replaces this with an API + RBAC + NetworkPolicy model. See [`PRODUCTION_READINESS.md`](docs/reference/Readiness.md).
 
 **Can I run just one anchor without the whole platform?** The per-anchor stack lives in `anchor-template/` (see its [`Makefile`](anchor-template/Makefile) and [`README.md`](anchor-template/README.md)); the platform is what provisions and operates many of them.
 
@@ -516,7 +517,7 @@ Best experienced live — every surface below runs locally in minutes via [`./sc
 - **Match the surrounding stack** — TS/Express + Stellar SDK for backend services, App-Router Next.js for frontends.
 - **Migrations, not runtime DDL** — schema changes are versioned and must apply to a fresh database (the `db` CI check enforces this).
 - **CI must be green** — all six workflows are part of the contract; money-flow and DR checks must not regress.
-- **Never present legal/compliance conclusions as settled** — document open questions in [`docs/project/COMPLIANCE_OPEN_QUESTIONS.md`](docs/project/COMPLIANCE_OPEN_QUESTIONS.md).
+- **Never present legal/compliance conclusions as settled** — document open questions in [`docs/reference/Compliance.md`](docs/reference/Compliance.md).
 
 ---
 

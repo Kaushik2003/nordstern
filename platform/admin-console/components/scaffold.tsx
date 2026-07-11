@@ -45,7 +45,7 @@ export function ScaffoldNotice({ state, source, needs }: {
             <div><span className="font-medium text-foreground">Needs:</span> {needs}</div>
           </dl>
           <p className="mt-2 text-xs text-muted-foreground">
-            Nothing below is real data. Roadmap: <code className="font-mono">docs/project/ADMIN_CONSOLE_ROADMAP.md</code>
+            Nothing below is real data. Roadmap: <code className="font-mono">docs/Admin_Guide/ADMIN_CONSOLE_ROADMAP.md</code>
           </p>
         </div>
       </div>

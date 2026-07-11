@@ -32,4 +32,4 @@ The anchor's API/business-server origins and branding are injected per anchor at
 
 ## Dependencies & interactions
 
-Next.js · React 19. Talks to the **Platform API** (`:4000`) and this anchor's **business-server** (`:3000`). Cloned per anchor by the **control-plane**. See [`docs/project/OPERATOR_CONSOLE_AUDIT.md`](../../docs/project/OPERATOR_CONSOLE_AUDIT.md).
+Next.js · React 19. Talks to the **Platform API** (`:4000`) and this anchor's **business-server** (`:3000`). Cloned per anchor by the **control-plane**.

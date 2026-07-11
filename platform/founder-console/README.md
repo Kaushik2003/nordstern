@@ -26,7 +26,7 @@ API_URL=http://localhost:4000 npm run dev     # :3000
 API_URL=https://api.nordstern.live npm run dev
 ```
 
-See [`platform/LOCAL_DEV.md`](../LOCAL_DEV.md).
+See [`platform/LocalDev.md`](../LocalDev.md).
 
 ## Required environment
 

@@ -613,7 +613,7 @@ localAuthRouter.get('/customer/wallets', async (req, res) => {
 // history for it). This router is currently UNMOUNTED (not wired into createApp), so it is not a
 // live exposure — but before the self-host kit ships it MUST adopt the proven protocol:
 // POST /customer/wallets/challenge + /customer/wallets/verify (SEP-10-style signed challenge,
-// global-unique bond, proven-only history scoping). See docs/project/IDENTITY_ARCHITECTURE.md and
+// global-unique bond, proven-only history scoping). See docs/architecture/Identity.md and
 // platform/api/src/lib/walletProof.ts (portable — business-server already has @stellar/stellar-sdk).
 localAuthRouter.post('/customer/wallets', async (req, res) => {
   const token = req.headers.authorization?.startsWith('Bearer ') 

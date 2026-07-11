@@ -168,7 +168,7 @@ docker compose -f infrastructure/docker/platform.yml -f infrastructure/docker/pr
   `dns_status` output — `*.nordstern.live → <EIP>` and `nordstern.live → <EIP>`. Keep the
   existing Resend SPF/DKIM records.
 
-**8. Smoke tests** (mirror `docs/project/M2_ROUTING_VERIFICATION.md`)
+**8. Smoke tests** (routing smoke tests)
 - `https://app.nordstern.live/login`, `/register`, `/admin/login` load over TLS.
 - **Founder:** submit → approve in `/admin` → redeem → an anchor goes live at
   `https://<slug>.nordstern.live` → live email arrives.

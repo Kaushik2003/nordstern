@@ -6,7 +6,7 @@
 > you to build the wrong product.
 
 `CLAUDE.md` imports this file, so Claude Code and Codex share one source of truth.
-Deeper detail lives in `docs/project/` (linked throughout).
+Deeper detail lives in `docs/` (linked throughout).
 
 ---
 
@@ -32,15 +32,15 @@ Business context and founder research: `docs/independent_research/`
 
 Future agents repeatedly misread this product. It is **none** of the following:
 
-- ❌ **Not a crypto exchange / trading app.** No order books, no speculation, no
+- **Not a crypto exchange / trading app.** No order books, no speculation, no
   "buy the dip" UX. Token movement exists only to bridge fiat ↔ Stellar.
-- ❌ **Not a consumer wallet.** End users hold funds in *third-party* Stellar
+- **Not a consumer wallet.** End users hold funds in *third-party* Stellar
   wallets (Lobstr, Vibrant, Freighter). We do not custody user keys or ship a
   retail wallet as the product. NordStern renders the SEP-24 *interactive flow*
   that those wallets open in a webview — that is all.
-- ❌ **Not a coin/token launchpad.** The `ANCH` test token is a stand-in for a
+- **Not a coin/token launchpad.** The `ANCH` test token is a stand-in for a
   fiat-backed asset, not a product to promote.
-- ❌ **Not (yet) a self-serve multi-tenant SaaS.** See §2 — the MVP is one anchor
+- **Not (yet) a self-serve multi-tenant SaaS.** See §2 — the MVP is one anchor
   we operate, built so it can *later* generalize.
 
 If a design decision only makes sense for an exchange, a wallet, or a token sale,
@@ -56,28 +56,28 @@ Platform, structured so it becomes the template for anchors we onboard later.**
 The functional MVP lives in **`anchor-service/`**. Target for the MVP:
 
 1. **Stellar Anchor Platform running** (SEP-1/10/12/24 at minimum) against
-   **testnet**, wired to a custom business server. ✅ working.
+   **testnet**, wired to a custom business server. working.
 2. **SEP-24 deposit (on-ramp)** end-to-end: wallet authenticates, opens the
    interactive webview, and NordStern mints/sends `ANCH` to the user's Stellar
-   address. ✅ working on testnet — but the **fiat-in step is simulated**
+   address. working on testnet — but the **fiat-in step is simulated**
    (placeholder "wire" screen; clicking confirm just releases tokens).
 3. **SEP-24 withdrawal (off-ramp)**: user sends `ANCH` back with a memo; the
-   Observer detects it. ✅ detection works — but **fiat payout is simulated**
+   Observer detects it. detection works — but **fiat payout is simulated**
    (no real PSP). This is the seam Cashfree Payouts / RazorpayX plugs into.
-4. **KYC flow** via SEP-12 — ⚠️ currently **mocked** (customer callback always
+4. **KYC flow** via SEP-12 — currently **mocked** (customer callback always
    returns `ACCEPTED`). Real provider (HyperVerge / Signzy) is a pluggable seam.
-5. **UPI deposit flow** — ⚠️ **mocked/planned**. Design target is the SEP-24
+5. **UPI deposit flow** — **mocked/planned**. Design target is the SEP-24
    webview triggering a `upi://pay` intent (mobile) or QR (desktop), with
    backend verification. Not yet wired to a PSP.
-6. **Fiat payout flow** designed *around* Cashfree/RazorpayX — ⚠️ **designed, not
+6. **Fiat payout flow** designed *around* Cashfree/RazorpayX — **designed, not
    integrated**. Keep the interface abstract (see §6, §7 seams).
 7. **An operator-facing surface**: `anchor-service/frontend` (functional wallet +
    dashboard) and `frontend/` (the higher-fidelity "Keel" console prototype).
 
-Treat items marked ⚠️ as **the MVP work still to do**, and items marked ✅ as the
+Treat items marked as **the MVP work still to do**, and items marked as the
 foundation you must not break.
 
-Full phase breakdown: `docs/project/ROADMAP.md`.
+Full phase breakdown: `docs/reference/Roadmap.md`.
 
 ---
 
@@ -161,7 +161,7 @@ them in code:
 - **Whose license enables what.** Payments, PPI/wallet, cross-border/remittance,
   and VDA rules may each apply depending on flows offered.
 
-Keep the full, maintained list in `docs/project/COMPLIANCE_OPEN_QUESTIONS.md` and
+Keep the full, maintained list in `docs/reference/Compliance.md` and
 add to it whenever a task surfaces a new dependency on legal choice. When code
 *must* assume something to proceed, make the assumption a **named, swappable
 config/adapter** (§6) and note it there.
@@ -171,7 +171,7 @@ config/adapter** (§6) and note it there.
 ## 6. Architecture principles
 
 Full technical map (services, ports, data flow, seams):
-**`docs/project/ARCHITECTURE.md`**. Principles:
+**`docs/architecture/Architecture.md`**. Principles:
 
 1. **The Anchor Platform owns the protocol; our code owns the business.** Never
    reimplement SEP-1/10/12/24 yourself — the AP does that. Our business server
@@ -222,16 +222,16 @@ node scripts/setup-base.mjs   # one-time: writes .env.base (MASTER_KEK + config 
 
 Services and ports (see `infrastructure/docker/platform.yml`):
 
-| Service            | Port      | Role                                                       |
+| Service | Port | Role |
 |--------------------|-----------|------------------------------------------------------------|
-| `db` (Postgres)    | 5432      | platformdb / controldb / aggregatordb / anchordb           |
-| `secrets` (LocalStack) | 4566  | AWS Secrets Manager stand-in (PSP/signing creds)           |
-| `traefik`          | 80 / 8090 | Front door — routes `<slug>.anchors.localhost` + consoles  |
-| `platform-api`     | 4000      | Onboarding: auth, applications, drives provisioning        |
-| `control-plane`    | 3002      | The real provisioner (dockerode, keys, asset, per-anchor DB)|
-| `aggregator`       | 3005      | Registry / quote / routing / health                        |
-| `founder-console`  | 4001      | `register.*` — founder journey                             |
-| `admin-console`    | 4002      | `admin.*` — NordStern internal review                      |
+| `db` (Postgres) | 5432 | platformdb / controldb / aggregatordb / anchordb |
+| `secrets` (LocalStack) | 4566 | AWS Secrets Manager stand-in (PSP/signing creds) |
+| `traefik` | 80 / 8090 | Front door — routes `<slug>.anchors.localhost` + consoles |
+| `platform-api` | 4000 | Onboarding: auth, applications, drives provisioning |
+| `control-plane` | 3002 | The real provisioner (dockerode, keys, asset, per-anchor DB)|
+| `aggregator` | 3005 | Registry / quote / routing / health |
+| `founder-console` | 4001 | `register.*` — founder journey |
+| `admin-console` | 4002 | `admin.*` — NordStern internal review |
 
 The compose files live under `infrastructure/docker/` (`platform.yml` for local dev,
 `production.yml` as the mainnet/RDS/TLS overlay). Per-anchor containers (Anchor Platform,
@@ -307,24 +307,27 @@ study AP internals or the SEP-24 reference wallet.)
   **authoritative reference** for SEP semantics and AP admin/config.
 - **`docs/Product_Overview.md`** — a saved clipping of Stellar's Anchor Platform
   overview page (reference despite the name), not a NordStern product spec.
-- **`docs/project/`** — **our authored, maintained context** (created for agents):
-  - `ARCHITECTURE.md` — services, ports, data flows, the swappable seams.
-  - `COMPLIANCE_OPEN_QUESTIONS.md` — the living legal/compliance question list.
-  - `ROADMAP.md` — phased plan from single anchor → multi-anchor platform.
+- **`docs/architecture/`, `docs/guides/`, `docs/runbooks/`, `docs/reference/`** —
+  **our authored, maintained context** (created for agents):
+  - `docs/architecture/Architecture.md` — services, ports, data flows, the swappable seams.
+  - `docs/architecture/Platform.md` / `Identity.md` / `Blueprint.md` — target architecture, identity, product.
+  - `docs/reference/Compliance.md` — the living legal/compliance question list.
+  - `docs/reference/Roadmap.md` / `Readiness.md` — phased plan + production-readiness matrix.
+  - `docs/guides/Walkthrough.md` / `Testing.md`, `docs/runbooks/Recovery.md` — run/test/recover.
 - **`docs/text.txt`** — the original project brief that seeded this setup.
 
 When you learn something durable about *how the system works or why a choice was
-made*, write it into `docs/project/` or the decision log — not into a throwaway
-comment.
+made*, write it into `docs/architecture/` (or the relevant `docs/` subfolder) or the
+decision log — not into a throwaway comment.
 
 ---
 
 ## 10. Suggested future roadmap (summary)
 
-Detail and acceptance criteria in `docs/project/ROADMAP.md`.
+Detail and acceptance criteria in `docs/reference/Roadmap.md`.
 
 - **Phase 0 — Foundation (now):** one anchor on testnet; SEP-24 deposit mints
-  tokens; withdrawal detected; KYC + fiat mocked. ✅ mostly done.
+  tokens; withdrawal detected; KYC + fiat mocked. mostly done.
 - **Phase 1 — Real rails behind adapters:** implement `KycProvider` (HyperVerge),
   `DepositProvider` (UPI collection), `PayoutProvider` (Cashfree/RazorpayX) as
   swappable adapters, still testnet/sandbox. Real webhook verification.

@@ -279,8 +279,8 @@ developer APIs for businesses launching Stellar anchors.
 
 ### CTA buttons
 
-Primary: Talk to us  
-Secondary: Explore the platform  
+Primary: Talk to us
+Secondary: Explore the platform
 Developer CTA: View SDK concept
 
 ### Hero visual direction
@@ -1339,12 +1339,12 @@ This section maps to the current landing page data structure.
 
 ### HERO
 
-Eyebrow: Built for Stellar anchors  
-Title: Become a Stellar anchor without building the stack.  
+Eyebrow: Built for Stellar anchors
+Title: Become a Stellar anchor without building the stack.
 Lead: NordStern provides managed SEP infrastructure, KYC orchestration, payment
 rail adapters, treasury controls, and developer APIs for businesses launching
-on-ramp, off-ramp, or two-way anchors on Stellar.  
-Primary CTA: Talk to us  
+on-ramp, off-ramp, or two-way anchors on Stellar.
+Primary CTA: Talk to us
 Secondary CTA: Explore the platform
 
 ### OUTCOMES
@@ -1353,63 +1353,63 @@ Heading: What NordStern changes for anchors.
 
 Items:
 
-1. Launch faster  
+1. Launch faster
    Start from a working anchor template instead of rebuilding SEP servers, KYC
    flows, payment rails, Stellar operations, and dashboards from zero.
 
-2. Operate with clarity  
+2. Operate with clarity
    Track every deposit, withdrawal, KYC status, Stellar transaction, payout, and
    failed event through a status-driven console.
 
-3. Monetize liquidity  
+3. Monetize liquidity
    Configure fees, spread, limits, and supported rails for the on-ramp and
    off-ramp flows your business is ready to operate.
 
-4. Reach more apps  
+4. Reach more apps
    Join a network where wallets and developers can integrate once and route users
    through the best available anchors.
 
 ### PRIMITIVES
 
-Eyebrow: The platform  
-Title: Every anchor primitive, managed in one stack.  
+Eyebrow: The platform
+Title: Every anchor primitive, managed in one stack.
 Lead: Compose the infrastructure required to launch and operate Stellar
 deposit, withdrawal, and payment routes.
 
 Items:
 
-1. SEP infrastructure  
+1. SEP infrastructure
    Hosted SEP-1, SEP-10, SEP-12, and SEP-24 flows that wallets can discover,
    authenticate with, and open in an interactive webview.
 
-2. KYC and compliance workflows  
+2. KYC and compliance workflows
    Provider-backed verification, customer status, review queues, limits, and
    audit evidence without hardcoding one vendor into core flow logic.
 
-3. Payment rail adapters  
+3. Payment rail adapters
    UPI collection, bank transfer, QR fallback, and payout providers connected
    through swappable interfaces with sandbox defaults.
 
-4. Treasury and operations  
+4. Treasury and operations
    Transaction lifecycle, reserve visibility, fee controls, payout status,
    reconciliation, webhooks, and operator actions in one console.
 
 ### BUILD PATHS
 
-Eyebrow: Flexible by design  
-Title: Start with the anchor model you can support.  
+Eyebrow: Flexible by design
+Title: Start with the anchor model you can support.
 Lead: Launch on-ramp, off-ramp, or both, then expand as your liquidity, rails,
 and compliance model mature.
 
 Paths:
 
-1. Managed Anchor  
+1. Managed Anchor
    A hosted anchor stack for businesses that bring liquidity and want NordStern
    to run the SEP, KYC, payment, and operations layer.
 
    Chips: On-ramp, Off-ramp, Two-way
 
-2. Developer Network  
+2. Developer Network
    APIs and SDKs that let wallets and apps quote routes, open hosted flows, and
    track settlement across multiple anchors.
 
@@ -1417,26 +1417,26 @@ Paths:
 
 ### AUDIENCES
 
-Eyebrow: Who it is for  
+Eyebrow: Who it is for
 Title: Built for anchor operators, wallets, and payment teams.
 
 Items:
 
-1. Anchor operators  
+1. Anchor operators
    Launch and operate a Stellar on-ramp, off-ramp, or two-way anchor without
    rebuilding the infrastructure stack.
 
-2. Wallets and apps  
+2. Wallets and apps
    Add cash-in and cash-out access through one SDK instead of integrating every
    anchor separately.
 
-3. Remittance and payment teams  
+3. Remittance and payment teams
    Route cross-border payments through the best available local anchors by
    corridor, fee, liquidity, limits, and settlement status.
 
 ### TRUST
 
-Title: Sandbox first. Built for real operations.  
+Title: Sandbox first. Built for real operations.
 Lead: NordStern is designed for status-driven money movement: testnet by
 default, provider adapters behind interfaces, and clear gates before real rails.
 
@@ -1449,7 +1449,7 @@ Use status metrics instead of fake production stats:
 
 ### RESOURCES
 
-Eyebrow: Resources  
+Eyebrow: Resources
 Title: Guides for anchor builders.
 
 Posts:
@@ -1466,14 +1466,14 @@ Featured:
 
 ### FINAL CTA
 
-Title: Start with one anchor. Scale into a network.  
+Title: Start with one anchor. Scale into a network.
 CTA: Talk to us
 
 ### FOOTER CTA
 
-Title: Launch your Stellar anchor with NordStern.  
+Title: Launch your Stellar anchor with NordStern.
 Body: Managed SEP infrastructure, KYC workflows, payment rail adapters, treasury
-controls, and developer APIs for on-ramp and off-ramp operations.  
+controls, and developer APIs for on-ramp and off-ramp operations.
 Button: Talk to us
 
 Status: Built for Stellar testnet and sandbox-first integrations

@@ -33,14 +33,14 @@ Prerequisites (Docker, Node ≥ 20, npm, git) and the full flow are in the [READ
 - **Keep testnet/sandbox the default** and gate anything that moves real money ([AGENTS.md §7](AGENTS.md)).
 - **Match the surrounding stack** — TS/Express + Stellar SDK for backend services, App-Router Next.js for frontends.
 - **Migrations, not runtime DDL** — schema changes are versioned and must apply to a fresh database (the `db` CI check enforces this).
-- **Never present legal/compliance conclusions as settled** — document open questions in [`docs/project/COMPLIANCE_OPEN_QUESTIONS.md`](docs/project/COMPLIANCE_OPEN_QUESTIONS.md).
+- **Never present legal/compliance conclusions as settled** — document open questions in [`docs/reference/Compliance.md`](docs/reference/Compliance.md).
 
 ## Before you open a PR
 
 - `npm run typecheck` (and `npm run build` where it exists) in each workspace you touched.
 - `npm test` for money-flow or secret logic (`anchor-template/business-server`, `platform/api`) — these run against real Postgres/LocalStack via Testcontainers, so Docker must be running.
 - **CI must be green.** Six GitHub Actions workflows gate every PR: build/typecheck, DB migration apply-to-fresh, `docker build` for changed images, gitleaks + artifact hygiene, money-flow tests, and the DR drill. Missing `lint`/`test` scripts are skipped, never faked.
-- Record consequential architectural decisions in `anchor-service/docs/decision-log.md` (`DL-00x`) or an ADR under `docs/project/`, and update the README / `AGENTS.md` when reality changes.
+- Record consequential architectural decisions in `anchor-service/docs/decision-log.md` (`DL-00x`) or an ADR under `docs/architecture/`, and update the README / `AGENTS.md` when reality changes.
 
 ## Commit & PR style
 

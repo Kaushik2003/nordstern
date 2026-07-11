@@ -88,19 +88,19 @@ Build on **shadcn/ui** + Tailwind; restyle to the tokens above. Specify states (
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
 │ TOPBAR                                                                     │
-│ [Keel ◆]  Search / ⌘K …………………  [TESTNET ▾] [₹ Full/Compact] [◐ density] [🔔] [Acme Pay ▾] │
+│ [Keel ◆]  Search / ⌘K …………………  [TESTNET ▾] [₹ Full/Compact] [◐ density] [] [Acme Pay ▾] │
 ├────────────┬─────────────────────────────────────────────────────────────┤
 │ SIDEBAR    │                                                              │
 │ ◆ Overview │                       PAGE CONTENT                           │
 │ ⇅ Transactions                                                            │
-│ 🏛 Treasury │                                                              │
+│  Treasury │                                                              │
 │ ◧ Pricing & Liquidity                                                      │
-│ 👤 Users & KYC                                                             │
-│ 🛡 Compliance                                                              │
-│ 📊 Analytics                                                               │
+│  Users & KYC                                                             │
+│  Compliance                                                              │
+│  Analytics                                                               │
 │ ──────────                                                                 │
-│ ⚙ Developer                                                                │
-│ 👥 Settings & Team                                                         │
+│  Developer                                                                │
+│  Settings & Team                                                         │
 │            │                                                              │
 │ [status ●]│                                                              │
 └────────────┴─────────────────────────────────────────────────────────────┘
@@ -132,7 +132,7 @@ Build on **shadcn/ui** + Tailwind; restyle to the tokens above. Specify states (
 ├──────────────┬──────────────┬──────────────┐   ├─────────────────────────┤
 │ ACTIVE USERS │ NET FLOW 24H │ AVAILABLE BAL │   │  LIQUIDITY (two-sided)  │
 │ 12,480 ▲4.1% │ +₹6.4L  in   │ ₹54.2L  →     │   │  Fiat  ████████░░  78%  │
-│              │              │   Withdraw    │   │  USDC  ███░░░░░░░  31% ⚠ │
+│              │              │   Withdraw    │   │  USDC  ███░░░░░░░  31%  │
 ├──────────────┴──────────────┴──────────────┘   ├─────────────────────────┤
 │  MONEY FLOW — live globe with arcs              │  LIVE TAPE              │
 │  (in = emerald toward hub, out = coral away)    │  14:32 +₹2,000 mint ▲  │
@@ -173,7 +173,7 @@ Build on **shadcn/ui** + Tailwind; restyle to the tokens above. Specify states (
 │ 14:32:08   ▲ IN  Deposit  Priya S.      +₹2,000.00  ₹30     ● Settled  GА3…│
 │ 14:31:55   ▼ OUT Withdraw Rahul M.      −₹500.00    ₹12     ◐ Payout…  GB7…│
 │ 14:30:12   ▲ IN  Deposit  Aarav K.      +₹10,000.00 ₹150    ◐ Minting  G9F…│
-│ 14:29:40   ▼ OUT Withdraw Neha T.       −₹1,250.00  ₹25     ✕ Failed   GC2…│
+│ 14:29:40   ▼ OUT Withdraw Neha T.       −₹1,250.00  ₹25      Failed   GC2…│
 │ …                                                                          │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
@@ -291,21 +291,21 @@ Build on **shadcn/ui** + Tailwind; restyle to the tokens above. Specify states (
 │  Users & KYC                                                               │
 │  ┌ KYC FUNNEL ─────────────────────────────────────────────────────────┐  │
 │  │ Started 14,210 ─► Doc 12,980 ─► Face 12,440 ─► Verified 12,110 (85%) │  │
-│  │ drop-offs highlighted ⚠ at Face match                                 │  │
+│  │ drop-offs highlighted  at Face match                                 │  │
 │  └─────────────────────────────────────────────────────────────────────┘  │
 │  [All] [Verified] [Pending] [Rejected] [Flagged]   Tier:[▾]  Search…       │
 │ ⇣ USER         TIER   STATUS      VOLUME(LT)  TXNS  LAST SEEN   RISK        │
 │ Priya Sharma   T2     ● Verified  ₹2,40,300   142   2m ago      Low         │
 │ Rahul Mehta    T1     ● Verified  ₹54,200      31   5m ago      Low         │
 │ Anon (G9F…)    T0     ◐ Pending    —            0   12m ago     —           │
-│ Vikram R.      T2     ⚑ Flagged   ₹8,90,000     67   1h ago     High ⚠      │
+│ Vikram R.      T2      Flagged   ₹8,90,000     67   1h ago     High       │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Components & content:**
 - **KYC funnel:** horizontal funnel `Started → Document → Face match → Verified` with conversion % and **drop-off highlighting** at the weakest step (actionable: "Face-match drop-off 4.5% above network median"). Pass-rate KPI + delta + benchmark vs platform median.
 - **User table:** name + avatar · **KYC tier** (T0/T1/T2 — progressive KYC) · **status** pill (Verified / Pending / Rejected / Flagged) · lifetime volume · tx count · last seen · **risk** badge (Low/Med/High). Right-align numerics; search by name/address; filter by status/tier.
-- **Row → User drawer:** profile (masked PII, appropriate for the operator role) — name, tier, joined, **KYC details** (document type, verification timestamp, Hyperverge match score as a confidence bar, liveness ✓), risk score with contributing factors, transaction history (mini-table), lifetime volume & fees generated, and compliance actions (escalate, add note, request re-KYC) — all **simulated**. A "View in Compliance" link for flagged users.
+- **Row → User drawer:** profile (masked PII, appropriate for the operator role) — name, tier, joined, **KYC details** (document type, verification timestamp, Hyperverge match score as a confidence bar, liveness ), risk score with contributing factors, transaction history (mini-table), lifetime volume & fees generated, and compliance actions (escalate, add note, request re-KYC) — all **simulated**. A "View in Compliance" link for flagged users.
 - **Progressive/tiered KYC note in UI:** show tier thresholds (T0 small limits/minimal friction → T2 full KYC/high limits) as an explainer, reflecting risk-based CDD.
 - **Reusable-KYC indicator (platform network effect):** a subtle badge when a user is "Verified across N anchors on Keel" — verify once, transact anywhere (with consent). Mind privacy framing in copy.
 
@@ -377,7 +377,7 @@ Build on **shadcn/ui** + Tailwind; restyle to the tokens above. Specify states (
 
 **Layout & content (sub-tabs: API Keys · Configuration · Webhooks · SEP Endpoints · Logs):**
 - **API Keys:** list of keys (name, masked value `sk_test_••••a4F2`, scopes, created, last used). **Create key** → modal that **reveals the secret once** with a copy button and a clear "you won't see this again" warning; **Roll** and **Revoke** with confirm. Test vs Live keys gated by the environment switcher.
-- **Configuration / `stellar.toml` (SEP-1):** a syntax-highlighted, **copyable** TOML block showing the anchor's config (HOME_DOMAIN, SIGNING_KEY, asset block: code/issuer/status, SEP endpoints, org info). A "Copy" and "Download stellar.toml" action; an editable-looking view with validation status (✓ valid). This is a concrete, credible developer artifact — render it beautifully (mono, line numbers, copy-on-hover).
+- **Configuration / `stellar.toml` (SEP-1):** a syntax-highlighted, **copyable** TOML block showing the anchor's config (HOME_DOMAIN, SIGNING_KEY, asset block: code/issuer/status, SEP endpoints, org info). A "Copy" and "Download stellar.toml" action; an editable-looking view with validation status ( valid). This is a concrete, credible developer artifact — render it beautifully (mono, line numbers, copy-on-hover).
 - **Webhooks:** endpoint URL field, subscribed events (payment.captured, mint.completed, burn.detected, payout.settled, kyc.updated), a **delivery log** table (event, status 2xx/4xx, timestamp, attempts) with a **"Replay"** action per delivery and a payload viewer (pretty-printed JSON). Webhook replay is a power-user feature that signals seriousness.
 - **SEP endpoint health:** status lights for **SEP-1 / SEP-10 / SEP-24 / SEP-31 / SEP-38** (Up / Degraded / Down) with latency, plus Horizon/RPC health. Green/amber/red.
 - **API usage:** requests/min chart, error rate, rate-limit headroom.

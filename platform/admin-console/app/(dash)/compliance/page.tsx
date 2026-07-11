@@ -29,7 +29,7 @@ export default function CompliancePage() {
           Fields such as FIU-IND registration status are values a founder supplied about their own entity.
           They are displayed as recorded data, never as a determination that an anchor is or is not compliant.
           Whether NordStern or the anchor is the registering entity remains an open question for counsel —
-          see <code className="font-mono">docs/project/COMPLIANCE_OPEN_QUESTIONS.md</code>.
+          see <code className="font-mono">docs/reference/Compliance.md</code>.
         </p>
       </div>
 

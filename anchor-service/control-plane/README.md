@@ -54,4 +54,4 @@ It genuinely launches Docker containers and funds testnet accounts, so it needs 
 
 Express · `dockerode` · `@stellar/stellar-sdk` · `pg` (`node-pg-migrate`) · `@aws-sdk/client-secrets-manager`. Driven by the **Platform API** (`:4000`); mounts the Docker socket to launch per-anchor stacks onto the shared `nordstern-net` network; writes each anchor's keys/status to `controldb`. Key files: `orchestrator.ts`, `provision.ts`, `config-gen.ts`.
 
-> ⚠️ Mounting the Docker socket is host-root-equivalent — acceptable for the single-host pilot only. The Kubernetes target replaces it with an API + RBAC + NetworkPolicy model. See [`docs/project/PRODUCTION_READINESS.md`](../../docs/project/PRODUCTION_READINESS.md).
+> Mounting the Docker socket is host-root-equivalent — acceptable for the single-host pilot only. The Kubernetes target replaces it with an API + RBAC + NetworkPolicy model. See [`docs/reference/Readiness.md`](../../docs/reference/Readiness.md).

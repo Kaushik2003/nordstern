@@ -20,5 +20,5 @@ truth for every coding agent). Read it before doing anything in this repo:
 - **Before claiming any payment integration is "production-ready"/"done",** follow
   the go-live gating described in AGENTS.md §7 and the Cashfree skills — surface
   the unmet checklist items instead of declaring readiness.
-- Prefer the deep-dive docs in `docs/project/` for architecture, compliance
+- Prefer the deep-dive docs in `docs/` for architecture, compliance
   questions, and roadmap detail.

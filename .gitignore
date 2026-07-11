@@ -42,3 +42,5 @@ Thumbs.db
 .bash_history
 
 .mcp.json
+# Personal Claude Code local settings (never commit)
+.claude/settings.local.json

@@ -28,13 +28,13 @@ Required checks (add each as it lands):
 
 ## Option A — GitHub UI
 Settings → Rules → Rulesets → New branch ruleset, target `main`:
-- ✅ Require a pull request before merging
-- ✅ Require status checks to pass → add **`ci-required`**
-- ✅ Require branches to be up to date before merging
-- ✅ Block force pushes
-- ✅ Restrict deletions
-- ✅ Require linear history
-- 🔜 Require 1 approving review (enable when the team grows; add CODEOWNERS + dismiss stale approvals then)
+- Require a pull request before merging
+- Require status checks to pass → add **`ci-required`**
+- Require branches to be up to date before merging
+- Block force pushes
+- Restrict deletions
+- Require linear history
+- Require 1 approving review (enable when the team grows; add CODEOWNERS + dismiss stale approvals then)
 
 ## Option B — `gh` CLI (ruleset)
 ```bash

@@ -37,7 +37,7 @@ Needs a Postgres `anchordb_<slug>` (it migrates its own `nordstern` money schema
 | `PROVIDERS` | Which KYC/payout/deposit adapters to use (mock by default). |
 | DB + signing/PSP creds | Injected by the control-plane from the SecretStore at launch. |
 
-See [`.env.example`](.env.example) (repo root `anchor-template/.env.example`).
+See [`anchor-template/.env.example`](../.env.example).
 
 ## Commands
 

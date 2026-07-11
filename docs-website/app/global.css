@@ -2,6 +2,78 @@
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
 
+/* ============================================================
+   NordStern documentation theme
+   Maps the NordStern brand system (Perano purple + Clear Sans)
+   onto Fumadocs design tokens. Overrides MUST follow the imports
+   above so they win the cascade.
+   ============================================================ */
+
+@theme {
+  --font-sans: var(--ff-clear-text), var(--ff-clear-display), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
+
+  /* NordStern brand scale (Perano family) — available as bg-brand-*, text-brand-* */
+  --color-brand-50: #f5f2ff;
+  --color-brand-100: #e9e5fb;
+  --color-brand-200: #d6cff7;
+  --color-brand-300: #bcb1f2;
+  --color-brand-400: #ab9ff2;
+  --color-brand-500: #8b7ee0;
+  --color-brand-600: #6f5fd6;
+  --color-brand-700: #5a49c0;
+  --color-brand-900: #3c315b;
+}
+
+/* ---------- Light theme (default) ---------- */
+:root {
+  --color-fd-background: #fbfaff;
+  --color-fd-foreground: #17151f;
+  --color-fd-muted: #f1eefb;
+  --color-fd-muted-foreground: #6b6678;
+  --color-fd-popover: #ffffff;
+  --color-fd-popover-foreground: #17151f;
+  --color-fd-card: #ffffff;
+  --color-fd-card-foreground: #17151f;
+  --color-fd-border: rgba(60, 49, 91, 0.12);
+  --color-fd-primary: #6f5fd6;
+  --color-fd-primary-foreground: #ffffff;
+  --color-fd-secondary: #f1eefb;
+  --color-fd-secondary-foreground: #3c315b;
+  --color-fd-accent: #ece7fb;
+  --color-fd-accent-foreground: #4b3f9e;
+  --color-fd-ring: #8b7ee0;
+  --color-fd-overlay: rgba(20, 17, 28, 0.4);
+}
+
+/* ---------- Dark theme ---------- */
+.dark {
+  --color-fd-background: #121016;
+  --color-fd-foreground: #f4f3f8;
+  --color-fd-muted: #1e1b26;
+  --color-fd-muted-foreground: #9d98ac;
+  --color-fd-popover: #1a1822;
+  --color-fd-popover-foreground: #f4f3f8;
+  --color-fd-card: #1a1822;
+  --color-fd-card-foreground: #f4f3f8;
+  --color-fd-border: rgba(171, 159, 242, 0.16);
+  --color-fd-primary: #ab9ff2;
+  --color-fd-primary-foreground: #17151f;
+  --color-fd-secondary: #221f2c;
+  --color-fd-secondary-foreground: #e9e5fb;
+  --color-fd-accent: #26222f;
+  --color-fd-accent-foreground: #d6cff7;
+  --color-fd-ring: #8b7ee0;
+  --color-fd-overlay: rgba(0, 0, 0, 0.6);
+}
+
+/* Sidebar reads a touch deeper than the page for separation */
+.dark #nd-sidebar {
+  --color-fd-muted: #1a1822;
+  --color-fd-secondary: #221f2c;
+  --color-fd-muted-foreground: #b4afc0;
+}
+
 html {
   scrollbar-gutter: stable;
 }
@@ -9,4 +81,23 @@ html {
 html > body[data-scroll-locked] {
   margin-right: 0px !important;
   --removed-body-scroll-bar-size: 0px !important;
+}
+
+/* Display face for headings + the wordmark */
+.font-clear-display {
+  font-family: var(--ff-clear-display), ui-sans-serif, system-ui, sans-serif;
+}
+
+#nd-docs-layout h1,
+#nd-docs-layout h2,
+#nd-docs-layout h3,
+.nd-prose h1,
+.nd-prose h2 {
+  font-family: var(--ff-clear-display), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Brand-tinted text selection */
+::selection {
+  background: rgba(171, 159, 242, 0.32);
 }
